@@ -77,6 +77,12 @@
       return;
     }
 
+    if(tx.incomeManaged===true&&tx.incomePlanId){
+      if(typeof window.deleteIncomePlan==='function')window.deleteIncomePlan(tx.incomePlanId);
+      else alert('Este lançamento é gerenciado pela área Receitas. Exclua a receita por lá.');
+      return;
+    }
+
     const label=tx.description||'este lançamento';
     if(!confirm(`Excluir o lançamento "${label}"? Esta ação não poderá ser desfeita.`))return;
     state.transactions=state.transactions.filter(t=>t.id!==txId);
@@ -189,6 +195,11 @@
     const debtScript=document.createElement('script');
     debtScript.src='debts.js';
     document.body.appendChild(debtScript);
+  }
+  if(!document.querySelector('script[src="incomes.js"]')){
+    const incomeScript=document.createElement('script');
+    incomeScript.src='incomes.js';
+    document.body.appendChild(incomeScript);
   }
   if(!document.querySelector('script[src="projection-controls.js"]')){
     const projectionScript=document.createElement('script');
