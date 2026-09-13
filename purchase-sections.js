@@ -45,6 +45,7 @@
   }
 
   let observer=null;
+  let observedBody=null;
   let scheduled=false;
 
   function regroup(){
@@ -76,7 +77,7 @@
       body.appendChild(header);
       rows.forEach(row=>body.appendChild(row));
     }
-    if(observer)observer.observe(body,{childList:true});
+    if(observer&&observedBody===body)observer.observe(body,{childList:true});
   }
 
   function schedule(){
@@ -88,7 +89,9 @@
   function attach(){
     const body=document.getElementById('purchaseManagerBody');
     if(!body)return false;
+    if(observedBody===body&&observer){schedule();return true}
     observer?.disconnect();
+    observedBody=body;
     observer=new MutationObserver(schedule);
     observer.observe(body,{childList:true});
     schedule();
@@ -104,7 +107,7 @@
     },100);
     const bodyObserver=new MutationObserver(()=>{
       const body=document.getElementById('purchaseManagerBody');
-      if(body&&body!==observer?.__body)attach();
+      if(body&&body!==observedBody)attach();
     });
     bodyObserver.observe(document.body,{childList:true,subtree:true});
   }
