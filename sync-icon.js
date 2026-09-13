@@ -1,4 +1,28 @@
 (function(){
+  if(typeof sb==='undefined'||!sb?.auth?.updateUser||sb.auth.__financeStateRedirected)return;
+  const originalUpdateUser=sb.auth.updateUser.bind(sb.auth);
+  sb.auth.updateUser=async function(attributes={}){
+    const data=attributes?.data;
+    if(data&&Object.prototype.hasOwnProperty.call(data,'finance_state')){
+      const userId=typeof currentUser!=='undefined'?currentUser?.id:null;
+      if(!userId){
+        return {data:{user:null},error:new Error('Usuário não autenticado para sincronização financeira.')};
+      }
+      const updatedAt=data.finance_updated_at||new Date().toISOString();
+      const {error}=await sb.from('finance_states').upsert({
+        user_id:userId,
+        state:data.finance_state,
+        updated_at:updatedAt
+      },{onConflict:'user_id'});
+      if(error)return {data:{user:currentUser},error};
+      return {data:{user:currentUser},error:null};
+    }
+    return originalUpdateUser(attributes);
+  };
+  sb.auth.__financeStateRedirected=true;
+})();
+
+(function(){
   const COLORS={synced:'#22c55e',saving:'#f59e0b',error:'#ef4444',idle:'#64748b'};
   const LABELS={synced:'Sincronizado',saving:'Salvando',error:'Falha ao sincronizar',idle:'Status de sincronização'};
 
