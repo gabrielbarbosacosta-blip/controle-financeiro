@@ -1,5 +1,6 @@
 (function(){
   const STYLE_ID='income-module-style';
+  const OPEN_HORIZON=25;
 
   function planUid(){return 'income-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
   function txUid(){return 'itx-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
@@ -25,6 +26,50 @@
   function monthLabel(ym){return typeof fmtMonth==='function'?fmtMonth(ym):ym}
   function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 
+  function amountVersions(plan){
+    const raw=Array.isArray(plan?.amountVersions)?plan.amountVersions:(Array.isArray(plan?.amountHistory)?plan.amountHistory:[]);
+    return raw.filter(x=>x?.fromMonth).map(x=>({fromMonth:String(x.fromMonth),amount:Number(x.amount)||0})).sort((a,b)=>a.fromMonth.localeCompare(b.fromMonth));
+  }
+  function monthOverrides(plan){return plan?.monthOverrides&&typeof plan.monthOverrides==='object'?{...plan.monthOverrides}:{}}
+  function amountForMonth(plan,ym){
+    let value=Number(plan?.amount)||0;
+    for(const version of amountVersions(plan)){if(version.fromMonth<=ym)value=version.amount;else break}
+    const overrides=monthOverrides(plan);
+    if(Object.prototype.hasOwnProperty.call(overrides,ym))value=Number(overrides[ym])||0;
+    return value;
+  }
+  function planEndMonth(plan){
+    if(plan.mode!=='mensal')return plan.firstMonth;
+    if(plan.openEnded===true){
+      const selected=state?.settings?.selectedMonth||plan.firstMonth;
+      const base=selected>plan.firstMonth?selected:plan.firstMonth;
+      return addMonth(base,OPEN_HORIZON-1);
+    }
+    return plan.lastMonth||plan.firstMonth;
+  }
+  function defaultVersionMonth(plan){
+    const selected=state?.settings?.selectedMonth||plan.firstMonth;
+    return selected<plan.firstMonth?plan.firstMonth:selected;
+  }
+  function versionSummary(plan){
+    const parts=[`Valor-base: ${money(plan.amount)}`];
+    amountVersions(plan).forEach(v=>parts.push(`desde ${monthLabel(v.fromMonth)}: ${money(v.amount)}`));
+    Object.entries(monthOverrides(plan)).sort().forEach(([ym,v])=>parts.push(`exceção ${monthLabel(ym)}: ${money(v)}`));
+    return parts.join(' • ');
+  }
+
+  window.incomeAmountForMonth=amountForMonth;
+  window.financeValueVersions=window.financeValueVersions||{};
+  window.financeValueVersions.income={
+    amountAt:amountForMonth,
+    versions:plan=>[{fromMonth:plan.firstMonth,amount:Number(plan.amount)||0,base:true},...amountVersions(plan)],
+    series:(plan,start,end)=>{
+      const out=[];if(!plan)return out;
+      for(let ym=start||plan.firstMonth,stop=end||planEndMonth(plan),i=0;i<240&&ym<=stop;i++,ym=addMonth(ym,1))out.push({ym,amount:amountForMonth(plan,ym)});
+      return out;
+    }
+  };
+
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
     const style=document.createElement('style');
@@ -33,6 +78,7 @@
       .income-progress{height:7px;background:#172033;border-radius:999px;overflow:hidden;margin-top:7px}.income-progress span{display:block;height:100%;background:#22c55e;border-radius:999px}
       .income-name{font-weight:750}.income-sub{font-size:12px;color:#94a3b8;margin-top:3px}.income-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-incomes .summary-strip{margin-bottom:14px}
+      #incomeValueChangeBox{grid-column:1/-1}
     `;
     document.head.appendChild(style);
   }
@@ -47,8 +93,7 @@
     const nav=document.querySelector('.nav');
     if(nav&&!nav.querySelector('[data-page="incomes"]')){
       const btn=document.createElement('button');
-      btn.dataset.page='incomes';
-      btn.textContent='Receitas';
+      btn.dataset.page='incomes';btn.textContent='Receitas';
       const before=nav.querySelector('[data-page="debts"]')||nav.querySelector('[data-page="projection"]');
       before?nav.insertBefore(btn,before):nav.appendChild(btn);
       btn.addEventListener('click',showIncomePage);
@@ -57,8 +102,7 @@
     const main=document.querySelector('.main');
     if(main&&!document.getElementById('page-incomes')){
       const page=document.createElement('section');
-      page.className='page';
-      page.id='page-incomes';
+      page.className='page';page.id='page-incomes';
       page.innerHTML=`
         <div class="section-head">
           <div><h3>Receitas</h3><div class="muted">Cadastre receitas únicas ou recorrentes. Cada competência é criada automaticamente em Lançamentos.</div></div>
@@ -71,9 +115,7 @@
           <div class="mini"><div class="t">Próxima receita</div><div class="v" id="incomeNextDue">—</div></div>
         </div>
         <div class="notice" style="margin-bottom:14px">As competências aparecem em <strong>Lançamentos</strong> como receitas pendentes. Você pode alterar cada uma para <strong>Recebido</strong> diretamente na coluna Status.</div>
-        <div class="card">
-          <div class="table-scroll"><table class="data-table"><thead><tr><th>Receita</th><th>Periodicidade</th><th>Período</th><th>Próxima</th><th class="num">Valor</th><th class="num">Pendente</th><th></th></tr></thead><tbody id="incomeTableBody"></tbody></table></div>
-        </div>`;
+        <div class="card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Receita</th><th>Periodicidade</th><th>Período</th><th>Próxima</th><th class="num">Valor</th><th class="num">Pendente</th><th></th></tr></thead><tbody id="incomeTableBody"></tbody></table></div></div>`;
       main.appendChild(page);
       page.querySelector('#addIncomeBtn').addEventListener('click',()=>openIncomeModal());
     }
@@ -83,15 +125,17 @@
       wrap.innerHTML=`
         <div class="modal-backdrop" id="incomeModal"><div class="modal"><form id="incomeForm">
           <div class="modal-head"><h3 id="incomeModalTitle">Nova receita</h3><button type="button" class="btn ghost" id="incomeModalClose">✕</button></div>
-          <div class="modal-body"><div class="notice" style="margin-bottom:14px">Para receitas recorrentes, informe o primeiro e o último mês. O sistema criará um lançamento para cada competência do período.</div><div class="form-grid">
+          <div class="modal-body"><div class="notice" style="margin-bottom:14px">Para receitas recorrentes, defina um último mês ou marque <strong>Sem data final</strong>.</div><div class="form-grid">
             <input type="hidden" id="incomeId">
             <div class="field"><label>Nome da receita</label><input id="incomeName" required placeholder="Ex.: Salário líquido"></div>
             <div class="field"><label>Conta de recebimento</label><input id="incomeAccount" placeholder="Ex.: Banco do Brasil"></div>
             <div class="field"><label>Categoria</label><select id="incomeCategory"></select></div>
             <div class="field"><label>Valor por recebimento (R$)</label><input id="incomeAmount" type="number" min="0" step="0.01" required></div>
+            <div class="field full" id="incomeValueChangeBox" style="display:none"><div class="notice"><strong>Versão do valor</strong><div class="form-grid" style="margin-top:10px"><div class="field"><label>Aplicar novo valor</label><select id="incomeValueChangeScope"><option value="fromMonth">A partir de um mês</option><option value="onlyMonth">Somente em um mês</option></select></div><div class="field"><label>Mês da alteração</label><input id="incomeValueChangeMonth" type="month"></div></div><small class="muted">Os valores anteriores ficam preservados. A alteração passa a compor o histórico para gráficos de evolução.</small><div class="income-sub" id="incomeValueHistorySummary" style="margin-top:8px"></div></div></div>
             <div class="field"><label>Periodicidade</label><select id="incomeMode"><option value="unica">Receita única</option><option value="mensal">Recorrente mensal</option></select></div>
             <div class="field"><label>Primeiro mês</label><input id="incomeFirstMonth" type="month" required></div>
-            <div class="field" id="incomeLastMonthField"><label>Último mês</label><input id="incomeLastMonth" type="month"><small class="muted">Obrigatório para receita recorrente.</small></div>
+            <div class="field" id="incomeLastMonthField"><label>Último mês</label><input id="incomeLastMonth" type="month"><small class="muted">Opcional quando “Sem data final” estiver marcado.</small></div>
+            <div class="field" id="incomeNoEndField"><label>Recorrência</label><label class="toggle"><input type="checkbox" id="incomeNoEnd"> Sem data final</label><small class="muted">Mantém até ${OPEN_HORIZON} recebimentos calculados para frente.</small></div>
             <div class="field"><label>Dia do recebimento</label><input id="incomeDueDay" type="number" min="1" max="31" value="1" required></div>
             <div class="field full"><label>Observação</label><textarea id="incomeNotes" rows="3"></textarea></div>
           </div></div>
@@ -102,25 +146,25 @@
       document.getElementById('incomeCancel').addEventListener('click',closeIncomeModal);
       document.getElementById('incomeModal').addEventListener('click',e=>{if(e.target.id==='incomeModal')closeIncomeModal()});
       document.getElementById('incomeMode').addEventListener('change',toggleIncomeMode);
+      document.getElementById('incomeNoEnd').addEventListener('change',toggleIncomeMode);
       document.getElementById('incomeFirstMonth').addEventListener('change',()=>{
-        const mode=document.getElementById('incomeMode').value;
-        const first=document.getElementById('incomeFirstMonth').value;
-        const last=document.getElementById('incomeLastMonth');
-        if(mode==='mensal'&&first&&!last.value)last.value=addMonth(first,11);
+        const mode=document.getElementById('incomeMode').value,first=document.getElementById('incomeFirstMonth').value,last=document.getElementById('incomeLastMonth');
+        if(mode==='mensal'&&first&&!document.getElementById('incomeNoEnd').checked&&!last.value)last.value=addMonth(first,11);
+      });
+      document.getElementById('incomeValueChangeMonth').addEventListener('change',()=>{
+        const id=document.getElementById('incomeId').value,plan=id?state?.incomePlans?.find(p=>p.id===id):null,ym=document.getElementById('incomeValueChangeMonth').value;
+        if(plan&&ym)document.getElementById('incomeAmount').value=amountForMonth(plan,ym);
       });
       document.getElementById('incomeForm').addEventListener('submit',saveIncomeFromForm);
     }
   }
 
   function showIncomePage(){
-    if(!ensureIncomeState())return;
-    buildUi();
+    if(!ensureIncomeState())return;buildUi();
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-incomes'));
     document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='incomes'));
     const title=document.getElementById('pageTitle'),sub=document.getElementById('pageSubtitle');
-    if(title)title.textContent='Receitas';
-    if(sub)sub.textContent='Recebimentos únicos, recorrentes e projeção';
-    renderIncomePage();
+    if(title)title.textContent='Receitas';if(sub)sub.textContent='Recebimentos únicos, recorrentes e projeção';renderIncomePage();
   }
 
   function linkedTransactions(planId){
@@ -130,62 +174,58 @@
 
   function syncIncomeTransactions(plan){
     ensureIncomeState();
-    const old=linkedTransactions(plan.id),byMonth=new Map(old.map(t=>[String(t.date).slice(0,7),t]));
-    state.transactions=state.transactions.filter(t=>!(t.incomeManaged===true&&t.incomePlanId===plan.id));
-    const first=plan.firstMonth;
-    const last=plan.mode==='mensal'?plan.lastMonth:plan.firstMonth;
-    const span=Math.max(0,monthDiffLocal(first,last));
-    const generated=[];
+    const old=linkedTransactions(plan.id),byMonth=new Map(old.map(t=>[String(t.date||'').slice(0,7),t]));
+    const first=plan.firstMonth,last=planEndMonth(plan),span=Math.max(0,monthDiffLocal(first,last)),generated=[];
     for(let i=0;i<=span;i++){
-      const ym=addMonth(first,i),previous=byMonth.get(ym),status=previous?.status||'Pendente';
+      const ym=addMonth(first,i),previous=byMonth.get(ym);
+      if(previous&&String(previous.status||'').toLowerCase()!=='pendente'){generated.push(previous);continue}
       generated.push({
-        id:previous?.id||txUid(),
-        date:safeDate(ym,plan.dueDay),
-        type:'Receita',
-        category:plan.category||'Salário',
-        description:plan.name,
-        account:plan.account||'',
-        nature:plan.mode==='mensal'?'Fixa':'Extra',
-        amount:Number(plan.amount)||0,
-        status,
-        notes:[`Receita gerada automaticamente por "${plan.name}".`,plan.notes||''].filter(Boolean).join(' '),
-        projection:true,
-        recurring:false,
-        installmentCurrent:null,
-        installmentTotal:null,
-        incomeManaged:true,
-        incomePlanId:plan.id,
-        incomeOccurrence:i+1,
-        incomeOccurrenceTotal:span+1
+        id:previous?.id||txUid(),date:safeDate(ym,plan.dueDay),type:'Receita',category:plan.category||'Salário',description:plan.name,account:plan.account||'',nature:plan.mode==='mensal'?'Fixa':'Extra',amount:amountForMonth(plan,ym),status:previous?.status||'Pendente',notes:[`Receita gerada automaticamente por "${plan.name}".`,plan.notes||''].filter(Boolean).join(' '),projection:true,recurring:false,installmentCurrent:null,installmentTotal:null,incomeManaged:true,incomePlanId:plan.id,incomeOccurrence:i+1,incomeOccurrenceTotal:plan.openEnded?null:span+1,incomeOpenEnded:!!plan.openEnded
       });
     }
+    old.filter(t=>String(t.status||'').toLowerCase()!=='pendente'&&(String(t.date||'').slice(0,7)<first||String(t.date||'').slice(0,7)>last)).forEach(t=>generated.push(t));
+    state.transactions=state.transactions.filter(t=>!(t.incomeManaged===true&&t.incomePlanId===plan.id));
     state.transactions.push(...generated);
   }
+  window.syncIncomePlanTransactions=syncIncomeTransactions;
 
   function toggleIncomeMode(){
-    const mode=document.getElementById('incomeMode')?.value;
-    const field=document.getElementById('incomeLastMonthField'),last=document.getElementById('incomeLastMonth'),first=document.getElementById('incomeFirstMonth')?.value;
-    if(!field||!last)return;
-    field.style.display=mode==='mensal'?'grid':'none';
-    last.required=mode==='mensal';
-    if(mode==='mensal'&&first&&!last.value)last.value=addMonth(first,11);
+    const mode=document.getElementById('incomeMode')?.value,checkbox=document.getElementById('incomeNoEnd'),noEnd=mode==='mensal'&&checkbox?.checked,lastField=document.getElementById('incomeLastMonthField'),last=document.getElementById('incomeLastMonth'),noEndField=document.getElementById('incomeNoEndField'),first=document.getElementById('incomeFirstMonth')?.value;
+    if(noEndField)noEndField.style.display=mode==='mensal'?'grid':'none';
+    if(mode!=='mensal'&&checkbox)checkbox.checked=false;
+    if(lastField)lastField.style.display=mode==='mensal'?'grid':'none';
+    if(last){last.disabled=!!noEnd;last.required=mode==='mensal'&&!noEnd;if(noEnd)last.value='';else if(mode==='mensal'&&first&&!last.value)last.value=addMonth(first,11)}
   }
 
   function openIncomeModal(id=null){
-    if(!ensureIncomeState())return;
-    buildUi();
+    if(!ensureIncomeState())return;buildUi();
     const plan=id?state.incomePlans.find(p=>p.id===id):null;
     document.getElementById('incomeModalTitle').textContent=plan?'Editar receita':'Nova receita';
     document.getElementById('incomeId').value=plan?.id||'';
     document.getElementById('incomeName').value=plan?.name||'';
     document.getElementById('incomeAccount').value=plan?.account||'';
     document.getElementById('incomeCategory').innerHTML=categoryOptions(plan?.category||'Salário');
-    document.getElementById('incomeAmount').value=plan?.amount??'';
     document.getElementById('incomeMode').value=plan?.mode||'unica';
     document.getElementById('incomeFirstMonth').value=plan?.firstMonth||state?.settings?.selectedMonth||new Date().toISOString().slice(0,7);
+    document.getElementById('incomeNoEnd').checked=plan?.openEnded===true;
     document.getElementById('incomeLastMonth').value=plan?.lastMonth||'';
     document.getElementById('incomeDueDay').value=plan?.dueDay??1;
     document.getElementById('incomeNotes').value=plan?.notes||'';
+
+    const versionBox=document.getElementById('incomeValueChangeBox');
+    if(plan){
+      const ym=defaultVersionMonth(plan);
+      versionBox.style.display='grid';
+      document.getElementById('incomeValueChangeScope').value='fromMonth';
+      document.getElementById('incomeValueChangeMonth').value=ym;
+      document.getElementById('incomeAmount').value=amountForMonth(plan,ym);
+      document.getElementById('incomeValueHistorySummary').textContent=versionSummary(plan);
+    }else{
+      versionBox.style.display='none';
+      document.getElementById('incomeAmount').value='';
+      document.getElementById('incomeValueChangeMonth').value='';
+      document.getElementById('incomeValueHistorySummary').textContent='';
+    }
     toggleIncomeMode();
     document.getElementById('incomeModal').classList.add('open');
   }
@@ -194,30 +234,38 @@
   function saveIncomeFromForm(e){
     e.preventDefault();
     if(!ensureIncomeState())return;
-    const id=document.getElementById('incomeId').value||planUid();
-    const mode=document.getElementById('incomeMode').value;
-    const firstMonth=document.getElementById('incomeFirstMonth').value;
-    const lastMonth=mode==='mensal'?document.getElementById('incomeLastMonth').value:firstMonth;
-    if(mode==='mensal'&&!lastMonth){alert('Informe o último mês da receita recorrente.');return}
-    if(lastMonth<firstMonth){alert('O último mês não pode ser anterior ao primeiro mês.');return}
-    const months=monthDiffLocal(firstMonth,lastMonth)+1;
-    if(months>120){alert('O período máximo para uma receita recorrente é de 120 meses.');return}
+    const existingId=document.getElementById('incomeId').value,id=existingId||planUid(),existing=existingId?state.incomePlans.find(p=>p.id===existingId):null;
+    const mode=document.getElementById('incomeMode').value,openEnded=mode==='mensal'&&document.getElementById('incomeNoEnd').checked,firstMonth=document.getElementById('incomeFirstMonth').value,lastMonth=mode==='mensal'&&!openEnded?document.getElementById('incomeLastMonth').value:firstMonth;
+    if(mode==='mensal'&&!openEnded&&!lastMonth){alert('Informe o último mês da receita recorrente ou marque Sem data final.');return}
+    if(lastMonth&&lastMonth<firstMonth){alert('O último mês não pode ser anterior ao primeiro mês.');return}
+    if(!openEnded&&monthDiffLocal(firstMonth,lastMonth)+1>120){alert('O período máximo para uma receita recorrente é de 120 meses.');return}
+    const enteredAmount=Number(document.getElementById('incomeAmount').value)||0;
+    if(enteredAmount<=0){alert('Informe um valor maior que zero.');return}
+
+    let baseAmount=enteredAmount,versions=[],overrides={};
+    if(existing){
+      baseAmount=Number(existing.amount)||0;
+      versions=amountVersions(existing);overrides=monthOverrides(existing);
+      const changeMonth=document.getElementById('incomeValueChangeMonth').value||defaultVersionMonth(existing),scope=document.getElementById('incomeValueChangeScope').value||'fromMonth';
+      if(changeMonth<firstMonth){alert('O mês da alteração não pode ser anterior ao primeiro mês da receita.');return}
+      const oldValue=amountForMonth(existing,changeMonth);
+      if(enteredAmount!==oldValue){
+        if(scope==='onlyMonth')overrides[changeMonth]=enteredAmount;
+        else{
+          delete overrides[changeMonth];
+          const idx=versions.findIndex(v=>v.fromMonth===changeMonth),entry={fromMonth:changeMonth,amount:enteredAmount};
+          if(idx>=0)versions[idx]=entry;else versions.push(entry);
+          versions.sort((a,b)=>a.fromMonth.localeCompare(b.fromMonth));
+        }
+      }
+    }
+
     const plan={
-      id,
-      name:document.getElementById('incomeName').value.trim(),
-      account:document.getElementById('incomeAccount').value.trim(),
-      category:document.getElementById('incomeCategory').value||'Salário',
-      amount:Number(document.getElementById('incomeAmount').value)||0,
-      mode,
-      firstMonth,
-      lastMonth,
-      dueDay:Math.min(31,Math.max(1,Number(document.getElementById('incomeDueDay').value)||1)),
-      notes:document.getElementById('incomeNotes').value.trim()
+      id,name:document.getElementById('incomeName').value.trim(),account:document.getElementById('incomeAccount').value.trim(),category:document.getElementById('incomeCategory').value||'Salário',amount:baseAmount,mode,firstMonth,lastMonth:openEnded?null:lastMonth,openEnded,dueDay:Math.min(31,Math.max(1,Number(document.getElementById('incomeDueDay').value)||1)),notes:document.getElementById('incomeNotes').value.trim(),amountVersions:versions,monthOverrides:overrides
     };
     const idx=state.incomePlans.findIndex(p=>p.id===id);
     if(idx>=0)state.incomePlans[idx]=plan;else state.incomePlans.push(plan);
-    syncIncomeTransactions(plan);
-    closeIncomeModal();
+    syncIncomeTransactions(plan);closeIncomeModal();
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
     renderIncomePage();
   }
@@ -228,34 +276,32 @@
     if(!confirm(`Excluir a receita "${plan.name}" e todos os lançamentos vinculados?`))return;
     state.incomePlans=state.incomePlans.filter(p=>p.id!==id);
     state.transactions=state.transactions.filter(t=>!(t.incomeManaged===true&&t.incomePlanId===id));
-    if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
-    renderIncomePage();
+    if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();renderIncomePage();
   }
 
   function renderIncomePage(){
-    if(!ensureIncomeState())return;
-    buildUi();
+    if(!ensureIncomeState())return;buildUi();
     const plans=state.incomePlans||[],allLinked=state.transactions.filter(t=>t.incomeManaged===true),pending=allLinked.filter(t=>String(t.status).toLowerCase()==='pendente');
     const count=document.getElementById('incomePlanCount'),pc=document.getElementById('incomePendingCount'),pt=document.getElementById('incomePendingTotal'),nd=document.getElementById('incomeNextDue');
-    if(count)count.textContent=String(plans.length);
-    if(pc)pc.textContent=String(pending.length);
-    if(pt)pt.textContent=money(pending.reduce((s,t)=>s+(Number(t.amount)||0),0));
+    if(count)count.textContent=String(plans.length);if(pc)pc.textContent=String(pending.length);if(pt)pt.textContent=money(pending.reduce((s,t)=>s+(Number(t.amount)||0),0));
     if(nd){const next=[...pending].sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0];nd.textContent=next?`${monthLabel(String(next.date).slice(0,7))} • ${money(next.amount)}`:'—'}
     const body=document.getElementById('incomeTableBody');if(!body)return;
     body.innerHTML=plans.length?plans.map(p=>{
-      const txs=linkedTransactions(p.id).sort((a,b)=>String(a.date).localeCompare(String(b.date))),pend=txs.filter(t=>String(t.status).toLowerCase()==='pendente'),received=txs.length-pend.length,next=pend[0],remaining=pend.reduce((s,t)=>s+(Number(t.amount)||0),0),pct=txs.length?Math.round(received/txs.length*100):0;
-      const period=p.mode==='mensal'?`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`:monthLabel(p.firstMonth);
+      const txs=linkedTransactions(p.id).sort((a,b)=>String(a.date).localeCompare(String(b.date))),pend=txs.filter(t=>String(t.status).toLowerCase()==='pendente'),received=txs.length-pend.length,next=pend[0],remaining=pend.reduce((s,t)=>s+(Number(t.amount)||0),0),pct=p.openEnded?0:(txs.length?Math.round(received/txs.length*100):0),selected=state?.settings?.selectedMonth||p.firstMonth,currentValue=amountForMonth(p,selected<p.firstMonth?p.firstMonth:selected),hasVersions=amountVersions(p).length||Object.keys(monthOverrides(p)).length;
+      const period=p.mode==='mensal'?(p.openEnded?`${monthLabel(p.firstMonth)} → Sem fim`:`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`):monthLabel(p.firstMonth);
+      const progress=p.openEnded?'':`<div class="income-progress"><span style="width:${pct}%"></span></div>`;
       return `<tr>
-        <td><div class="income-name">${esc(p.name)}</div><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}</div><div class="income-progress"><span style="width:${pct}%"></span></div></td>
+        <td><div class="income-name">${esc(p.name)}</div><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}</div>${progress}</td>
         <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pend.length} pendente(s)</div></td>
         <td>${period}</td>
-        <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:'Concluída'}</td>
-        <td class="num">${money(p.amount)}</td>
-        <td class="num"><strong>${money(remaining)}</strong></td>
+        <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
+        <td class="num">${money(currentValue)}${hasVersions?'<div class="income-sub">valor vigente</div>':''}</td>
+        <td class="num"><strong>${p.openEnded?'Recorrente':money(remaining)}</strong></td>
         <td><div class="income-actions"><button class="btn small" onclick="editIncomePlan('${p.id}')">Editar</button><button class="btn small danger" onclick="deleteIncomePlan('${p.id}')">Excluir</button></div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma receita cadastrada.</td></tr>';
   }
+  window.renderIncomePage=renderIncomePage;
 
   const previousEditTx=window.editTx;
   window.editTx=function(id){
@@ -269,10 +315,6 @@
   window.editIncomePlan=openIncomeModal;
   window.deleteIncomePlan=deleteIncome;
 
-  function init(){
-    if(!ensureIncomeState())return;
-    buildUi();
-  }
-
+  function init(){if(!ensureIncomeState())return;buildUi()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
