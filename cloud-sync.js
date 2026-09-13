@@ -11,3 +11,18 @@ window.financeCloud={
     return updatedAt;
   }
 };
+
+pushStateToCloud=async function(){
+  if(!currentUser||remoteWriteInFlight)return;
+  remoteWriteInFlight=true;
+  try{
+    const updatedAt=await window.financeCloud.save(currentUser.id,state);
+    currentUser.user_metadata={...(currentUser.user_metadata||{}),finance_updated_at:updatedAt};
+    setSyncStatus('Sincronizado');
+  }catch(e){
+    console.error(e);
+    setSyncStatus('Falha ao sincronizar',true);
+  }finally{
+    remoteWriteInFlight=false;
+  }
+};
