@@ -20,6 +20,38 @@
     return config;
   }
 
+  function round(v){return typeof round2==='function'?round2(v):Math.round((Number(v)||0)*100)/100}
+  function monthOf(v){return String(v||'').slice(0,7)}
+
+  function projectedClosingForSelectedMonth(selectedYm,config){
+    if(typeof actualForMonth!=='function')return 0;
+    const cfg=config||{transactions:true,incomes:true,cards:true,debts:true};
+    let closing=Number(actualForMonth(selectedYm).closing)||0;
+
+    for(const tx of state?.transactions||[]){
+      if(monthOf(tx.date)!==selectedYm)continue;
+      if(String(tx.status||'').trim().toLowerCase()!=='pendente')continue;
+      const isDebt=tx.debtManaged===true;
+      const isManagedIncome=tx.incomeManaged===true;
+      if(isDebt&&!cfg.debts)continue;
+      if(isManagedIncome&&!cfg.incomes)continue;
+      if(!isDebt&&!isManagedIncome&&!cfg.transactions)continue;
+      const amount=Number(tx.amount)||0;
+      if(tx.type==='Receita')closing+=amount;
+      else if(tx.type==='Despesa')closing-=amount;
+    }
+
+    if(cfg.cards&&Array.isArray(state?.cards)&&typeof cardForecast==='function'){
+      for(const card of state.cards.filter(c=>c.active!==false)){
+        const inv=typeof getInvoice==='function'?getInvoice(card.id,selectedYm):null;
+        if(inv?.status==='Paga')continue;
+        closing-=Number(cardForecast(card,selectedYm).total)||0;
+      }
+    }
+    return round(closing);
+  }
+  window.projectedClosingForSelectedMonth=projectedClosingForSelectedMonth;
+
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
     const style=document.createElement('style');
@@ -42,8 +74,7 @@
   function filteredProjection(selectedYm,months=12){
     const config=ensureConfig();
     if(typeof actualForMonth!=='function')return[];
-    const actual=actualForMonth(selectedYm);
-    let opening=Number(actual.closing)||0;
+    let opening=projectedClosingForSelectedMonth(selectedYm,config);
     const rows=[];
 
     for(let i=1;i<=months;i++){
@@ -69,11 +100,27 @@
         :0;
       const expense=otherExpense+invoices;
       const result=income-expense;
-      const closing=typeof round2==='function'?round2(opening+result):Math.round((opening+result)*100)/100;
+      const closing=round(opening+result);
       rows.push({ym,opening,income,otherExpense,invoices,expense,benefits,result,closing});
       opening=closing;
     }
     return rows;
+  }
+
+  const originalProjectionFrom=window.projectionFrom;
+  if(typeof originalProjectionFrom==='function'&&!originalProjectionFrom.__currentPendingIncluded){
+    const wrapped=function(selectedYm,months){
+      const rows=originalProjectionFrom.apply(this,arguments);
+      if(!Array.isArray(rows)||!rows.length||typeof actualForMonth!=='function')return rows;
+      const actualClosing=Number(actualForMonth(selectedYm).closing)||0;
+      const projectedClosing=projectedClosingForSelectedMonth(selectedYm,{transactions:true,incomes:true,cards:true,debts:true});
+      const delta=round(projectedClosing-actualClosing);
+      if(!delta)return rows;
+      return rows.map(r=>({...r,opening:round((Number(r.opening)||0)+delta),closing:round((Number(r.closing)||0)+delta)}));
+    };
+    wrapped.__currentPendingIncluded=true;
+    window.projectionFrom=wrapped;
+    try{projectionFrom=wrapped}catch(e){}
   }
 
   function updateSummary(){
