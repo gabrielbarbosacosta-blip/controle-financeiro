@@ -2,6 +2,15 @@
   if(window.__chatgptFinanceIntegrationLoaded)return;
   window.__chatgptFinanceIntegrationLoaded=true;
   window.__invoiceAiUiLoaded=true;
+
+  if(!document.querySelector('script[data-invoice-clear-v2]')){
+    const clearScript=document.createElement('script');
+    clearScript.src='invoice-clear.js';
+    clearScript.async=false;
+    clearScript.dataset.invoiceClearV2='1';
+    document.head.appendChild(clearScript);
+  }
+
   function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
   function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
   function mount(){
