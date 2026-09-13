@@ -128,6 +128,13 @@
 })();
 
 (function(){
+  if(document.querySelector('script[src="cloud-sync.js"]'))return;
+  const script=document.createElement('script');
+  script.src='cloud-sync.js';
+  document.body.appendChild(script);
+})();
+
+(function(){
   if(document.querySelector('script[src="invoice-materializer.js"]'))return;
   const script=document.createElement('script');
   script.src='invoice-materializer.js';
