@@ -5,8 +5,10 @@
   function diff(a,b){const [ya,ma]=String(a).split('-').map(Number),[yb,mb]=String(b).split('-').map(Number);return(yb-ya)*12+(mb-ma)}
   function safeDate(ym,day){const[y,m]=String(ym).split('-').map(Number),last=new Date(y,m,0).getDate(),d=Math.min(Math.max(Number(day)||1,1),last);return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
   function amountForMonth(expense,ym){
+    if(typeof window.expenseAmountForMonth==='function')return window.expenseAmountForMonth(expense,ym);
     let amount=Number(expense.installmentAmount)||0;
-    const history=(Array.isArray(expense.amountHistory)?expense.amountHistory:[]).filter(x=>x?.fromMonth).slice().sort((a,b)=>String(a.fromMonth).localeCompare(String(b.fromMonth)));
+    const raw=Array.isArray(expense.amountVersions)?expense.amountVersions:(Array.isArray(expense.amountHistory)?expense.amountHistory:[]);
+    const history=raw.filter(x=>x?.fromMonth).slice().sort((a,b)=>String(a.fromMonth).localeCompare(String(b.fromMonth)));
     for(const item of history){if(String(item.fromMonth)<=ym)amount=Number(item.amount)||0;else break}
     const overrides=expense.monthOverrides&&typeof expense.monthOverrides==='object'?expense.monthOverrides:{};
     if(Object.prototype.hasOwnProperty.call(overrides,ym))amount=Number(overrides[ym])||0;
@@ -19,10 +21,7 @@
     const generated=[];
     for(let n=first;n<=last;n++){
       const ym=addMonth(expense.firstMonth,n-first),old=byNumber.get(n),denom=expense.openEnded?'∞':String(last),date=safeDate(ym,expense.dueDay),amount=amountForMonth(expense,ym);
-      if(old&&String(old.status||'').toLowerCase()!=='pendente'){
-        generated.push(old);
-        continue;
-      }
+      if(old&&String(old.status||'').toLowerCase()!=='pendente'){generated.push(old);continue}
       const tx={id:old?.id||txUid(),date,type:'Despesa',category:expense.category||'Dívidas',description:`${expense.name} — parcela ${n}/${denom}`,account:expense.account||'',nature:'Parcelamento',amount,status:old?.status||'Pendente',notes:[`Parcela gerada automaticamente pela despesa "${expense.name}".`,expense.openEnded?'Despesa sem data final.':'',expense.notes||''].filter(Boolean).join(' '),projection:true,recurring:false,installmentCurrent:null,installmentTotal:null,debtManaged:true,debtId:expense.id,debtInstallmentNumber:n,debtInstallmentTotal:expense.openEnded?null:last,debtOpenEnded:!!expense.openEnded};
       if(!old||old.date!==date||Number(old.amount)!==amount||old.description!==tx.description||old.category!==tx.category||old.account!==tx.account||old.debtOpenEnded!==tx.debtOpenEnded)changed=true;
       generated.push(tx);
