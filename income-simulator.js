@@ -80,9 +80,9 @@
     return{income:round(income),otherExpense:round(otherExpense),benefits:round(benefits),invoices:round(invoices)};
   }
 
-  function buildProjection(plan,withCandidate){
+  function buildProjection(plan,withCandidate,excludeExisting=false){
     const selected=state.settings.selectedMonth;
-    const replaceId=withCandidate?plan.id:null;
+    const replaceId=(withCandidate||excludeExisting)?plan.id:null;
     let opening=projectedSelectedClosing(replaceId);
     if(withCandidate)opening=round(opening+candidateAmount(plan,selected));
     const rows=[];
@@ -101,7 +101,7 @@
     if(existing?.querySelector('#incomeSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="incomeSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da receita</h3><div class="muted" id="incomeSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="incomeSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="incomeSimCurrent">—</div><div class="muted" id="incomeSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a receita</div><div class="v" id="incomeSimWith">—</div><div class="muted" id="incomeSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="incomeSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#22c55e;border-radius:999px;display:inline-block"></span>Com a receita</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="incomeSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="incomeSimulationBack">Voltar</button><button type="button" class="btn primary" id="incomeSimulationConfirm">Cadastrar receita</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="incomeSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da receita</h3><div class="muted" id="incomeSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="incomeSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="incomeSimCurrentLabel">Saldo projetado atual</div><div class="v" id="incomeSimCurrent">—</div><div class="muted" id="incomeSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a receita</div><div class="v" id="incomeSimWith">—</div><div class="muted" id="incomeSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="incomeSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="incomeSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#22c55e;border-radius:999px;display:inline-block"></span>Com a receita</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="incomeSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="incomeSimulationBack">Voltar</button><button type="button" class="btn primary" id="incomeSimulationConfirm">Cadastrar receita</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('incomeSimulationClose').onclick=closeSimulation;
     document.getElementById('incomeSimulationBack').onclick=closeSimulation;
@@ -109,7 +109,7 @@
     document.getElementById('incomeSimulationConfirm').onclick=()=>{closeSimulation();document.getElementById('incomeForm')?.requestSubmit()};
   }
 
-  function drawComparisonChart(current,simulated){
+  function drawComparisonChart(current,simulated,editing=false){
     const canvas=document.getElementById('incomeSimulationComparisonChart');if(!canvas)return;
     const currentData=current.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
     const simulatedData=simulated.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
@@ -150,22 +150,33 @@
         ctx.save();ctx.translate(x(i),H-14);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
       }
     });
+
+    if(typeof window.bindFinancialChartTooltip==='function'){
+      const points=[
+        ...currentData.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:editing?'Sem esta receita':'Projeção atual'})),
+        ...simulatedData.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:'Com a receita'}))
+      ];
+      setTimeout(()=>window.bindFinancialChartTooltip(canvas,points),120);
+    }
   }
   window.drawIncomeSimulationComparison=drawComparisonChart;
 
   function openSimulation(){
     const plan=planFromForm();if(!plan)return;
     buildModal();
-    const current=buildProjection(plan,false),simulated=buildProjection(plan,true);
-    const currentFinal=current.at(-1)?.closing??projectedSelectedClosing(),simFinal=simulated.at(-1)?.closing??currentFinal,impact=round(simFinal-currentFinal),endMonth=simulated.at(-1)?.ym||state.settings.selectedMonth;
+    const editing=!!plan.id;
+    const current=buildProjection(plan,false,editing),simulated=buildProjection(plan,true);
+    const currentFinal=current.at(-1)?.closing??projectedSelectedClosing(editing?plan.id:null),simFinal=simulated.at(-1)?.closing??currentFinal,impact=round(simFinal-currentFinal),endMonth=simulated.at(-1)?.ym||state.settings.selectedMonth;
     document.getElementById('incomeSimulationSubtitle').textContent=`${plan.name} • ${money(plan.amount)}${plan.mode==='mensal'?' por mês':''}`;
     document.getElementById('incomeSimCurrent').textContent=money(currentFinal);
     document.getElementById('incomeSimWith').textContent=money(simFinal);
     document.getElementById('incomeSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
+    const currentLabel=document.getElementById('incomeSimCurrentLabel');if(currentLabel)currentLabel.textContent=editing?'Saldo projetado sem esta receita':'Saldo projetado atual';
+    const currentLegend=document.getElementById('incomeSimCurrentLegend');if(currentLegend)currentLegend.textContent=editing?'Sem esta receita':'Projeção atual';
     const impactEl=document.getElementById('incomeSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact>=0?'#86efac':'#fca5a5';
-    const label=document.getElementById('incomeSimulationHorizonLabel');if(label)label.textContent=`Projeção atual e projeção com a receita nos próximos ${horizon()} meses, na mesma escala.`;
+    const label=document.getElementById('incomeSimulationHorizonLabel');if(label)label.textContent=editing?`Projeção sem esta receita e projeção com a receita editada nos próximos ${horizon()} meses, na mesma escala.`:`Projeção atual e projeção com a receita nos próximos ${horizon()} meses, na mesma escala.`;
     document.getElementById('incomeSimulationModal').classList.add('open');
-    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated)));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated,editing)));
   }
   function closeSimulation(){document.getElementById('incomeSimulationModal')?.classList.remove('open')}
 
@@ -175,7 +186,7 @@
     let btn=document.getElementById('incomeSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
     if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='incomeSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
-    btn.onclick=openSimulation;
+    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation()};
     buildModal();
     return true;
   }
