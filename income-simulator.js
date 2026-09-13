@@ -1,5 +1,9 @@
 (function(){
-  const HORIZON=12;
+  function horizon(){
+    if(typeof window.getProjectionMonths==='function')return window.getProjectionMonths();
+    const n=Number(state?.settings?.projectionMonths);
+    return n===24?24:12;
+  }
 
   function addMonth(ym,n){
     if(typeof ymAdd==='function')return ymAdd(ym,n);
@@ -82,7 +86,7 @@
     let opening=projectedSelectedClosing(replaceId);
     if(withCandidate)opening=round(opening+candidateAmount(plan,selected));
     const rows=[];
-    for(let i=1;i<=HORIZON;i++){
+    for(let i=1;i<=horizon();i++){
       const ym=addMonth(selected,i),flows=monthFlows(ym,replaceId);
       const candidate=withCandidate?candidateAmount(plan,ym):0;
       const income=round(flows.income+candidate),expense=round(flows.otherExpense+flows.invoices),result=round(income-expense),closing=round(opening+result);
@@ -93,15 +97,61 @@
   }
 
   function buildModal(){
-    if(document.getElementById('incomeSimulationModal'))return;
+    const existing=document.getElementById('incomeSimulationModal');
+    if(existing?.querySelector('#incomeSimulationComparisonChart'))return;
+    if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="incomeSimulationModal" style="z-index:1200"><div class="modal" style="max-width:1120px;width:min(1120px,96vw)"><div class="modal-head"><div><h3>Simulação da receita</h3><div class="muted" id="incomeSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="incomeSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="incomeSimCurrent">—</div><div class="muted" id="incomeSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a receita</div><div class="v" id="incomeSimWith">—</div><div class="muted" id="incomeSimImpact" style="margin-top:4px"></div></div></div><div class="card" style="margin-bottom:14px"><div class="section-head"><div><h3>Projeção geral com a receita</h3><div class="muted">Mesma lógica da Projeção geral, considerando a receita preenchida sem salvá-la.</div></div></div><div class="chart-wrap small"><canvas id="incomeSimulationChart"></canvas></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Mês</th><th class="num">Saldo inicial</th><th class="num">Receitas</th><th class="num">Outras despesas</th><th class="num">Cartões</th><th class="num">Resultado</th><th class="num">Saldo final</th></tr></thead><tbody id="incomeSimulationBody"></tbody></table></div></div></div><div class="modal-foot"><button type="button" class="btn" id="incomeSimulationBack">Voltar</button><button type="button" class="btn primary" id="incomeSimulationConfirm">Cadastrar receita</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="incomeSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da receita</h3><div class="muted" id="incomeSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="incomeSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="incomeSimCurrent">—</div><div class="muted" id="incomeSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a receita</div><div class="v" id="incomeSimWith">—</div><div class="muted" id="incomeSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="incomeSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#22c55e;border-radius:999px;display:inline-block"></span>Com a receita</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="incomeSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="incomeSimulationBack">Voltar</button><button type="button" class="btn primary" id="incomeSimulationConfirm">Cadastrar receita</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('incomeSimulationClose').onclick=closeSimulation;
     document.getElementById('incomeSimulationBack').onclick=closeSimulation;
     document.getElementById('incomeSimulationModal').addEventListener('click',e=>{if(e.target.id==='incomeSimulationModal')closeSimulation()});
     document.getElementById('incomeSimulationConfirm').onclick=()=>{closeSimulation();document.getElementById('incomeForm')?.requestSubmit()};
   }
+
+  function drawComparisonChart(current,simulated){
+    const canvas=document.getElementById('incomeSimulationComparisonChart');if(!canvas)return;
+    const currentData=current.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
+    const simulatedData=simulated.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
+    const values=[...currentData,...simulatedData].map(x=>x.value);
+    let min=Math.min(0,...values),max=Math.max(0,...values);
+    if(max===min){max+=1;min-=1}
+    const pad=(max-min)*.1;max+=pad;min-=pad;
+
+    const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,cssW=Math.max(360,rect.width||980),cssH=Math.max(280,rect.height||340);
+    canvas.width=cssW*dpr;canvas.height=cssH*dpr;
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=cssW,H=cssH,p={l:68,r:22,t:24,b:48};
+    const count=Math.max(currentData.length,simulatedData.length);
+    const x=i=>p.l+(W-p.l-p.r)*(count<=1?.5:i/(count-1));
+    const y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
+
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const val=min+(max-min)*i/4,yy=y(val);
+      ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();
+      ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4);
+    }
+    if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
+
+    const drawSeries=(data,color)=>{
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
+      data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});
+      ctx.stroke();
+      data.forEach((d,i)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x(i),y(d.value),4,0,Math.PI*2);ctx.fill()});
+    };
+
+    drawSeries(currentData,'#60a5fa');
+    drawSeries(simulatedData,'#22c55e');
+
+    currentData.forEach((d,i)=>{
+      if(currentData.length<=12||i%2===0){
+        ctx.save();ctx.translate(x(i),H-14);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
+      }
+    });
+  }
+  window.drawIncomeSimulationComparison=drawComparisonChart;
 
   function openSimulation(){
     const plan=planFromForm();if(!plan)return;
@@ -113,20 +163,21 @@
     document.getElementById('incomeSimWith').textContent=money(simFinal);
     document.getElementById('incomeSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
     const impactEl=document.getElementById('incomeSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact>=0?'#86efac':'#fca5a5';
-    document.getElementById('incomeSimulationBody').innerHTML=simulated.map(r=>`<tr><td>${monthLabel(r.ym)}${r.candidate?'<div class="muted">inclui receita simulada</div>':''}</td><td class="num">${money(r.opening)}</td><td class="num positive">${money(r.income)}</td><td class="num">${money(r.otherExpense)}</td><td class="num">${money(r.invoices)}</td><td class="num ${r.result<0?'negative':'positive'}">${money(r.result)}</td><td class="num ${r.closing<0?'negative':''}"><strong>${money(r.closing)}</strong></td></tr>`).join('');
+    const label=document.getElementById('incomeSimulationHorizonLabel');if(label)label.textContent=`Projeção atual e projeção com a receita nos próximos ${horizon()} meses, na mesma escala.`;
     document.getElementById('incomeSimulationModal').classList.add('open');
-    if(typeof drawLineChart==='function')requestAnimationFrame(()=>drawLineChart('incomeSimulationChart',simulated.map(r=>({label:monthLabel(r.ym),value:r.closing}))));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated)));
   }
   function closeSimulation(){document.getElementById('incomeSimulationModal')?.classList.remove('open')}
 
   function install(){
     const form=document.getElementById('incomeForm'),foot=form?.querySelector('.modal-foot');
     if(!form||!foot)return false;
-    if(document.getElementById('incomeSimulateBtn'))return true;
-    const save=foot.querySelector('button[type="submit"]');
-    if(!save)return false;
-    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='incomeSimulateBtn';btn.textContent='Simular';btn.onclick=openSimulation;foot.insertBefore(btn,save);
-    buildModal();return true;
+    let btn=document.getElementById('incomeSimulateBtn');
+    const save=foot.querySelector('button[type="submit"]');if(!save)return false;
+    if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='incomeSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
+    btn.onclick=openSimulation;
+    buildModal();
+    return true;
   }
 
   function init(){let tries=0;const timer=setInterval(()=>{tries++;if(install()||tries>120)clearInterval(timer)},100)}
