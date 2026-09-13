@@ -1,15 +1,11 @@
 # Controle Financeiro
 
-Aplicação web pessoal para controle de caixa, cartões, faturas, compras parceladas e projeção financeira.
+Aplicação web estática para controle financeiro pessoal, com:
 
-## Recursos
-- Dashboard mensal
-- Lançamentos de receitas, despesas e benefícios
-- Cartões > faturas > compras
-- Parcelamentos e recorrências
-- Projeção por cartão e projeção geral
-- Login e sincronização via Supabase Auth
-- Backup JSON e exportação CSV
+- login e sincronização via Supabase Auth;
+- lançamentos de caixa;
+- cartões de crédito, faturas, parcelas e compras recorrentes;
+- projeção financeira de 12 meses;
+- backup JSON e exportação CSV.
 
-## Deploy
-Projeto estático compatível com Vercel.
+Hospedagem planejada em Vercel, com atualização automática a partir da branch `main` deste repositório.
