@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Controle Financeiro</title>
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo">CF</div><div><h1>Controle Financeiro</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
+<div class="app auth-hidden" id="appRoot">
+<aside class="sidebar">
+  <div class="brand"><div class="logo">CF</div><div><h1>Controle Financeiro</h1><small>Online • sincronizado</small></div></div>
+  <nav class="nav">
+    <button class="active" data-page="dashboard">Dashboard</button>
+    <button data-page="history">Lançamentos</button>
+    <button data-page="cards">Cartões</button>
+    <button data-page="projection">Projeção geral</button>
+    <button data-page="settings">Configurações</button>
+  </nav>
+  <div class="side-note">Dados sincronizados com sua conta. O navegador mantém uma cópia local de segurança.</div>
+</aside>
+<main class="main">
+  <div class="topbar">
+    <div><h2 id="pageTitle">Dashboard</h2><p id="pageSubtitle">Caixa, gastos e projeções</p></div>
+    <div class="actions"><select id="monthSelect" class="btn"></select><span class="sync-pill" id="syncStatus">Sincronizado</span><button class="btn" id="logoutBtn">Sair</button><button class="btn primary" id="quickAdd">+ Novo lançamento</button></div>
+  </div>
+
+  <section class="page active" id="page-dashboard">
+    <div class="grid-kpi">
+      <div class="card kpi"><div class="label">Saldo inicial</div><div class="value" id="kpiOpening">—</div><div class="hint">Início do mês</div></div>
+      <div class="card kpi"><div class="label">Receitas de caixa</div><div class="value positive" id="kpiIncome">—</div><div class="hint">Receitas recebidas</div></div>
+      <div class="card kpi"><div class="label">Saídas de caixa</div><div class="value negative" id="kpiExpense">—</div><div class="hint">Inclui faturas pagas</div></div>
+      <div class="card kpi"><div class="label">Faturas pagas</div><div class="value" id="kpiInvoices">—</div><div class="hint">Um valor por fatura</div></div>
+      <div class="card kpi"><div class="label">Saldo final</div><div class="value" id="kpiClosing">—</div><div class="hint" id="kpiResultHint">Resultado: —</div></div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="card"><div class="section-head"><div><h3>Saldo projetado</h3><div class="muted">Próximos 12 meses • inclui projeção dos cartões</div></div></div><div class="chart-wrap"><canvas id="projectionChart"></canvas></div></div>
+      <div class="card"><h3>Gastos por categoria</h3><div class="muted" style="margin:-8px 0 14px">Compras de cartão são classificadas sem duplicar o caixa</div><div class="category-list" id="categoryList"></div></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-history">
+    <div class="notice" style="margin-bottom:14px">Compras de cartão não aparecem individualmente aqui. A fatura aparece como <strong>um único lançamento</strong>. Para ver as compras, abra a fatura em <strong>Cartões</strong>.</div>
+    <div class="card">
+      <div class="section-head"><div><h3>Lançamentos do caixa</h3><div class="muted" id="historyCount"></div></div><button class="btn primary" id="addFromHistory">+ Adicionar</button></div>
+      <div class="filters">
+        <div class="field"><label>Buscar</label><input id="searchFilter" placeholder="Descrição, conta ou observação"></div>
+        <div class="field"><label>Tipo</label><select id="typeFilter"><option value="">Todos</option><option>Receita</option><option>Despesa</option><option>Benefício</option><option>Fatura</option></select></div>
+        <div class="field"><label>Categoria</label><select id="categoryFilter"></select></div>
+        <div class="field"><label>Status</label><select id="statusFilter"><option value="">Todos</option><option>Pago</option><option>Recebido</option><option>Pendente</option><option>Aberta</option><option>Fechada</option><option>Paga</option></select></div>
+      </div>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-cards">
+    <div class="section-head"><div><h3>Cartões de crédito</h3><div class="muted">Faturas, compras, parcelas e projeção por cartão</div></div><button class="btn primary" id="addCardBtn">+ Novo cartão</button></div>
+    <div class="card-grid" id="cardsGrid"></div>
+    <div id="cardDetail"></div>
+  </section>
+
+  <section class="page" id="page-projection">
+    <div class="summary-strip">
+      <div class="mini"><div class="t">Saldo inicial da projeção</div><div class="v" id="projOpening">—</div></div>
+      <div class="mini"><div class="t">Menor saldo projetado</div><div class="v" id="projLowest">—</div></div>
+      <div class="mini"><div class="t">Faturas projetadas (12m)</div><div class="v" id="projCardsTotal">—</div></div>
+      <div class="mini"><div class="t">Saldo em 12 meses</div><div class="v" id="projEnd">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><div class="chart-wrap"><canvas id="projectionChartLarge"></canvas></div></div>
+    <div class="card"><div class="section-head"><div><h3>Detalhamento da projeção</h3><div class="muted">Cartões entram pelo total projetado da fatura, não pelas compras individualmente.</div></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Mês</th><th class="num">Saldo inicial</th><th class="num">Receitas</th><th class="num">Outras despesas</th><th class="num">Faturas</th><th class="num">Resultado</th><th class="num">Saldo final</th></tr></thead><tbody id="projectionBody"></tbody></table></div></div>
+  </section>
+
+  <section class="page" id="page-settings">
+    <div class="settings-grid">
+      <div class="card"><h3>Configuração financeira</h3><div class="form-grid"><div class="field"><label>Saldo-base</label><input id="setBaseBalance" type="number" step="0.01"></div><div class="field"><label>Data do saldo-base</label><input id="setBaseDate" type="date"></div></div><div style="margin-top:14px"><button class="btn primary" id="saveSettings">Salvar configuração</button></div></div>
+      <div class="card"><h3>Backup</h3><p class="muted">Exporte todos os lançamentos, cartões, faturas e compras para um arquivo JSON.</p><div class="toolbar"><button class="btn" id="backupBtn">Baixar backup</button><label class="btn">Restaurar backup<input type="file" id="restoreFile" accept="application/json" hidden></label></div></div>
+      <div class="card"><h3>Exportação</h3><p class="muted">Exporte o fluxo de caixa consolidado para CSV. Cada fatura aparece em uma única linha.</p><button class="btn" id="csvBtn">Exportar CSV</button></div>
+      <div class="card danger-zone"><h3>Reiniciar dados</h3><p class="muted">Apaga os dados desta versão no navegador e recria a base inicial.</p><button class="btn danger" id="resetBtn">Reiniciar</button></div>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- Modal: lançamento -->
+<div class="modal-backdrop" id="txModal"><div class="modal"><form id="txForm"><div class="modal-head"><h3 id="txModalTitle">Novo lançamento</h3><button type="button" class="btn ghost modal-close" data-modal="txModal">✕</button></div><div class="modal-body">
+<div class="notice" style="margin-bottom:14px">Compra no cartão? Cadastre em <strong>Cartões → Adicionar compra</strong>. Aqui entram apenas movimentos de caixa e benefícios.</div>
+<div class="form-grid">
+  <input type="hidden" id="txId"><div class="field"><label>Data</label><input type="date" id="txDate" required></div>
+  <div class="field"><label>Tipo</label><select id="txType"><option>Despesa</option><option>Receita</option><option>Benefício</option></select></div>
+  <div class="field"><label>Categoria</label><select id="txCategory"></select></div>
+  <div class="field"><label>Descrição</label><input id="txDescription" required placeholder="Ex.: Aluguel"></div>
+  <div class="field"><label>Conta</label><input id="txAccount" placeholder="Ex.: BB, PIX, Dinheiro"></div>
+  <div class="field"><label>Natureza</label><select id="txNature"><option>Variável</option><option>Fixa</option><option>Parcelamento</option><option>Extra</option></select></div>
+  <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" min="0" id="txAmount" required></div>
+  <div class="field"><label>Status</label><select id="txStatus"><option>Pago</option><option>Recebido</option><option>Pendente</option></select></div>
+  <div class="three"><div class="field"><label>Parcela atual</label><input type="number" min="1" id="txInstallmentCurrent"></div><div class="field"><label>Total parcelas</label><input type="number" min="1" id="txInstallmentTotal"></div><div class="field"><label>Recorrente mensal</label><label class="toggle"><input type="checkbox" id="txRecurring"> Sim</label></div></div>
+  <div class="field"><label>Fim da recorrência</label><input type="month" id="txRecurringEnd"></div><div class="field"><label>Considerar na projeção</label><label class="toggle"><input type="checkbox" id="txProjection" checked> Sim</label></div>
+  <div class="field full"><label>Observação</label><textarea id="txNotes" rows="3"></textarea></div>
+</div></div><div class="modal-foot"><button type="button" class="btn modal-close" data-modal="txModal">Cancelar</button><button class="btn primary" type="submit">Salvar lançamento</button></div></form></div></div>
+
+<!-- Modal: cartão -->
+<div class="modal-backdrop" id="cardModal"><div class="modal"><form id="cardForm"><div class="modal-head"><h3 id="cardModalTitle">Novo cartão</h3><button type="button" class="btn ghost modal-close" data-modal="cardModal">✕</button></div><div class="modal-body"><div class="form-grid">
+<input type="hidden" id="cardId"><div class="field"><label>Nome do cartão</label><input id="cardName" required placeholder="Ex.: BB Gabriel"></div><div class="field"><label>Conta / emissor</label><input id="cardAccount" placeholder="Ex.: Banco do Brasil"></div>
+<div class="field"><label>Limite (R$)</label><input id="cardLimit" type="number" min="0" step="0.01"></div><div class="field"><label>Estimativa de novas compras por mês (R$)</label><input id="cardEstimate" type="number" min="0" step="0.01"><small class="muted">Entra na projeção além das parcelas já contratadas.</small></div>
+<div class="field"><label>Dia de fechamento</label><input id="cardClosingDay" type="number" min="1" max="31"></div><div class="field"><label>Dia de vencimento</label><input id="cardDueDay" type="number" min="1" max="31"></div>
+<div class="field full"><label class="toggle"><input type="checkbox" id="cardActive" checked> Cartão ativo e incluído na projeção</label></div>
+</div></div><div class="modal-foot"><button type="button" class="btn modal-close" data-modal="cardModal">Cancelar</button><button class="btn primary" type="submit">Salvar cartão</button></div></form></div></div>
+
+<!-- Modal: compra -->
+<div class="modal-backdrop" id="purchaseModal"><div class="modal"><form id="purchaseForm"><div class="modal-head"><h3 id="purchaseModalTitle">Adicionar compra</h3><button type="button" class="btn ghost modal-close" data-modal="purchaseModal">✕</button></div><div class="modal-body"><div class="form-grid">
+<input type="hidden" id="purchaseId"><div class="field"><label>Cartão</label><select id="purchaseCard" required></select></div><div class="field"><label>Data da compra</label><input id="purchaseDate" type="date" required></div>
+<div class="field"><label>Descrição</label><input id="purchaseDescription" required placeholder="Ex.: Notebook"></div><div class="field"><label>Categoria</label><select id="purchaseCategory"></select></div>
+<div class="field"><label>Tipo</label><select id="purchaseMode"><option value="parcelada">Compra / parcelamento</option><option value="recorrente">Cobrança recorrente mensal</option></select></div><div class="field"><label id="purchaseAmountLabel">Valor total da compra (R$)</label><input id="purchaseAmount" type="number" step="0.01" min="0" required></div>
+<div class="field" id="installmentsField"><label>Número de parcelas</label><input id="purchaseInstallments" type="number" min="1" value="1"></div><div class="field"><label>Primeira fatura</label><input id="purchaseFirstInvoice" type="month" required></div>
+<div class="field" id="recurringEndField" style="display:none"><label>Última fatura (opcional)</label><input id="purchaseRecurringEnd" type="month"></div><div class="field full"><label>Observação</label><textarea id="purchaseNotes" rows="3"></textarea></div>
+</div></div><div class="modal-foot"><button type="button" class="btn modal-close" data-modal="purchaseModal">Cancelar</button><button class="btn primary" type="submit">Salvar compra</button></div></form></div></div>
+
+<!-- Modal: fatura -->
+<div class="modal-backdrop" id="invoiceModal"><div class="modal"><form id="invoiceForm"><div class="modal-head"><h3>Configurar fatura</h3><button type="button" class="btn ghost modal-close" data-modal="invoiceModal">✕</button></div><div class="modal-body"><div class="form-grid">
+<input type="hidden" id="invoiceCardId"><input type="hidden" id="invoiceYm"><div class="field"><label>Status</label><select id="invoiceStatus"><option>Aberta</option><option>Fechada</option><option>Paga</option></select></div><div class="field"><label>Ajuste da fatura (+/- R$)</label><input id="invoiceAdjustment" type="number" step="0.01"><small class="muted">Use para juros, taxas ou conciliação de fatura histórica.</small></div>
+<div class="field full"><label>Observação</label><textarea id="invoiceNotes" rows="3"></textarea></div></div></div><div class="modal-foot"><button type="button" class="btn modal-close" data-modal="invoiceModal">Cancelar</button><button class="btn primary" type="submit">Salvar fatura</button></div></form></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
