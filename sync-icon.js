@@ -50,7 +50,7 @@
       .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
   }
 
-  function mountPendingBox({valueId,boxId,labelId,type,color}){
+  function mountPendingBox({valueId,boxId,labelId,type,color,label}){
     const valueEl=document.getElementById(valueId);
     if(!valueEl)return;
     const card=valueEl.closest('.kpi');
@@ -60,8 +60,11 @@
       box=document.createElement('div');
       box.id=boxId;
       box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';
-      box.innerHTML=`<span style="color:#94a3b8">Valores pendentes</span><strong id="${labelId}" style="font-size:12px;color:${color};font-variant-numeric:tabular-nums">—</strong>`;
+      box.innerHTML=`<span class="pending-label" style="color:#94a3b8">${label}</span><strong id="${labelId}" style="font-size:12px;color:${color};font-variant-numeric:tabular-nums">—</strong>`;
       card.appendChild(box);
+    }else{
+      const labelEl=box.querySelector('.pending-label');
+      if(labelEl)labelEl.textContent=label;
     }
     const ym=state?.settings?.selectedMonth;
     const value=ym?pendingAmountForMonth(type,ym):0;
@@ -75,14 +78,16 @@
       boxId:'kpiIncomeForecastBox',
       labelId:'kpiIncomeForecast',
       type:'Receita',
-      color:'#bbf7d0'
+      color:'#bbf7d0',
+      label:'Receitas pendentes'
     });
     mountPendingBox({
       valueId:'kpiExpense',
       boxId:'kpiExpensePendingBox',
       labelId:'kpiExpensePending',
       type:'Despesa',
-      color:'#fecaca'
+      color:'#fecaca',
+      label:'Despesas pendentes'
     });
   }
 
