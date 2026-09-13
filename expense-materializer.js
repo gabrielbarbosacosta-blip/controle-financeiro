@@ -1,5 +1,5 @@
 (function(){
-  const OPEN_HORIZON=24;
+  const OPEN_HORIZON=25;
   function txUid(){return 'dtx-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
   function addMonth(ym,n){const [y,m]=String(ym).split('-').map(Number),d=new Date(y,m-1+n,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
   function diff(a,b){const [ya,ma]=String(a).split('-').map(Number),[yb,mb]=String(b).split('-').map(Number);return(yb-ya)*12+(mb-ma)}
