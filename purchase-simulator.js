@@ -95,41 +95,54 @@
   function buildModal(){
     if(document.getElementById('purchaseSimulationModal'))return;
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div id="purchaseSimulationGrid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start"><div class="card"><div class="section-head"><div><h3>Projeção atual</h3><div class="muted">Cenário atual, sem a compra simulada.</div></div></div><div class="chart-wrap small"><canvas id="purchaseSimulationCurrentChart"></canvas></div></div><div class="card"><div class="section-head"><div><h3>Projeção com a compra</h3><div class="muted">Cenário considerando a compra antes de cadastrá-la.</div></div></div><div class="chart-wrap small"><canvas id="purchaseSimulationWithChart"></canvas></div></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas usam a mesma escala para mostrar o impacto real da compra.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
-    const style=document.createElement('style');
-    style.textContent='@media(max-width:1050px){#purchaseSimulationGrid{grid-template-columns:1fr!important}}';
-    document.head.appendChild(style);
     document.getElementById('purchaseSimulationClose').onclick=closeSimulation;
     document.getElementById('purchaseSimulationBack').onclick=closeSimulation;
     document.getElementById('purchaseSimulationModal').addEventListener('click',e=>{if(e.target.id==='purchaseSimulationModal')closeSimulation()});
     document.getElementById('purchaseSimulationConfirm').onclick=()=>{closeSimulation();document.getElementById('purchaseForm')?.requestSubmit()};
   }
 
-  function drawSharedChart(id,data,min,max){
-    const canvas=document.getElementById(id);if(!canvas)return;
-    const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,cssW=Math.max(300,rect.width||520),cssH=Math.max(220,rect.height||300);
-    canvas.width=cssW*dpr;canvas.height=cssH*dpr;
-    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
-    const W=cssW,H=cssH,p={l:62,r:18,t:20,b:42};
-    const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
-    const y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
-    ctx.clearRect(0,0,W,H);ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;
-    for(let i=0;i<=4;i++){const val=min+(max-min)*i/4,yy=y(val);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4)}
-    if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
-    ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;ctx.beginPath();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
-    data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=d.value<0?'#ef4444':'#3b82f6';ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();if(data.length<=12||i%2===0){ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore()}});
-  }
-
-  function drawPair(current,simulated){
-    const currentData=current.map(r=>({label:monthLabel(r.ym),value:r.closing}));
-    const simulatedData=simulated.map(r=>({label:monthLabel(r.ym),value:r.closing}));
-    const values=[...currentData,...simulatedData].map(x=>Number(x.value)||0);
+  function drawComparisonChart(current,simulated){
+    const canvas=document.getElementById('purchaseSimulationComparisonChart');if(!canvas)return;
+    const currentData=current.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
+    const simulatedData=simulated.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
+    const values=[...currentData,...simulatedData].map(x=>x.value);
     let min=Math.min(0,...values),max=Math.max(0,...values);
     if(max===min){max+=1;min-=1}
     const pad=(max-min)*.1;max+=pad;min-=pad;
-    drawSharedChart('purchaseSimulationCurrentChart',currentData,min,max);
-    drawSharedChart('purchaseSimulationWithChart',simulatedData,min,max);
+
+    const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,cssW=Math.max(360,rect.width||980),cssH=Math.max(280,rect.height||340);
+    canvas.width=cssW*dpr;canvas.height=cssH*dpr;
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=cssW,H=cssH,p={l:68,r:22,t:24,b:48};
+    const x=i=>p.l+(W-p.l-p.r)*(currentData.length<=1?.5:i/(currentData.length-1));
+    const y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
+
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const val=min+(max-min)*i/4,yy=y(val);
+      ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();
+      ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4);
+    }
+    if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
+
+    const drawSeries=(data,color)=>{
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
+      data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});
+      ctx.stroke();
+      data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,3.5,0,Math.PI*2);ctx.fill()});
+    };
+
+    drawSeries(currentData,'#60a5fa');
+    drawSeries(simulatedData,'#f59e0b');
+
+    currentData.forEach((d,i)=>{
+      if(currentData.length<=12||i%2===0){
+        const xx=x(i);ctx.save();ctx.translate(xx,H-14);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
+      }
+    });
   }
 
   function openSimulation(){
@@ -148,7 +161,7 @@
     document.getElementById('purchaseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
     const impactEl=document.getElementById('purchaseSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact<0?'#fca5a5':'#86efac';
     document.getElementById('purchaseSimulationModal').classList.add('open');
-    requestAnimationFrame(()=>drawPair(current,simulated));
+    requestAnimationFrame(()=>drawComparisonChart(current,simulated));
   }
   function closeSimulation(){document.getElementById('purchaseSimulationModal')?.classList.remove('open')}
 
