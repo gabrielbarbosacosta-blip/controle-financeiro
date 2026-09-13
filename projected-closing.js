@@ -11,7 +11,7 @@
 
   function renderProjectedClosing(){
     if(typeof state==='undefined'||!state?.settings?.selectedMonth)return;
-    const valueEl=document.getElementById('kpiOpening');
+    const valueEl=document.getElementById('kpiClosing');
     const card=valueEl?.closest('.kpi');
     if(!card)return;
     let box=document.getElementById('kpiProjectedClosingBox');
@@ -19,13 +19,9 @@
       box=document.createElement('div');
       box.id='kpiProjectedClosingBox';
       box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';
-      box.innerHTML='<span style="color:#94a3b8">Saldo projetado do mês</span><strong id="kpiProjectedClosing" style="font-size:12px;font-variant-numeric:tabular-nums">—</strong>';
-      card.appendChild(box);
-    }else if(box.parentElement!==card){
+      box.innerHTML='<span style="color:#94a3b8">Saldo final projetado</span><strong id="kpiProjectedClosing" style="font-size:12px;font-variant-numeric:tabular-nums">—</strong>';
       card.appendChild(box);
     }
-    const label=box.querySelector('span');
-    if(label)label.textContent='Saldo projetado do mês';
     const ym=state.settings.selectedMonth;
     const closing=typeof actualForMonth==='function'?(Number(actualForMonth(ym).closing)||0):0;
     const projected=(typeof round2==='function'?round2:v=>Math.round(v*100)/100)(closing+pendingAmountForMonth('Receita',ym)-pendingAmountForMonth('Despesa',ym));
