@@ -50,3 +50,28 @@
   script.src='income-simulator-comparison.js';
   document.body.appendChild(script);
 })();
+
+(function(){
+  if(window.__projectionVertexEvents)return;
+  window.__projectionVertexEvents=true;
+  const add=(ym,n)=>typeof ymAdd==='function'?ymAdd(ym,n):ym;
+  const money=v=>typeof fmtMoney==='function'?fmtMoney(v):String(Number(v)||0);
+  const cfg=id=>{if(id!=='projectionChart')return{incomes:true,debts:true,cards:true};const s=state?.settings?.dashboardProjectionSources||{};return{incomes:s.incomes!==false,debts:s.debts!==false,cards:s.cards!==false}};
+  function evt(list,type,action,name,amount){amount=Math.abs(Number(amount)||0);if(!amount)return;const positive=(type==='Receita'&&action!=='end')||(type==='Despesa'&&action==='end');list.push({type,action,name:name||type,amount,positive})}
+  function monthEvents(ym,id){
+    const out=[],c=cfg(id);
+    if(c.incomes)for(const p of state?.incomePlans||[]){const a=typeof window.incomeAmountForMonth==='function'?window.incomeAmountForMonth(p,ym):Number(p.amount)||0;if(p.mode==='unica'){if(p.firstMonth===ym)evt(out,'Receita','once',p.name,a)}else{if(p.firstMonth===ym)evt(out,'Receita','start',p.name,a);if(p.openEnded!==true&&p.lastMonth===ym)evt(out,'Receita','end',p.name,a)}}
+    if(c.debts)for(const d of state?.debts||[]){const a=Number(d.installmentAmount)||0;if(d.firstMonth===ym)evt(out,'Despesa','start',d.name,a);if(d.openEnded!==true){const first=Math.max(1,Number(d.firstInstallment)||1),total=Math.max(first,Number(d.totalInstallments)||first);if(add(d.firstMonth,total-first)===ym)evt(out,'Despesa','end',d.name,a)}}
+    if(c.cards)for(const p of state?.purchases||[]){let a=Number(p.installmentValue)||0;if(p.mode==='recorrente'){a=Number(p.totalAmount)||0;if(p.firstInvoiceYm===ym)evt(out,'Despesa','start',p.description,a);if(p.recurringEnd===ym)evt(out,'Despesa','end',p.description,a);continue}if(p.openEnded===true){if(p.firstInvoiceYm===ym)evt(out,'Despesa','start',p.description,a);continue}const cur=Number(p.chatgptImport?.installmentCurrent),tot=Number(p.chatgptImport?.installmentTotal);if(Number.isInteger(cur)&&Number.isInteger(tot)&&cur>=1&&tot>=cur){if(!a)a=Number(p.totalAmount)||0;if(cur===1&&p.firstInvoiceYm===ym)evt(out,'Despesa','start',p.description,a);if(add(p.firstInvoiceYm,tot-cur)===ym)evt(out,'Despesa','end',p.description,a);continue}const n=Math.max(1,Number(p.installments)||1);if(n<=1)continue;if(!a&&typeof purchaseAllocation==='function')a=Number(purchaseAllocation(p,ym)?.amount)||0;if(p.firstInvoiceYm===ym)evt(out,'Despesa','start',p.description,a);if(add(p.firstInvoiceYm,n-1)===ym)evt(out,'Despesa','end',p.description,a)}
+    return out;
+  }
+  function annotate(id,data){
+    if(id!=='projectionChart'&&id!=='projectionChartLarge')return;
+    const canvas=document.getElementById(id),host=canvas?.parentElement;if(!canvas||!host||!data?.length||!state?.settings?.selectedMonth)return;
+    host.style.position='relative';host.querySelector(':scope > .projection-vertex-event-layer')?.remove();
+    const layer=document.createElement('div');layer.className='projection-vertex-event-layer';layer.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:8';host.appendChild(layer);
+    const rect=canvas.getBoundingClientRect(),W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:18,t:20,b:42},vals=data.map(d=>Number(d.value)||0);let min=Math.min(0,...vals),max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.1;max+=pad;min-=pad;const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1)),y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
+    data.forEach((d,i)=>{const ym=add(state.settings.selectedMonth,i+1),events=monthEvents(ym,id);if(!events.length)return;const pos=events.filter(e=>e.positive).length,neg=events.length-pos,b=document.createElement('div'),title=events.map(e=>`${e.positive?'+':'−'} ${e.type} ${e.action==='start'?'iniciou':e.action==='end'?'terminou':'pontual'}: ${e.name} (${money(e.amount)})`).join('\n');b.title=title;b.textContent=pos&&neg?`+${pos} −${neg}`:pos?`+${pos}`:`−${neg}`;b.style.cssText=`position:absolute;left:${x(i)}px;top:${y(Number(d.value)||0)-16}px;transform:translate(-50%,-100%);padding:2px 6px;border-radius:999px;font:700 10px system-ui;color:#fff;background:${pos&&neg?'#d97706':pos?'#16a34a':'#dc2626'};border:1px solid rgba(255,255,255,.35);box-shadow:0 2px 8px rgba(0,0,0,.28);pointer-events:auto;white-space:nowrap;cursor:help`;layer.appendChild(b)});
+  }
+  const base=window.drawLineChart;if(typeof base==='function'&&!base.__projectionVertexEvents){const wrapped=function(id,data){const r=base.apply(this,arguments);try{annotate(id,data)}catch(e){console.error('projection vertex events',e)}return r};wrapped.__projectionVertexEvents=true;window.drawLineChart=wrapped;try{drawLineChart=wrapped}catch(e){}}
+})();
