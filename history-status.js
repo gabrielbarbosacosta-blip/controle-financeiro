@@ -191,6 +191,11 @@
 })();
 
 (function(){
+  if(!document.querySelector('script[src="cloud-sync.js"]')){
+    const cloudSyncScript=document.createElement('script');
+    cloudSyncScript.src='cloud-sync.js';
+    document.body.appendChild(cloudSyncScript);
+  }
   if(!document.querySelector('script[src="debts.js"]')){
     const debtScript=document.createElement('script');
     debtScript.src='debts.js';
