@@ -103,7 +103,7 @@
     const noEnd=mode==='mensal'&&checkbox.checked;
     last.disabled=noEnd;
     last.required=mode==='mensal'&&!noEnd;
-    if(noEnd)last.value='';
+    if(noEnd&&last.value)last.value='';
   }
 
   function syncModalFromPlan(){
@@ -113,6 +113,12 @@
     if(!checkbox)return;
     checkbox.checked=!!(plan?.mode==='mensal'&&plan?.openEnded===true);
     applyNoEndState();
+  }
+
+  function refreshIncomePageIfVisible(){
+    const page=document.getElementById('page-incomes');
+    const nav=document.querySelector('.nav [data-page="incomes"]');
+    if(page?.classList.contains('active')&&nav)nav.click();
   }
 
   function handleOpenEndedSubmit(e){
@@ -147,6 +153,7 @@
     syncOpenEndedPlan(plan);
     document.getElementById('incomeModal')?.classList.remove('open');
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
+    setTimeout(refreshIncomePageIfVisible,0);
   }
 
   function decorateTable(){
@@ -160,8 +167,9 @@
       const plan=match?planById(match[1]):null;
       if(!plan||plan.openEnded!==true)return;
       const cells=row.querySelectorAll('td');
-      if(cells[2])cells[2].textContent=`${typeof fmtMonth==='function'?fmtMonth(plan.firstMonth):plan.firstMonth} → Sem fim`;
-      if(cells[5])cells[5].innerHTML='<strong>Recorrente</strong>';
+      const period=`${typeof fmtMonth==='function'?fmtMonth(plan.firstMonth):plan.firstMonth} → Sem fim`;
+      if(cells[2]&&cells[2].textContent!==period)cells[2].textContent=period;
+      if(cells[5]&&cells[5].textContent.trim()!=='Recorrente')cells[5].innerHTML='<strong>Recorrente</strong>';
     });
   }
 
@@ -182,7 +190,7 @@
       },0);
     });
 
-    const tableObserver=new MutationObserver(decorateTable);
+    const tableObserver=new MutationObserver(()=>decorateTable());
     const watchTable=()=>{
       const body=document.getElementById('incomeTableBody');
       if(body){tableObserver.observe(body,{childList:true,subtree:true});decorateTable();return true}
