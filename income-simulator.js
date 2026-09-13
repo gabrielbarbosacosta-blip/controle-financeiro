@@ -56,7 +56,7 @@
 
   function existingPlanImpactForSelected(planId,ym){
     if(!planId)return 0;
-    return (state.transactions||[]).filter(t=>t.incomeManaged===true&&t.incomePlanId===planId&&monthOf(t.date)===ym).reduce((s,t)=>s+(Number(t.amount)||0),0);
+    return (state.transactions||[]).filter(t=>t.incomeManaged===true&&t.incomePlanId===planId&&monthOf(t.date)===ym&&String(t.status||'').toLowerCase()!=='pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
   }
 
   function projectedSelectedClosing(excludePlanId=null){
