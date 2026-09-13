@@ -66,6 +66,48 @@
     return select;
   }
 
+  function deleteTransaction(txId){
+    if(typeof state==='undefined'||!Array.isArray(state?.transactions))return;
+    const tx=state.transactions.find(t=>t.id===txId);
+    if(!tx)return;
+
+    if(tx.debtManaged===true&&tx.debtId){
+      const debt=Array.isArray(state.debts)?state.debts.find(d=>d.id===tx.debtId):null;
+      const label=debt?.name||tx.description||'esta dívida';
+      if(typeof window.deleteDebtPlan==='function'){
+        if(confirm(`Este lançamento pertence à dívida "${label}". Excluir a dívida e todas as parcelas vinculadas?`)){
+          window.deleteDebtPlan(tx.debtId);
+        }
+      }else{
+        alert('Esta parcela é gerenciada pela área Dívidas. Exclua a dívida por lá.');
+      }
+      return;
+    }
+
+    const label=tx.description||'este lançamento';
+    if(!confirm(`Excluir o lançamento "${label}"? Esta ação não poderá ser desfeita.`))return;
+    state.transactions=state.transactions.filter(t=>t.id!==txId);
+    if(typeof renderAll==='function')renderAll();
+    else if(typeof save==='function')save();
+  }
+
+  function mountDeleteButton(row,tx){
+    const cells=row.querySelectorAll('td');
+    const actionCell=cells[7];
+    if(!actionCell||actionCell.querySelector('.history-delete-btn'))return;
+    actionCell.style.whiteSpace='nowrap';
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='btn small danger history-delete-btn';
+    button.textContent='Excluir';
+    button.style.marginLeft='6px';
+    button.addEventListener('click',e=>{
+      e.stopPropagation();
+      deleteTransaction(tx.id);
+    });
+    actionCell.appendChild(button);
+  }
+
   function enhanceHistoryStatuses(){
     const body=document.getElementById('historyBody');
     if(!body||typeof state==='undefined')return;
@@ -94,6 +136,7 @@
         );
         cell.innerHTML='';
         cell.appendChild(select);
+        mountDeleteButton(row,tx);
         row.dataset.statusInteractive='1';
         return;
       }
