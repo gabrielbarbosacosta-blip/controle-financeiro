@@ -125,6 +125,31 @@
     document.getElementById('purchaseSimulationConfirm').onclick=()=>{closeSimulation();document.getElementById('purchaseForm')?.requestSubmit()};
   }
 
+  function bindVertexTooltip(canvas,points){
+    const host=canvas.parentElement;if(!host)return;
+    host.style.position='relative';
+    let tip=host.querySelector('.purchase-chart-tooltip');
+    if(!tip){
+      tip=document.createElement('div');
+      tip.className='purchase-chart-tooltip';
+      tip.style.cssText='display:none;position:absolute;z-index:20;pointer-events:none;min-width:120px;padding:7px 9px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:12px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.28);white-space:nowrap;transform:translate(-50%,-100%)';
+      host.appendChild(tip);
+    }
+    canvas.onmousemove=e=>{
+      const rect=canvas.getBoundingClientRect();
+      const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      let nearest=null,best=Infinity;
+      for(const pt of points){const dx=mx-pt.x,dy=my-pt.y,dist=Math.hypot(dx,dy);if(dist<best){best=dist;nearest=pt}}
+      if(!nearest||best>14){tip.style.display='none';canvas.style.cursor='default';return}
+      tip.innerHTML=`<strong>${nearest.series}</strong><br><span style="color:#94a3b8">${nearest.label}</span><br>${money(nearest.value)}`;
+      tip.style.left=`${canvas.offsetLeft+nearest.x}px`;
+      tip.style.top=`${canvas.offsetTop+nearest.y-8}px`;
+      tip.style.display='block';
+      canvas.style.cursor='pointer';
+    };
+    canvas.onmouseleave=()=>{tip.style.display='none';canvas.style.cursor='default'};
+  }
+
   function drawComparisonChart(current,simulated){
     const canvas=document.getElementById('purchaseSimulationComparisonChart');if(!canvas)return;
     const currentData=current.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
@@ -166,6 +191,13 @@
         const xx=x(i);ctx.save();ctx.translate(xx,H-14);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
       }
     });
+
+    const currentName=document.getElementById('purchaseSimCurrentLegend')?.textContent||'Projeção atual';
+    const points=[
+      ...currentData.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:currentName})),
+      ...simulatedData.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:'Com a compra'}))
+    ];
+    bindVertexTooltip(canvas,points);
   }
 
   function openSimulation(){
