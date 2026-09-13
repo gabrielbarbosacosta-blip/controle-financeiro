@@ -17,3 +17,5 @@ A função `api/analyze-invoice.js` usa a OpenAI Responses API. Configure `OPENA
 A importação não edita nem exclui compras existentes. Cada lançamento vindo da fatura é registrado como item único do mês selecionado, sem gerar parcelas futuras automaticamente.
 
 Hospedagem planejada em Vercel, com atualização automática a partir da branch `main` deste repositório.
+
+<!-- deploy-trigger: 2026-09-13 -->
