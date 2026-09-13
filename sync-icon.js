@@ -43,11 +43,9 @@
     if(typeof state==='undefined'||!state?.transactions)return 0;
     return round2(state.transactions
       .filter(t=>
-        t.type==='Receita'&&
-        t.status==='Pendente'&&
-        t.projection!==false&&
-        typeof isProjectedTxInMonth==='function'&&
-        isProjectedTxInMonth(t,ym)
+        String(t.type||'').trim().toLowerCase()==='receita'&&
+        String(t.status||'').trim().toLowerCase()==='pendente'&&
+        String(t.date||'').slice(0,7)===ym
       )
       .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
   }
