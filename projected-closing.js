@@ -43,3 +43,10 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+
+(function(){
+  if(document.querySelector('script[src="income-simulator-comparison.js"]'))return;
+  const script=document.createElement('script');
+  script.src='income-simulator-comparison.js';
+  document.body.appendChild(script);
+})();
