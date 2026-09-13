@@ -21,31 +21,62 @@
     el.style.height='12px';
     el.style.minWidth='12px';
     el.style.padding='0';
+    el.style.margin='0 2px';
     el.style.border='0';
     el.style.borderRadius='50%';
     el.style.display='inline-flex';
-    el.style.alignItems='center';
-    el.style.justifyContent='center';
     el.style.alignSelf='center';
-    el.style.margin='0 2px';
-    el.style.verticalAlign='middle';
+    el.style.flex='0 0 12px';
     el.style.background=COLORS[status]||COLORS.idle;
     el.style.boxShadow=`0 0 0 3px ${COLORS[status]||COLORS.idle}22`;
     el.style.transition='background .18s ease, box-shadow .18s ease';
     el.dataset.syncState=status;
   }
 
-  const original=window.setSyncStatus;
+  const originalSync=window.setSyncStatus;
   window.setSyncStatus=function(text,bad=false){
-    if(typeof original==='function')original(text,bad);
+    if(typeof originalSync==='function')originalSync(text,bad);
     paint(statusFromText(text,bad));
   };
 
+  function expectedIncomeForMonth(ym){
+    if(typeof state==='undefined'||!state?.transactions)return 0;
+    return round2(state.transactions
+      .filter(t=>t.type==='Receita'&&t.projection!==false&&typeof isProjectedTxInMonth==='function'&&isProjectedTxInMonth(t,ym))
+      .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
+  }
+
+  function mountIncomeForecast(){
+    const income=document.getElementById('kpiIncome');
+    if(!income)return;
+    const card=income.closest('.kpi');
+    if(!card)return;
+    let box=document.getElementById('kpiIncomeForecastBox');
+    if(!box){
+      box=document.createElement('div');
+      box.id='kpiIncomeForecastBox';
+      box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';
+      box.innerHTML='<span style="color:#94a3b8">Valores previstos</span><strong id="kpiIncomeForecast" style="font-size:12px;color:#bbf7d0;font-variant-numeric:tabular-nums">—</strong>';
+      card.appendChild(box);
+    }
+    const ym=state?.settings?.selectedMonth;
+    const value=ym?expectedIncomeForMonth(ym):0;
+    const target=document.getElementById('kpiIncomeForecast');
+    if(target)target.textContent=fmtMoney(value);
+  }
+
+  const originalDashboard=window.renderDashboard;
+  if(typeof originalDashboard==='function'){
+    window.renderDashboard=function(){
+      originalDashboard.apply(this,arguments);
+      mountIncomeForecast();
+    };
+  }
+
   function init(){
     const el=document.getElementById('syncStatus');
-    if(!el)return;
-    const initial=String(el.textContent||'');
-    paint(statusFromText(initial,false));
+    if(el){const initial=String(el.textContent||'');paint(statusFromText(initial,false));}
+    mountIncomeForecast();
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
