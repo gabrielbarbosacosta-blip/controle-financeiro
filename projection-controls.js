@@ -2,15 +2,17 @@
   const STYLE_ID='projection-source-filter-style';
   const SOURCE_META={
     transactions:{label:'Lançamentos',short:'Lançamentos'},
+    incomes:{label:'Receitas',short:'Receitas'},
     cards:{label:'Cartões',short:'Cartões'},
     debts:{label:'Dívidas',short:'Dívidas'}
   };
 
   function ensureConfig(){
-    if(typeof state==='undefined'||!state?.settings)return{transactions:true,cards:true,debts:true};
+    if(typeof state==='undefined'||!state?.settings)return{transactions:true,incomes:true,cards:true,debts:true};
     const saved=state.settings.dashboardProjectionSources||{};
     const config={
       transactions:saved.transactions!==false,
+      incomes:saved.incomes!==false,
       cards:saved.cards!==false,
       debts:saved.debts!==false
     };
@@ -52,8 +54,10 @@
         for(const tx of state.transactions){
           if(typeof isProjectedTxInMonth==='function'&&!isProjectedTxInMonth(tx,ym))continue;
           const isDebt=tx.debtManaged===true;
+          const isManagedIncome=tx.incomeManaged===true;
           if(isDebt&&!config.debts)continue;
-          if(!isDebt&&!config.transactions)continue;
+          if(isManagedIncome&&!config.incomes)continue;
+          if(!isDebt&&!isManagedIncome&&!config.transactions)continue;
           if(tx.type==='Receita')income+=Number(tx.amount)||0;
           else if(tx.type==='Despesa')otherExpense+=Number(tx.amount)||0;
           else if(tx.type==='Benefício')benefits+=Number(tx.amount)||0;
