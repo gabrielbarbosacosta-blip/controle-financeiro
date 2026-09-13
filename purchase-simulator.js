@@ -93,9 +93,11 @@
   }
 
   function buildModal(){
-    if(document.getElementById('purchaseSimulationModal'))return;
+    const existing=document.getElementById('purchaseSimulationModal');
+    if(existing?.querySelector('#purchaseSimulationComparisonChart'))return;
+    if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas usam a mesma escala para mostrar o impacto real da compra.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('purchaseSimulationClose').onclick=closeSimulation;
     document.getElementById('purchaseSimulationBack').onclick=closeSimulation;
@@ -116,7 +118,8 @@
     canvas.width=cssW*dpr;canvas.height=cssH*dpr;
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     const W=cssW,H=cssH,p={l:68,r:22,t:24,b:48};
-    const x=i=>p.l+(W-p.l-p.r)*(currentData.length<=1?.5:i/(currentData.length-1));
+    const count=Math.max(currentData.length,simulatedData.length);
+    const x=i=>p.l+(W-p.l-p.r)*(count<=1?.5:i/(count-1));
     const y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
 
     ctx.clearRect(0,0,W,H);
@@ -132,7 +135,7 @@
       ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
       data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});
       ctx.stroke();
-      data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,3.5,0,Math.PI*2);ctx.fill()});
+      data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=color;ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill()});
     };
 
     drawSeries(currentData,'#60a5fa');
@@ -161,17 +164,19 @@
     document.getElementById('purchaseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
     const impactEl=document.getElementById('purchaseSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact<0?'#fca5a5':'#86efac';
     document.getElementById('purchaseSimulationModal').classList.add('open');
-    requestAnimationFrame(()=>drawComparisonChart(current,simulated));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated)));
   }
   function closeSimulation(){document.getElementById('purchaseSimulationModal')?.classList.remove('open')}
 
   function install(){
     const form=document.getElementById('purchaseForm'),foot=form?.querySelector('.modal-foot');
     if(!form||!foot)return false;
-    if(document.getElementById('purchaseSimulateBtn'))return true;
+    let btn=document.getElementById('purchaseSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
-    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='purchaseSimulateBtn';btn.textContent='Simular';btn.onclick=openSimulation;foot.insertBefore(btn,save);
-    buildModal();return true;
+    if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='purchaseSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
+    btn.onclick=openSimulation;
+    buildModal();
+    return true;
   }
 
   function init(){let tries=0;const timer=setInterval(()=>{tries++;if(install()||tries>120)clearInterval(timer)},100)}
