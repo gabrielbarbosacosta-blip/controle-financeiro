@@ -1,5 +1,5 @@
 (function(){
-  const HORIZON_MONTHS=24;
+  const HORIZON_MONTHS=25;
 
   function uid(prefix){return prefix+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
   function addMonth(ym,n){
@@ -80,7 +80,7 @@
     const field=document.createElement('div');
     field.className='field';
     field.id='incomeNoEndField';
-    field.innerHTML='<label>Recorrência</label><label class="toggle"><input type="checkbox" id="incomeNoEnd"> Sem data final</label><small class="muted">Ideal para salário e outras receitas contínuas.</small>';
+    field.innerHTML='<label>Recorrência</label><label class="toggle"><input type="checkbox" id="incomeNoEnd"> Sem data final</label><small class="muted">Mantém até 25 recebimentos calculados para frente.</small>';
     lastField.insertAdjacentElement('afterend',field);
 
     const checkbox=field.querySelector('#incomeNoEnd');
