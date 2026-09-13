@@ -1,19 +1,19 @@
 (function(){
-  window.invoiceAiRequest=async function(payload){
-    const sessionResult=await sb.auth.getSession();
-    if(sessionResult.error)throw sessionResult.error;
-    const token=sessionResult.data?.session?.access_token;
-    if(!token)throw new Error('Sessão expirada. Entre novamente.');
-    const response=await fetch('/api/analyze-invoice',{
-      method:'POST',
-      headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
-      body:JSON.stringify(payload)
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
-      if(data.error==='ai_not_configured')throw new Error('Configure OPENAI_API_KEY na Vercel para ativar a análise.');
-      throw new Error(data.message||'Falha ao analisar a fatura.');
-    }
-    return data;
-  };
+  if(window.__chatgptFinanceIntegrationLoaded)return;
+  window.__chatgptFinanceIntegrationLoaded=true;
+  function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
+  function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
+  function mount(){
+    const grid=document.querySelector('#page-settings .settings-grid');
+    if(!grid||document.getElementById('chatgptIntegrationCard'))return false;
+    const card=document.createElement('div');card.className='card';card.id='chatgptIntegrationCard';
+    card.innerHTML='<h3>Integração com ChatGPT</h3><p class="muted">Analise a fatura no ChatGPT e envie somente compras novas para este controle financeiro. A análise acontece no ChatGPT e não usa OPENAI_API_KEY no site.</p><div class="field"><label>Chave da integração</label><div class="toolbar"><input id="chatgptActionToken" readonly placeholder="Gere uma chave"><button class="btn" id="chatgptGenerateToken">Gerar nova chave</button><button class="btn" id="chatgptCopyToken" disabled>Copiar</button></div><small class="muted">Gerar outra chave revoga a anterior.</small></div><div class="toolbar" style="margin-top:14px"><button class="btn danger" id="chatgptRevokeToken">Revogar integração</button></div><div class="notice" id="chatgptIntegrationStatus" style="margin-top:14px">Use o endpoint /api/chatgpt-finance na ação do seu GPT.</div>';
+    grid.appendChild(card);
+    const field=card.querySelector('#chatgptActionToken'),status=card.querySelector('#chatgptIntegrationStatus'),copyBtn=card.querySelector('#chatgptCopyToken');
+    card.querySelector('#chatgptGenerateToken').onclick=async()=>{const value=token();status.textContent='Gerando chave…';const {error}=await sb.rpc('set_chatgpt_action_token',{p_token:value});if(error){status.textContent='Falha ao gerar chave: '+error.message;return}field.value=value;copyBtn.disabled=false;status.textContent='Chave criada. Copie agora e use como API key Bearer na ação do seu GPT.'};
+    copyBtn.onclick=async()=>{if(field.value){await copy(field.value);status.textContent='Chave copiada.'}};
+    card.querySelector('#chatgptRevokeToken').onclick=async()=>{if(!confirm('Revogar a integração com o ChatGPT?'))return;const {error}=await sb.rpc('revoke_chatgpt_action_token');if(error){status.textContent='Falha ao revogar: '+error.message;return}field.value='';copyBtn.disabled=true;status.textContent='Integração revogada.'};
+    return true;
+  }
+  if(!mount()){const t=setInterval(()=>{if(mount())clearInterval(t)},700);setTimeout(()=>clearInterval(t),15000)}
 })();
