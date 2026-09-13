@@ -126,3 +126,10 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
+
+(function(){
+  if(document.querySelector('script[src="invoice-materializer.js"]'))return;
+  const script=document.createElement('script');
+  script.src='invoice-materializer.js';
+  document.body.appendChild(script);
+})();
