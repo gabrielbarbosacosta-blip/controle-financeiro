@@ -149,8 +149,14 @@
 })();
 
 (function(){
-  if(document.querySelector('script[src="debts.js"]'))return;
-  const script=document.createElement('script');
-  script.src='debts.js';
-  document.body.appendChild(script);
+  if(!document.querySelector('script[src="debts.js"]')){
+    const debtScript=document.createElement('script');
+    debtScript.src='debts.js';
+    document.body.appendChild(debtScript);
+  }
+  if(!document.querySelector('script[src="projection-controls.js"]')){
+    const projectionScript=document.createElement('script');
+    projectionScript.src='projection-controls.js';
+    document.body.appendChild(projectionScript);
+  }
 })();
