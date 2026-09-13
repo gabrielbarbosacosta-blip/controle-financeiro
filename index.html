@@ -122,6 +122,15 @@
 <input type="hidden" id="invoiceCardId"><input type="hidden" id="invoiceYm"><div class="field"><label>Status</label><select id="invoiceStatus"><option>Aberta</option><option>Fechada</option><option>Paga</option></select></div><div class="field"><label>Ajuste da fatura (+/- R$)</label><input id="invoiceAdjustment" type="number" step="0.01"><small class="muted">Use para juros, taxas ou conciliação de fatura histórica.</small></div>
 <div class="field full"><label>Observação</label><textarea id="invoiceNotes" rows="3"></textarea></div></div></div><div class="modal-foot"><button type="button" class="btn modal-close" data-modal="invoiceModal">Cancelar</button><button class="btn primary" type="submit">Salvar fatura</button></div></form></div></div>
 
+<script>
+(function(){
+  const originalCreateClient=window.supabase.createClient.bind(window.supabase);
+  window.supabase.createClient=function(url,key,options){
+    const proxied=/\.supabase\.co\/?$/.test(String(url||''))?`${window.location.origin}/supabase`:url;
+    return originalCreateClient(proxied,key,options);
+  };
+})();
+</script>
 <script src="app.js"></script>
 <script src="csv-import.js"></script>
 <script src="sync-icon.js"></script>
