@@ -19,6 +19,14 @@
     document.head.appendChild(installmentScript);
   }
 
+  if(!document.querySelector('script[data-purchase-sections]')){
+    const sectionsScript=document.createElement('script');
+    sectionsScript.src='purchase-sections.js';
+    sectionsScript.async=false;
+    sectionsScript.dataset.purchaseSections='1';
+    document.head.appendChild(sectionsScript);
+  }
+
   function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
   function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
   function mount(){
