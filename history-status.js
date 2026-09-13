@@ -72,15 +72,8 @@
     if(!tx)return;
 
     if(tx.debtManaged===true&&tx.debtId){
-      const debt=Array.isArray(state.debts)?state.debts.find(d=>d.id===tx.debtId):null;
-      const label=debt?.name||tx.description||'esta dívida';
-      if(typeof window.deleteDebtPlan==='function'){
-        if(confirm(`Este lançamento pertence à dívida "${label}". Excluir a dívida e todas as parcelas vinculadas?`)){
-          window.deleteDebtPlan(tx.debtId);
-        }
-      }else{
-        alert('Esta parcela é gerenciada pela área Dívidas. Exclua a dívida por lá.');
-      }
+      if(typeof window.deleteDebtPlan==='function')window.deleteDebtPlan(tx.debtId);
+      else alert('Esta parcela é gerenciada pela área Dívidas. Exclua a dívida por lá.');
       return;
     }
 
