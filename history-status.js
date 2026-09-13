@@ -201,6 +201,11 @@
     incomeScript.src='incomes.js';
     document.body.appendChild(incomeScript);
   }
+  if(!document.querySelector('script[src="income-open-ended.js"]')){
+    const openEndedScript=document.createElement('script');
+    openEndedScript.src='income-open-ended.js';
+    document.body.appendChild(openEndedScript);
+  }
   if(!document.querySelector('script[src="projection-controls.js"]')){
     const projectionScript=document.createElement('script');
     projectionScript.src='projection-controls.js';
