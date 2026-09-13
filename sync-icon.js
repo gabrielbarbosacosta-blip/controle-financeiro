@@ -42,7 +42,13 @@
   function expectedIncomeForMonth(ym){
     if(typeof state==='undefined'||!state?.transactions)return 0;
     return round2(state.transactions
-      .filter(t=>t.type==='Receita'&&t.projection!==false&&typeof isProjectedTxInMonth==='function'&&isProjectedTxInMonth(t,ym))
+      .filter(t=>
+        t.type==='Receita'&&
+        t.status==='Pendente'&&
+        t.projection!==false&&
+        typeof isProjectedTxInMonth==='function'&&
+        isProjectedTxInMonth(t,ym)
+      )
       .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
   }
 
