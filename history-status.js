@@ -28,7 +28,7 @@
   function deleteTransaction(txId){
     if(typeof state==='undefined'||!Array.isArray(state?.transactions))return;
     const tx=state.transactions.find(t=>t.id===txId);if(!tx)return;
-    if(tx.debtManaged===true&&tx.debtId){if(typeof window.deleteDebtPlan==='function')window.deleteDebtPlan(tx.debtId);else alert('Esta parcela é gerenciada pela área Dívidas. Exclua a dívida por lá.');return}
+    if(tx.debtManaged===true&&tx.debtId){if(typeof window.deleteDebtPlan==='function')window.deleteDebtPlan(tx.debtId);else alert('Esta parcela é gerenciada pela área Despesas. Exclua a despesa por lá.');return}
     if(tx.incomeManaged===true&&tx.incomePlanId){if(typeof window.deleteIncomePlan==='function')window.deleteIncomePlan(tx.incomePlanId);else alert('Este lançamento é gerenciado pela área Receitas. Exclua a receita por lá.');return}
     const label=tx.description||'este lançamento';if(!confirm(`Excluir o lançamento "${label}"? Esta ação não poderá ser desfeita.`))return;
     state.transactions=state.transactions.filter(t=>t.id!==txId);if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
@@ -61,7 +61,7 @@
 })();
 
 (function(){
-  ['cloud-sync.js','debts.js','incomes.js','income-open-ended.js','projection-controls.js','projected-closing.js','purchase-management.js'].forEach(src=>{
+  ['cloud-sync.js','debts.js','expense-materializer.js','incomes.js','income-open-ended.js','projection-controls.js','projected-closing.js','purchase-management.js'].forEach(src=>{
     if(document.querySelector(`script[src="${src}"]`))return;
     const script=document.createElement('script');script.src=src;document.body.appendChild(script);
   });
