@@ -67,7 +67,7 @@
 })();
 
 (function(){
-  ['cloud-sync.js','debts.js','expense-materializer.js','incomes.js','income-open-ended.js','projection-controls.js','projected-closing.js','purchase-management.js'].forEach(src=>{
+  ['cloud-sync.js','debts.js','expense-materializer.js','incomes.js','income-open-ended.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js'].forEach(src=>{
     if(document.querySelector(`script[src="${src}"]`))return;
     const script=document.createElement('script');script.src=src;document.body.appendChild(script);
   });
