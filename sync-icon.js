@@ -41,13 +41,25 @@
 
   function pendingAmountForMonth(type,ym){
     if(typeof state==='undefined'||!state?.transactions)return 0;
-    return round2(state.transactions
+    const normalizedType=String(type||'').trim().toLowerCase();
+    let total=state.transactions
       .filter(t=>
-        String(t.type||'').trim().toLowerCase()===String(type).toLowerCase()&&
+        String(t.type||'').trim().toLowerCase()===normalizedType&&
         String(t.status||'').trim().toLowerCase()==='pendente'&&
         String(t.date||'').slice(0,7)===ym
       )
-      .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
+      .reduce((sum,t)=>sum+(Number(t.amount)||0),0);
+
+    if(normalizedType==='despesa'&&Array.isArray(state.invoices)&&typeof invoiceKnownTotal==='function'){
+      total+=state.invoices
+        .filter(inv=>
+          String(inv.ym||'')===ym&&
+          String(inv.status||'').trim().toLowerCase()!=='paga'
+        )
+        .reduce((sum,inv)=>sum+(Number(invoiceKnownTotal(inv.cardId,ym))||0),0);
+    }
+
+    return round2(total);
   }
 
   function mountPendingBox({valueId,boxId,labelId,type,color,label}){
