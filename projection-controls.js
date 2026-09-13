@@ -10,52 +10,14 @@
   function ensureConfig(){
     if(typeof state==='undefined'||!state?.settings)return{transactions:true,incomes:true,cards:true,debts:true};
     const saved=state.settings.dashboardProjectionSources||{};
-    const config={
-      transactions:saved.transactions!==false,
-      incomes:saved.incomes!==false,
-      cards:saved.cards!==false,
-      debts:saved.debts!==false
-    };
+    const config={transactions:saved.transactions!==false,incomes:saved.incomes!==false,cards:saved.cards!==false,debts:saved.debts!==false};
     state.settings.dashboardProjectionSources=config;
     return config;
   }
 
-  function round(v){return typeof round2==='function'?round2(v):Math.round((Number(v)||0)*100)/100}
-  function monthOf(v){return String(v||'').slice(0,7)}
-
-  function projectedClosingForSelectedMonth(selectedYm,config){
-    if(typeof actualForMonth!=='function')return 0;
-    const cfg=config||{transactions:true,incomes:true,cards:true,debts:true};
-    let closing=Number(actualForMonth(selectedYm).closing)||0;
-
-    for(const tx of state?.transactions||[]){
-      if(monthOf(tx.date)!==selectedYm)continue;
-      if(String(tx.status||'').trim().toLowerCase()!=='pendente')continue;
-      const isDebt=tx.debtManaged===true;
-      const isManagedIncome=tx.incomeManaged===true;
-      if(isDebt&&!cfg.debts)continue;
-      if(isManagedIncome&&!cfg.incomes)continue;
-      if(!isDebt&&!isManagedIncome&&!cfg.transactions)continue;
-      const amount=Number(tx.amount)||0;
-      if(tx.type==='Receita')closing+=amount;
-      else if(tx.type==='Despesa')closing-=amount;
-    }
-
-    if(cfg.cards&&Array.isArray(state?.cards)&&typeof cardForecast==='function'){
-      for(const card of state.cards.filter(c=>c.active!==false)){
-        const inv=typeof getInvoice==='function'?getInvoice(card.id,selectedYm):null;
-        if(inv?.status==='Paga')continue;
-        closing-=Number(cardForecast(card,selectedYm).total)||0;
-      }
-    }
-    return round(closing);
-  }
-  window.projectedClosingForSelectedMonth=projectedClosingForSelectedMonth;
-
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
-    const style=document.createElement('style');
-    style.id=STYLE_ID;
+    const style=document.createElement('style');style.id=STYLE_ID;
     style.textContent=`
       .projection-source-control{position:relative;display:flex;align-items:center}
       .projection-filter-btn{padding:6px 9px!important;font-size:11px!important;color:#cbd5e1!important;background:#111827!important}
@@ -71,163 +33,65 @@
     document.head.appendChild(style);
   }
 
-  function filteredProjection(selectedYm,months=12){
-    const config=ensureConfig();
-    if(typeof actualForMonth!=='function')return[];
-    let opening=projectedClosingForSelectedMonth(selectedYm,config);
-    const rows=[];
-
-    for(let i=1;i<=months;i++){
-      const ym=typeof ymAdd==='function'?ymAdd(selectedYm,i):selectedYm;
-      let income=0,otherExpense=0,benefits=0;
-
-      if(Array.isArray(state?.transactions)){
-        for(const tx of state.transactions){
-          if(typeof isProjectedTxInMonth==='function'&&!isProjectedTxInMonth(tx,ym))continue;
-          const isDebt=tx.debtManaged===true;
-          const isManagedIncome=tx.incomeManaged===true;
-          if(isDebt&&!config.debts)continue;
-          if(isManagedIncome&&!config.incomes)continue;
-          if(!isDebt&&!isManagedIncome&&!config.transactions)continue;
-          if(tx.type==='Receita')income+=Number(tx.amount)||0;
-          else if(tx.type==='Despesa')otherExpense+=Number(tx.amount)||0;
-          else if(tx.type==='Benefício')benefits+=Number(tx.amount)||0;
-        }
-      }
-
-      const invoices=config.cards&&Array.isArray(state?.cards)
-        ?state.cards.filter(c=>c.active!==false).reduce((sum,card)=>sum+(typeof cardForecast==='function'?(Number(cardForecast(card,ym).total)||0):0),0)
-        :0;
-      const expense=otherExpense+invoices;
-      const result=income-expense;
-      const closing=round(opening+result);
-      rows.push({ym,opening,income,otherExpense,invoices,expense,benefits,result,closing});
-      opening=closing;
-    }
-    return rows;
-  }
-
-  const originalProjectionFrom=window.projectionFrom;
-  if(typeof originalProjectionFrom==='function'&&!originalProjectionFrom.__currentPendingIncluded){
-    const wrapped=function(selectedYm,months){
-      const rows=originalProjectionFrom.apply(this,arguments);
-      if(!Array.isArray(rows)||!rows.length||typeof actualForMonth!=='function')return rows;
-      const actualClosing=Number(actualForMonth(selectedYm).closing)||0;
-      const projectedClosing=projectedClosingForSelectedMonth(selectedYm,{transactions:true,incomes:true,cards:true,debts:true});
-      const delta=round(projectedClosing-actualClosing);
-      if(!delta)return rows;
-      return rows.map(r=>({...r,opening:round((Number(r.opening)||0)+delta),closing:round((Number(r.closing)||0)+delta)}));
-    };
-    wrapped.__currentPendingIncluded=true;
-    window.projectionFrom=wrapped;
-    try{projectionFrom=wrapped}catch(e){}
+  function rows(selectedYm,months){
+    const cfg=ensureConfig();
+    if(window.financeProjection?.rowsFrom)return window.financeProjection.rowsFrom(selectedYm,months,cfg);
+    if(typeof projectionFrom==='function')return projectionFrom(selectedYm,months);
+    return[];
   }
 
   function updateSummary(){
-    const chart=document.getElementById('projectionChart');
-    const card=chart?.closest('.card');
-    if(!card)return;
-    const subtitle=card.querySelector('.section-head .muted');
+    const chart=document.getElementById('projectionChart'),card=chart?.closest('.card'),subtitle=card?.querySelector('.section-head .muted');
     if(!subtitle)return;
-    const config=ensureConfig();
-    const active=Object.keys(SOURCE_META).filter(key=>config[key]).map(key=>SOURCE_META[key].short);
+    const config=ensureConfig(),active=Object.keys(SOURCE_META).filter(key=>config[key]).map(key=>SOURCE_META[key].short);
     subtitle.textContent=`Próximos 12 meses • ${active.length?active.join(' + '):'sem impactos futuros'}`;
   }
 
   function redraw(){
     if(typeof state==='undefined'||!state?.settings?.selectedMonth)return;
-    const rows=filteredProjection(state.settings.selectedMonth,12);
-    if(typeof drawLineChart==='function'){
-      drawLineChart('projectionChart',rows.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})));
-    }
-    updateSummary();
-    syncControls();
+    const data=rows(state.settings.selectedMonth,12);
+    if(typeof drawLineChart==='function')drawLineChart('projectionChart',data.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})));
+    updateSummary();syncControls();
   }
+  window.redrawFilteredProjection=redraw;
 
   function setSource(key,enabled){
     if(typeof state==='undefined'||!state?.settings)return;
-    const config=ensureConfig();
-    config[key]=!!enabled;
-    state.settings.dashboardProjectionSources={...config};
-    if(typeof save==='function')save();
-    redraw();
+    const config=ensureConfig();config[key]=!!enabled;state.settings.dashboardProjectionSources={...config};
+    if(typeof save==='function')save();redraw();
   }
 
   function syncControls(){
     const config=ensureConfig();
-    document.querySelectorAll('[data-projection-source]').forEach(input=>{
-      const key=input.dataset.projectionSource;
-      input.checked=!!config[key];
-    });
+    document.querySelectorAll('[data-projection-source]').forEach(input=>{input.checked=!!config[input.dataset.projectionSource]});
     const button=document.getElementById('projectionSourceButton');
-    if(button){
-      const count=Object.keys(SOURCE_META).filter(key=>config[key]).length;
-      button.classList.toggle('active',count!==Object.keys(SOURCE_META).length);
-      button.title=`${count} de ${Object.keys(SOURCE_META).length} fontes ativas`;
-    }
+    if(button){const count=Object.keys(SOURCE_META).filter(key=>config[key]).length;button.classList.toggle('active',count!==Object.keys(SOURCE_META).length);button.title=`${count} de ${Object.keys(SOURCE_META).length} fontes ativas`}
   }
 
   function mountControls(){
     injectStyles();
-    const chart=document.getElementById('projectionChart');
-    const card=chart?.closest('.card');
-    const head=card?.querySelector('.section-head');
-    if(!head)return;
-
+    const chart=document.getElementById('projectionChart'),card=chart?.closest('.card'),head=card?.querySelector('.section-head');if(!head)return;
     let holder=document.getElementById('projectionSourceControl');
     if(!holder){
-      holder=document.createElement('div');
-      holder.id='projectionSourceControl';
-      holder.className='projection-source-control';
-      holder.innerHTML=`
-        <button type="button" class="btn small projection-filter-btn" id="projectionSourceButton" aria-expanded="false">Filtros</button>
-        <div class="projection-source-popover" id="projectionSourcePopover">
-          <div class="projection-source-title">Impactar saldo projetado</div>
-          ${Object.entries(SOURCE_META).map(([key,meta])=>`<label class="projection-source-option"><input type="checkbox" data-projection-source="${key}"> ${meta.label}</label>`).join('')}
-          <div class="projection-source-foot">Desmarque uma fonte para simular o saldo sem esse impacto.</div>
-        </div>`;
+      holder=document.createElement('div');holder.id='projectionSourceControl';holder.className='projection-source-control';
+      holder.innerHTML=`<button type="button" class="btn small projection-filter-btn" id="projectionSourceButton" aria-expanded="false">Filtros</button><div class="projection-source-popover" id="projectionSourcePopover"><div class="projection-source-title">Impactar saldo projetado</div>${Object.entries(SOURCE_META).map(([key,meta])=>`<label class="projection-source-option"><input type="checkbox" data-projection-source="${key}"> ${meta.label}</label>`).join('')}<div class="projection-source-foot">Desmarque uma fonte para simular somente impactos ainda não realizados. Valores já pagos/recebidos permanecem no saldo.</div></div>`;
       head.appendChild(holder);
-
-      const button=holder.querySelector('#projectionSourceButton');
-      const popover=holder.querySelector('#projectionSourcePopover');
-      button.addEventListener('click',e=>{
-        e.stopPropagation();
-        const open=popover.classList.toggle('open');
-        button.setAttribute('aria-expanded',String(open));
-      });
+      const button=holder.querySelector('#projectionSourceButton'),popover=holder.querySelector('#projectionSourcePopover');
+      button.addEventListener('click',e=>{e.stopPropagation();const open=popover.classList.toggle('open');button.setAttribute('aria-expanded',String(open))});
       popover.addEventListener('click',e=>e.stopPropagation());
-      holder.querySelectorAll('[data-projection-source]').forEach(input=>{
-        input.addEventListener('change',()=>setSource(input.dataset.projectionSource,input.checked));
-      });
+      holder.querySelectorAll('[data-projection-source]').forEach(input=>input.addEventListener('change',()=>setSource(input.dataset.projectionSource,input.checked)));
     }
-    syncControls();
-    updateSummary();
+    syncControls();updateSummary();
   }
 
-  document.addEventListener('click',()=>{
-    const popover=document.getElementById('projectionSourcePopover');
-    const button=document.getElementById('projectionSourceButton');
-    if(popover?.classList.contains('open')){
-      popover.classList.remove('open');
-      button?.setAttribute('aria-expanded','false');
-    }
-  });
+  document.addEventListener('click',()=>{const popover=document.getElementById('projectionSourcePopover'),button=document.getElementById('projectionSourceButton');if(popover?.classList.contains('open')){popover.classList.remove('open');button?.setAttribute('aria-expanded','false')}});
 
   const originalRenderDashboard=window.renderDashboard;
-  if(typeof originalRenderDashboard==='function'){
-    window.renderDashboard=function(){
-      const result=originalRenderDashboard.apply(this,arguments);
-      mountControls();
-      redraw();
-      return result;
-    };
+  if(typeof originalRenderDashboard==='function'&&!originalRenderDashboard.__projectionControls){
+    const wrapped=function(){const result=originalRenderDashboard.apply(this,arguments);mountControls();redraw();return result};
+    wrapped.__projectionControls=true;window.renderDashboard=wrapped;try{renderDashboard=wrapped}catch(e){}
   }
 
-  function init(){
-    mountControls();
-    redraw();
-  }
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
-  else init();
+  function init(){mountControls();redraw()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
