@@ -1,14 +1,17 @@
 (function(){
-  const USER_KEY_PREFIX='controleFinanceiroWebV2:user:';
-  const USER_UPDATED_PREFIX='controleFinanceiroWebV2UpdatedAt:user:';
+  let applyingRemote=false;
+  let writeQueued=false;
+  let lastRefreshAt=0;
 
   function validFinanceState(value){
-    return !!(value&&value.settings&&Array.isArray(value.transactions)&&Array.isArray(value.cards));
-  }
-
-  function parseTime(value){
-    const n=value?Date.parse(value):0;
-    return Number.isFinite(n)?n:0;
+    return !!(
+      value&&
+      value.settings&&
+      Array.isArray(value.transactions)&&
+      Array.isArray(value.cards)&&
+      Array.isArray(value.purchases)&&
+      Array.isArray(value.invoices)
+    );
   }
 
   function blankFinanceState(){
@@ -24,22 +27,32 @@
     };
   }
 
-  function userStateKey(userId){return `${USER_KEY_PREFIX}${userId}`;}
-  function userUpdatedKey(userId){return `${USER_UPDATED_PREFIX}${userId}`;}
-
-  function readUserLocal(userId){
-    try{
-      const raw=localStorage.getItem(userStateKey(userId));
-      if(!raw)return null;
-      const parsed=JSON.parse(raw);
-      return validFinanceState(parsed)?parsed:null;
-    }catch(e){return null;}
+  function cloneState(value){
+    return typeof structuredClone==='function'
+      ? structuredClone(value)
+      : JSON.parse(JSON.stringify(value));
   }
 
-  function writeUserLocal(userId,financeState,updatedAt){
-    if(!userId||!validFinanceState(financeState))return;
-    localStorage.setItem(userStateKey(userId),JSON.stringify(financeState));
-    localStorage.setItem(userUpdatedKey(userId),updatedAt||new Date().toISOString());
+  function setVisible(authenticated){
+    const auth=document.getElementById('authScreen');
+    const app=document.getElementById('appRoot');
+    if(auth)auth.classList.toggle('hidden',authenticated);
+    if(app)app.classList.toggle('auth-hidden',!authenticated);
+  }
+
+  async function applyServerState(financeState,{render=true}={}){
+    if(!validFinanceState(financeState))return false;
+    applyingRemote=true;
+    try{
+      state=cloneState(financeState);
+      if(selectedCardId&&!state.cards.some(card=>card.id===selectedCardId))selectedCardId=state.cards[0]?.id||null;
+      if(!selectedCardId)selectedCardId=state.cards[0]?.id||null;
+      if(!selectedInvoiceYm)selectedInvoiceYm=state.settings.selectedMonth;
+      if(render&&typeof renderAll==='function')renderAll();
+      return true;
+    }finally{
+      applyingRemote=false;
+    }
   }
 
   window.financeCloud={
@@ -50,76 +63,98 @@
     },
     async save(userId,financeState){
       const updatedAt=new Date().toISOString();
-      const {error}=await sb.from('finance_states').upsert({user_id:userId,state:financeState,updated_at:updatedAt},{onConflict:'user_id'});
+      const {error}=await sb.from('finance_states').upsert({user_id:userId,state:cloneState(financeState),updated_at:updatedAt},{onConflict:'user_id'});
       if(error)throw error;
-      writeUserLocal(userId,financeState,updatedAt);
       return updatedAt;
+    },
+    async refresh(){
+      if(!currentUser?.id)return null;
+      const cloud=await this.load(currentUser.id);
+      if(validFinanceState(cloud?.state)){
+        await applyServerState(cloud.state,{render:true});
+        setSyncStatus('Sincronizado com servidor');
+      }
+      return cloud;
     }
   };
 
   save=function(){
-    if(currentUser?.id){
-      writeUserLocal(currentUser.id,state,new Date().toISOString());
-    }
+    if(applyingRemote)return;
     scheduleCloudSave();
   };
 
   pushStateToCloud=async function(){
-    if(!currentUser||remoteWriteInFlight)return;
+    if(!currentUser||applyingRemote)return;
+    if(remoteWriteInFlight){
+      writeQueued=true;
+      return;
+    }
     remoteWriteInFlight=true;
+    const userId=currentUser.id;
+    const snapshot=cloneState(state);
     try{
-      await window.financeCloud.save(currentUser.id,state);
-      setSyncStatus('Sincronizado');
+      await window.financeCloud.save(userId,snapshot);
+      setSyncStatus('Sincronizado com servidor');
     }catch(e){
       console.error('Falha ao salvar estado financeiro no Supabase:',e);
-      setSyncStatus('Falha ao sincronizar',true);
+      setSyncStatus('Falha ao salvar no servidor',true);
     }finally{
       remoteWriteInFlight=false;
+      if(writeQueued){
+        writeQueued=false;
+        scheduleCloudSave();
+      }
     }
   };
 
   handleSession=async function(session){
     currentUser=session?.user||null;
     if(!currentUser){
-      document.getElementById('authScreen').classList.remove('hidden');
-      document.getElementById('appRoot').classList.add('auth-hidden');
+      setVisible(false);
       return;
     }
-
-    setSyncStatus('Sincronizando…');
+    setSyncStatus('Carregando do servidor…');
     try{
-      const userId=currentUser.id;
-      const cloud=await window.financeCloud.load(userId);
-      const cloudState=validFinanceState(cloud?.state)?cloud.state:null;
-      const localState=readUserLocal(userId);
-      const cloudTime=parseTime(cloud?.updated_at);
-      const localTime=parseTime(localStorage.getItem(userUpdatedKey(userId)));
-
-      if(cloudState&&(!localState||cloudTime>=localTime)){
-        state=cloudState;
-        writeUserLocal(userId,state,cloud?.updated_at||new Date().toISOString());
-      }else if(localState){
-        state=localState;
-        await window.financeCloud.save(userId,state);
-      }else{
-        state=blankFinanceState();
-        await window.financeCloud.save(userId,state);
+      const cloud=await window.financeCloud.load(currentUser.id);
+      let serverState=validFinanceState(cloud?.state)?cloud.state:null;
+      if(!serverState){
+        serverState=blankFinanceState();
+        await window.financeCloud.save(currentUser.id,serverState);
       }
-
+      await applyServerState(serverState,{render:false});
       selectedCardId=state.cards[0]?.id||null;
       selectedInvoiceYm=state.settings.selectedMonth;
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appRoot').classList.remove('auth-hidden');
-      renderAll();
-      setSyncStatus('Sincronizado');
+      setVisible(true);
+      applyingRemote=true;
+      try{
+        if(typeof renderAll==='function')renderAll();
+      }finally{
+        applyingRemote=false;
+      }
+      setSyncStatus('Sincronizado com servidor');
     }catch(e){
-      console.error('Falha ao carregar/sincronizar estado financeiro:',e);
-      document.getElementById('authScreen').classList.add('hidden');
-      document.getElementById('appRoot').classList.remove('auth-hidden');
-      renderAll();
-      setSyncStatus('Falha ao sincronizar',true);
+      console.error('Falha ao carregar estado financeiro do Supabase:',e);
+      setVisible(false);
+      const msg=document.getElementById('authMsg');
+      if(msg)msg.textContent='Não foi possível carregar seus dados do servidor. Tente novamente.';
+      setSyncStatus('Falha ao carregar servidor',true);
     }
   };
+
+  async function refreshFromServer(){
+    if(!currentUser?.id||remoteWriteInFlight||Date.now()-lastRefreshAt<2000)return;
+    lastRefreshAt=Date.now();
+    try{
+      const cloud=await window.financeCloud.load(currentUser.id);
+      if(validFinanceState(cloud?.state)){
+        await applyServerState(cloud.state,{render:true});
+        setSyncStatus('Sincronizado com servidor');
+      }
+    }catch(e){
+      console.error('Falha ao atualizar estado financeiro do servidor:',e);
+      setSyncStatus('Falha ao atualizar servidor',true);
+    }
+  }
 
   async function bootstrap(){
     try{
@@ -131,6 +166,9 @@
       setSyncStatus('Falha ao sincronizar',true);
     }
   }
+
+  window.addEventListener('focus',refreshFromServer);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshFromServer()});
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootstrap,{once:true});
   else bootstrap();
