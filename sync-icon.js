@@ -164,3 +164,10 @@
   script.src='invoice-materializer.js';
   document.body.appendChild(script);
 })();
+
+(function(){
+  if(document.querySelector('script[src="admin-dashboard.js"]'))return;
+  const script=document.createElement('script');
+  script.src='admin-dashboard.js';
+  document.body.appendChild(script);
+})();
