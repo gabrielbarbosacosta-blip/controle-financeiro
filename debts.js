@@ -1,6 +1,6 @@
 (function(){
   const DEBT_STYLE_ID='debt-module-style';
-  const OPEN_HORIZON=24;
+  const OPEN_HORIZON=25;
 
   function debtUid(){return 'debt-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
   function txUid(){return 'dtx-'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
@@ -24,7 +24,7 @@
   }
   function money(v){return typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
   function monthLabel(ym){return typeof fmtMonth==='function'?fmtMonth(ym):ym}
-  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
+  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 
   function injectStyles(){
     if(document.getElementById(DEBT_STYLE_ID))return;
