@@ -1,6 +1,7 @@
 (function(){
   if(window.__chatgptFinanceIntegrationLoaded)return;
   window.__chatgptFinanceIntegrationLoaded=true;
+  window.__invoiceAiUiLoaded=true;
   function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
   function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
   function mount(){
