@@ -11,6 +11,14 @@
     document.head.appendChild(clearScript);
   }
 
+  if(!document.querySelector('script[data-installment-import-support]')){
+    const installmentScript=document.createElement('script');
+    installmentScript.src='installment-import-support.js';
+    installmentScript.async=false;
+    installmentScript.dataset.installmentImportSupport='1';
+    document.head.appendChild(installmentScript);
+  }
+
   function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
   function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
   function mount(){
