@@ -6,16 +6,26 @@ Aplicação web estática para controle financeiro pessoal, com:
 - dados financeiros persistidos na nuvem via Supabase;
 - lançamentos de caixa;
 - cartões de crédito, faturas, parcelas e compras recorrentes;
-- análise de faturas com IA para incluir apenas compras novas na fatura selecionada;
+- importação de compras de fatura analisadas dentro do ChatGPT;
 - projeção financeira de 12 meses;
 - backup JSON e exportação CSV.
 
-## IA para faturas
+## Integração com ChatGPT
 
-A função `api/analyze-invoice.js` usa a OpenAI Responses API. Configure `OPENAI_API_KEY` nas variáveis de ambiente da Vercel. Opcionalmente, defina `OPENAI_INVOICE_MODEL`; o padrão é `gpt-5.6-luna`.
+A análise da fatura pode ser feita dentro do próprio ChatGPT. O Controle Financeiro expõe uma ação protegida no Supabase para receber os lançamentos estruturados e incluir somente compras novas na fatura indicada.
 
-A importação não edita nem exclui compras existentes. Cada lançamento vindo da fatura é registrado como item único do mês selecionado, sem gerar parcelas futuras automaticamente.
+A integração não precisa de `OPENAI_API_KEY` no site. Em **Configurações → Integração com ChatGPT**, gere uma chave própria da integração e use-a na Ação do seu GPT.
 
-Hospedagem planejada em Vercel, com atualização automática a partir da branch `main` deste repositório.
+Schema da Ação:
 
-<!-- deploy-trigger: 2026-09-13 -->
+`https://eqolnqnsyomgybyrtrzt.supabase.co/functions/v1/chatgpt-finance/schema`
+
+A importação:
+
+- não edita nem exclui compras já cadastradas;
+- evita duplicidades por cartão, mês, data, descrição e valor;
+- sinaliza possíveis duplicidades antes de forçar uma inclusão;
+- registra cada linha da fatura apenas no mês selecionado;
+- não cria automaticamente parcelas futuras a partir de uma parcela encontrada no PDF.
+
+Hospedagem do site em Vercel, com atualização automática a partir da branch `main` deste repositório.
