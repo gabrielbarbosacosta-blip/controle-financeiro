@@ -11,6 +11,19 @@
     return Number.isFinite(n)?n:0;
   }
 
+  function blankFinanceState(){
+    const now=new Date();
+    const ym=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const date=`${ym}-01`;
+    return {
+      settings:{baseBalance:0,baseDate:date,selectedMonth:ym},
+      transactions:[],
+      cards:[],
+      purchases:[],
+      invoices:[]
+    };
+  }
+
   function userStateKey(userId){return `${USER_KEY_PREFIX}${userId}`;}
   function userUpdatedKey(userId){return `${USER_UPDATED_PREFIX}${userId}`;}
 
@@ -89,7 +102,7 @@
         state=localState;
         await window.financeCloud.save(userId,state);
       }else{
-        state=seedData();
+        state=blankFinanceState();
         await window.financeCloud.save(userId,state);
       }
 
