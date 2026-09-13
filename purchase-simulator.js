@@ -80,6 +80,17 @@
     return rows;
   }
 
+  function projectionRowsWithoutPurchase(purchaseId){
+    if(!purchaseId)return projectionRows();
+    const original=state.purchases;
+    try{
+      state.purchases=original.filter(p=>p.id!==purchaseId);
+      return projectionRows();
+    }finally{
+      state.purchases=original;
+    }
+  }
+
   function simulatedRows(candidate){
     const original=state.purchases;
     try{
@@ -97,7 +108,7 @@
     if(existing?.querySelector('#purchaseSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="purchaseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="purchaseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('purchaseSimulationClose').onclick=closeSimulation;
     document.getElementById('purchaseSimulationBack').onclick=closeSimulation;
@@ -151,7 +162,9 @@
   function openSimulation(){
     const candidate=purchaseFromForm();if(!candidate)return;
     buildModal();
-    const current=projectionRows(),simulated=simulatedRows(candidate);
+    const existingId=document.getElementById('purchaseId')?.value||null;
+    const current=existingId?projectionRowsWithoutPurchase(existingId):projectionRows();
+    const simulated=simulatedRows(candidate);
     const currentFinal=current.at(-1)?.closing??projectedSelectedClosing();
     const simulatedFinal=simulated.at(-1)?.closing??currentFinal;
     const impact=round(simulatedFinal-currentFinal);
@@ -162,6 +175,8 @@
     document.getElementById('purchaseSimCurrent').textContent=money(currentFinal);
     document.getElementById('purchaseSimWith').textContent=money(simulatedFinal);
     document.getElementById('purchaseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
+    const currentLabel=document.getElementById('purchaseSimCurrentLabel');if(currentLabel)currentLabel.textContent=existingId?'Saldo projetado sem esta compra':'Saldo projetado atual';
+    const currentLegend=document.getElementById('purchaseSimCurrentLegend');if(currentLegend)currentLegend.textContent=existingId?'Sem esta compra':'Projeção atual';
     const impactEl=document.getElementById('purchaseSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact<0?'#fca5a5':'#86efac';
     document.getElementById('purchaseSimulationModal').classList.add('open');
     requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated)));
