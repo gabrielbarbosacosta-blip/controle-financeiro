@@ -18,3 +18,10 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
+
+(function(){
+  if(document.querySelector('script[src="invoice-clear.js"]'))return;
+  const script=document.createElement('script');
+  script.src='invoice-clear.js';
+  document.body.appendChild(script);
+})();
