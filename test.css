@@ -1,0 +1,1 @@
+:root{--bg:#0b1220;--panel:#111827;--text:#f8fafc;--accent:#3b82f6}*{box-sizing:border-box}body{margin:0;font-family:system-ui;background:#0b1220;color:var(--text)}.app{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.sidebar{padding:22px 17px}.btn{border:1px solid #273449;color:#fff;background:#182235;padding:10px 14px;border-radius:10px}
