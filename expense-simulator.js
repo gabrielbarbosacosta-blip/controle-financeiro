@@ -82,8 +82,8 @@
     return{income:round(income),otherExpense:round(otherExpense),invoices:round(invoices)};
   }
 
-  function buildProjection(plan,withCandidate){
-    const selected=state.settings.selectedMonth,replaceId=withCandidate?plan.id:null,count=horizon();
+  function buildProjection(plan,withCandidate,excludeExisting=false){
+    const selected=state.settings.selectedMonth,replaceId=(withCandidate||excludeExisting)?plan.id:null,count=horizon();
     let opening=projectedSelectedClosing(replaceId);
     if(withCandidate)opening=round(opening-candidateAmount(plan,selected));
     const rows=[];
@@ -101,7 +101,7 @@
     if(existing?.querySelector('#expenseSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="expenseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da despesa</h3><div class="muted" id="expenseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="expenseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t">Saldo projetado atual</div><div class="v" id="expenseSimCurrent">—</div><div class="muted" id="expenseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a despesa</div><div class="v" id="expenseSimWith">—</div><div class="muted" id="expenseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span>Projeção atual</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a despesa</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="expenseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="expenseSimulationBack">Voltar</button><button type="button" class="btn primary" id="expenseSimulationConfirm">Cadastrar despesa</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="expenseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da despesa</h3><div class="muted" id="expenseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="expenseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="expenseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="expenseSimCurrent">—</div><div class="muted" id="expenseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a despesa</div><div class="v" id="expenseSimWith">—</div><div class="muted" id="expenseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="expenseSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="expenseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a despesa</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="expenseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="expenseSimulationBack">Voltar</button><button type="button" class="btn primary" id="expenseSimulationConfirm">Cadastrar despesa</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('expenseSimulationClose').onclick=closeSimulation;
     document.getElementById('expenseSimulationBack').onclick=closeSimulation;
@@ -109,7 +109,7 @@
     document.getElementById('expenseSimulationConfirm').onclick=()=>{closeSimulation();document.getElementById('debtForm')?.requestSubmit()};
   }
 
-  function drawComparisonChart(current,simulated){
+  function drawComparisonChart(current,simulated,editing=false){
     const canvas=document.getElementById('expenseSimulationComparisonChart');if(!canvas)return;
     const a=current.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
     const b=simulated.map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
@@ -124,21 +124,33 @@
     const series=(data,color)=>{ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();data.forEach((d,i)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(x(i),y(d.value),4,0,Math.PI*2);ctx.fill()})};
     series(a,'#60a5fa');series(b,'#f59e0b');
     a.forEach((d,i)=>{if(a.length<=12||i%2===0){ctx.save();ctx.translate(x(i),H-14);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore()}});
+
+    if(typeof window.bindFinancialChartTooltip==='function'){
+      const points=[
+        ...a.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:editing?'Sem esta despesa':'Projeção atual'})),
+        ...b.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:d.value,series:'Com a despesa'}))
+      ];
+      setTimeout(()=>window.bindFinancialChartTooltip(canvas,points),120);
+    }
   }
 
   function openSimulation(){
     const plan=planFromForm();if(!plan)return;
     buildModal();
-    const current=buildProjection(plan,false),simulated=buildProjection(plan,true);
-    const currentFinal=current.at(-1)?.closing??projectedSelectedClosing(),simulatedFinal=simulated.at(-1)?.closing??currentFinal,impact=round(simulatedFinal-currentFinal),endMonth=simulated.at(-1)?.ym||state.settings.selectedMonth;
+    const editing=!!plan.id;
+    const current=buildProjection(plan,false,editing),simulated=buildProjection(plan,true);
+    const currentFinal=current.at(-1)?.closing??projectedSelectedClosing(editing?plan.id:null),simulatedFinal=simulated.at(-1)?.closing??currentFinal,impact=round(simulatedFinal-currentFinal),endMonth=simulated.at(-1)?.ym||state.settings.selectedMonth;
     const range=plan.openEnded?'sem data final':`${plan.firstInstallment}/${plan.totalInstallments}`;
     document.getElementById('expenseSimulationSubtitle').textContent=`${plan.name} • ${money(plan.installmentAmount)} por mês • ${range}`;
     document.getElementById('expenseSimCurrent').textContent=money(currentFinal);
     document.getElementById('expenseSimWith').textContent=money(simulatedFinal);
     document.getElementById('expenseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
+    const currentLabel=document.getElementById('expenseSimCurrentLabel');if(currentLabel)currentLabel.textContent=editing?'Saldo projetado sem esta despesa':'Saldo projetado atual';
+    const currentLegend=document.getElementById('expenseSimCurrentLegend');if(currentLegend)currentLegend.textContent=editing?'Sem esta despesa':'Projeção atual';
+    const horizonLabel=document.getElementById('expenseSimulationHorizonLabel');if(horizonLabel)horizonLabel.textContent=editing?`Projeção sem esta despesa e projeção com a despesa editada nos próximos ${horizon()} meses, na mesma escala.`:`Projeção atual e projeção com a despesa nos próximos ${horizon()} meses, na mesma escala.`;
     const impactEl=document.getElementById('expenseSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact<0?'#fca5a5':'#86efac';
     document.getElementById('expenseSimulationModal').classList.add('open');
-    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated)));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated,editing)));
   }
   function closeSimulation(){document.getElementById('expenseSimulationModal')?.classList.remove('open')}
 
@@ -148,7 +160,7 @@
     let btn=document.getElementById('expenseSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
     if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='expenseSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
-    btn.onclick=openSimulation;buildModal();return true;
+    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation()};buildModal();return true;
   }
 
   function init(){let tries=0;const timer=setInterval(()=>{tries++;if(install()||tries>120)clearInterval(timer)},100)}
