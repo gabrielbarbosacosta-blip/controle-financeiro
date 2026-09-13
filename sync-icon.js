@@ -91,6 +91,13 @@
     });
   }
 
+  function anchorMainToTop(){
+    const main=document.querySelector('.main');
+    if(!main)return;
+    main.style.margin='0 auto';
+    main.style.alignSelf='start';
+  }
+
   const originalDashboard=window.renderDashboard;
   if(typeof originalDashboard==='function'){
     window.renderDashboard=function(){
@@ -100,6 +107,7 @@
   }
 
   function init(){
+    anchorMainToTop();
     const el=document.getElementById('syncStatus');
     if(el){const initial=String(el.textContent||'');paint(statusFromText(initial,false));}
     mountPendingValues();
