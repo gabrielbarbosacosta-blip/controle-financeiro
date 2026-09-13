@@ -1,5 +1,6 @@
 (function(){
-  const LOCAL_UPDATED_KEY='controleFinanceiroWebV2UpdatedAt';
+  const USER_KEY_PREFIX='controleFinanceiroWebV2:user:';
+  const USER_UPDATED_PREFIX='controleFinanceiroWebV2UpdatedAt:user:';
 
   function validFinanceState(value){
     return !!(value&&value.settings&&Array.isArray(value.transactions)&&Array.isArray(value.cards));
@@ -8,6 +9,24 @@
   function parseTime(value){
     const n=value?Date.parse(value):0;
     return Number.isFinite(n)?n:0;
+  }
+
+  function userStateKey(userId){return `${USER_KEY_PREFIX}${userId}`;}
+  function userUpdatedKey(userId){return `${USER_UPDATED_PREFIX}${userId}`;}
+
+  function readUserLocal(userId){
+    try{
+      const raw=localStorage.getItem(userStateKey(userId));
+      if(!raw)return null;
+      const parsed=JSON.parse(raw);
+      return validFinanceState(parsed)?parsed:null;
+    }catch(e){return null;}
+  }
+
+  function writeUserLocal(userId,financeState,updatedAt){
+    if(!userId||!validFinanceState(financeState))return;
+    localStorage.setItem(userStateKey(userId),JSON.stringify(financeState));
+    localStorage.setItem(userUpdatedKey(userId),updatedAt||new Date().toISOString());
   }
 
   window.financeCloud={
@@ -20,15 +39,16 @@
       const updatedAt=new Date().toISOString();
       const {error}=await sb.from('finance_states').upsert({user_id:userId,state:financeState,updated_at:updatedAt},{onConflict:'user_id'});
       if(error)throw error;
-      localStorage.setItem(LOCAL_UPDATED_KEY,updatedAt);
+      writeUserLocal(userId,financeState,updatedAt);
       return updatedAt;
     }
   };
 
-  const originalSave=save;
   save=function(){
-    localStorage.setItem(LOCAL_UPDATED_KEY,new Date().toISOString());
-    return originalSave();
+    if(currentUser?.id){
+      writeUserLocal(currentUser.id,state,new Date().toISOString());
+    }
+    scheduleCloudSave();
   };
 
   pushStateToCloud=async function(){
@@ -55,23 +75,22 @@
 
     setSyncStatus('Sincronizando…');
     try{
-      const cloud=await window.financeCloud.load(currentUser.id);
+      const userId=currentUser.id;
+      const cloud=await window.financeCloud.load(userId);
       const cloudState=validFinanceState(cloud?.state)?cloud.state:null;
+      const localState=readUserLocal(userId);
       const cloudTime=parseTime(cloud?.updated_at);
-      const localTime=parseTime(localStorage.getItem(LOCAL_UPDATED_KEY));
-      const hasLocal=!!localStorage.getItem(STORAGE_KEY)&&validFinanceState(state);
+      const localTime=parseTime(localStorage.getItem(userUpdatedKey(userId)));
 
-      if(cloudState&&cloudTime>=localTime){
+      if(cloudState&&(!localState||cloudTime>=localTime)){
         state=cloudState;
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
-        localStorage.setItem(LOCAL_UPDATED_KEY,cloud?.updated_at||new Date().toISOString());
-      }else if(hasLocal){
-        await window.financeCloud.save(currentUser.id,state);
+        writeUserLocal(userId,state,cloud?.updated_at||new Date().toISOString());
+      }else if(localState){
+        state=localState;
+        await window.financeCloud.save(userId,state);
       }else{
-        const legacy=currentUser.user_metadata?.finance_state;
-        if(validFinanceState(legacy))state=legacy;
-        await window.financeCloud.save(currentUser.id,state);
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+        state=seedData();
+        await window.financeCloud.save(userId,state);
       }
 
       selectedCardId=state.cards[0]?.id||null;
