@@ -211,4 +211,9 @@
     projectionScript.src='projection-controls.js';
     document.body.appendChild(projectionScript);
   }
+  if(!document.querySelector('script[src="projected-closing.js"]')){
+    const projectedClosingScript=document.createElement('script');
+    projectedClosingScript.src='projected-closing.js';
+    document.body.appendChild(projectedClosingScript);
+  }
 })();
