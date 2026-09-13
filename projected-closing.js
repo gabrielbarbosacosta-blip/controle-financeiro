@@ -24,9 +24,13 @@
     }
     const ym=state.settings.selectedMonth;
     const closing=typeof actualForMonth==='function'?(Number(actualForMonth(ym).closing)||0):0;
-    const projected=(typeof round2==='function'?round2: v=>Math.round(v*100)/100)(closing+pendingAmountForMonth('Receita',ym)-pendingAmountForMonth('Despesa',ym));
+    const projected=(typeof round2==='function'?round2:v=>Math.round(v*100)/100)(closing+pendingAmountForMonth('Receita',ym)-pendingAmountForMonth('Despesa',ym));
     const target=document.getElementById('kpiProjectedClosing');
-    if(target){target.textContent=typeof fmtMoney==='function'?fmtMoney(projected):String(projected);target.style.color=projected<0?'#fecaca':'#bbf7d0';}
+    if(target){
+      const text=typeof fmtMoney==='function'?fmtMoney(projected):String(projected);
+      if(target.textContent!==text)target.textContent=text;
+      target.style.color=projected<0?'#fecaca':'#bbf7d0';
+    }
   }
 
   const observer=new MutationObserver(renderProjectedClosing);
