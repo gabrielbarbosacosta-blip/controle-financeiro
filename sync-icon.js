@@ -39,48 +39,65 @@
     paint(statusFromText(text,bad));
   };
 
-  function expectedIncomeForMonth(ym){
+  function pendingAmountForMonth(type,ym){
     if(typeof state==='undefined'||!state?.transactions)return 0;
     return round2(state.transactions
       .filter(t=>
-        String(t.type||'').trim().toLowerCase()==='receita'&&
+        String(t.type||'').trim().toLowerCase()===String(type).toLowerCase()&&
         String(t.status||'').trim().toLowerCase()==='pendente'&&
         String(t.date||'').slice(0,7)===ym
       )
       .reduce((sum,t)=>sum+(Number(t.amount)||0),0));
   }
 
-  function mountIncomeForecast(){
-    const income=document.getElementById('kpiIncome');
-    if(!income)return;
-    const card=income.closest('.kpi');
+  function mountPendingBox({valueId,boxId,labelId,type,color}){
+    const valueEl=document.getElementById(valueId);
+    if(!valueEl)return;
+    const card=valueEl.closest('.kpi');
     if(!card)return;
-    let box=document.getElementById('kpiIncomeForecastBox');
+    let box=document.getElementById(boxId);
     if(!box){
       box=document.createElement('div');
-      box.id='kpiIncomeForecastBox';
+      box.id=boxId;
       box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';
-      box.innerHTML='<span style="color:#94a3b8">Valores previstos</span><strong id="kpiIncomeForecast" style="font-size:12px;color:#bbf7d0;font-variant-numeric:tabular-nums">—</strong>';
+      box.innerHTML=`<span style="color:#94a3b8">Valores pendentes</span><strong id="${labelId}" style="font-size:12px;color:${color};font-variant-numeric:tabular-nums">—</strong>`;
       card.appendChild(box);
     }
     const ym=state?.settings?.selectedMonth;
-    const value=ym?expectedIncomeForMonth(ym):0;
-    const target=document.getElementById('kpiIncomeForecast');
+    const value=ym?pendingAmountForMonth(type,ym):0;
+    const target=document.getElementById(labelId);
     if(target)target.textContent=fmtMoney(value);
+  }
+
+  function mountPendingValues(){
+    mountPendingBox({
+      valueId:'kpiIncome',
+      boxId:'kpiIncomeForecastBox',
+      labelId:'kpiIncomeForecast',
+      type:'Receita',
+      color:'#bbf7d0'
+    });
+    mountPendingBox({
+      valueId:'kpiExpense',
+      boxId:'kpiExpensePendingBox',
+      labelId:'kpiExpensePending',
+      type:'Despesa',
+      color:'#fecaca'
+    });
   }
 
   const originalDashboard=window.renderDashboard;
   if(typeof originalDashboard==='function'){
     window.renderDashboard=function(){
       originalDashboard.apply(this,arguments);
-      mountIncomeForecast();
+      mountPendingValues();
     };
   }
 
   function init(){
     const el=document.getElementById('syncStatus');
     if(el){const initial=String(el.textContent||'');paint(statusFromText(initial,false));}
-    mountIncomeForecast();
+    mountPendingValues();
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
