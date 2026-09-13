@@ -50,13 +50,11 @@
       )
       .reduce((sum,t)=>sum+(Number(t.amount)||0),0);
 
-    if(normalizedType==='despesa'&&Array.isArray(state.invoices)&&typeof invoiceKnownTotal==='function'){
-      total+=state.invoices
-        .filter(inv=>
-          String(inv.ym||'')===ym&&
-          String(inv.status||'').trim().toLowerCase()!=='paga'
-        )
-        .reduce((sum,inv)=>sum+(Number(invoiceKnownTotal(inv.cardId,ym))||0),0);
+    if(normalizedType==='despesa'&&Array.isArray(state.cards)&&typeof cardForecast==='function'){
+      total+=state.cards
+        .filter(card=>card.active!==false)
+        .filter(card=>getInvoice(card.id,ym)?.status!=='Paga')
+        .reduce((sum,card)=>sum+(Number(cardForecast(card,ym).total)||0),0);
     }
 
     return round2(total);
@@ -128,4 +126,3 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
-// ajuste técnico
