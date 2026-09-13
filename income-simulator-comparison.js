@@ -1,77 +1,86 @@
 (function(){
-  function money(v){return typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
   function monthLabel(ym){return typeof fmtMonth==='function'?fmtMonth(ym):ym}
-
   function currentRows(){
     if(typeof projectionFrom!=='function'||!state?.settings?.selectedMonth)return[];
     return projectionFrom(state.settings.selectedMonth,12);
   }
-
-  function fillCurrent(){
-    const body=document.getElementById('incomeSimulationCurrentBody');
-    if(!body)return;
-    const rows=currentRows();
-    body.innerHTML=rows.map(r=>`<tr><td>${monthLabel(r.ym)}</td><td class="num">${money(r.opening)}</td><td class="num positive">${money(r.income)}</td><td class="num">${money(r.otherExpense)}</td><td class="num">${money(r.invoices)}</td><td class="num ${r.result<0?'negative':'positive'}">${money(r.result)}</td><td class="num ${r.closing<0?'negative':''}"><strong>${money(r.closing)}</strong></td></tr>`).join('');
+  function parseMoney(text){
+    const cleaned=String(text||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.');
+    return Number(cleaned)||0;
   }
-
+  function simulatedRowsFromTable(){
+    const rows=[...document.querySelectorAll('#incomeSimulationBody tr')];
+    return rows.map(row=>{
+      const cells=row.querySelectorAll('td');
+      const label=(cells[0]?.childNodes?.[0]?.textContent||cells[0]?.textContent||'').trim();
+      const closing=parseMoney(cells[6]?.textContent||'0');
+      return{label,value:closing};
+    }).filter(r=>r.label);
+  }
+  function drawCurrent(){
+    if(typeof drawLineChart!=='function')return;
+    const data=currentRows().map(r=>({label:monthLabel(r.ym),value:Number(r.closing)||0}));
+    requestAnimationFrame(()=>drawLineChart('incomeSimulationCurrentChart',data));
+  }
+  function redrawSimulated(){
+    if(typeof drawLineChart!=='function')return;
+    const data=simulatedRowsFromTable();
+    if(data.length)requestAnimationFrame(()=>drawLineChart('incomeSimulationChart',data));
+  }
   function enhance(){
     const modal=document.getElementById('incomeSimulationModal');
     const body=modal?.querySelector('.modal-body');
     const simCard=body?.querySelector('.card');
     if(!modal||!body||!simCard)return false;
 
-    if(!document.getElementById('incomeSimulationComparisonGrid')){
+    if(!document.getElementById('incomeSimulationGraphGrid')){
       const currentCard=document.createElement('div');
       currentCard.className='card';
-      currentCard.innerHTML=`<div class="section-head"><div><h3>Projeção atual</h3><div class="muted">Cenário atual, sem a receita que está sendo simulada.</div></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Mês</th><th class="num">Saldo inicial</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Cartões</th><th class="num">Resultado</th><th class="num">Saldo final</th></tr></thead><tbody id="incomeSimulationCurrentBody"></tbody></table></div>`;
+      currentCard.innerHTML='<div class="section-head"><div><h3>Projeção atual</h3><div class="muted">Saldo projetado nos próximos 12 meses sem a nova receita.</div></div></div><div class="chart-wrap small"><canvas id="incomeSimulationCurrentChart"></canvas></div>';
 
       const title=simCard.querySelector('.section-head h3');
       const sub=simCard.querySelector('.section-head .muted');
       if(title)title.textContent='Projeção com a receita';
-      if(sub)sub.textContent='Cenário considerando a receita preenchida, antes de cadastrá-la.';
+      if(sub)sub.textContent='Saldo projetado nos próximos 12 meses considerando a receita simulada.';
 
-      const chart=simCard.querySelector('.chart-wrap');
+      const table=simCard.querySelector('.table-scroll');
+      if(table)table.style.display='none';
+
       const grid=document.createElement('div');
-      grid.id='incomeSimulationComparisonGrid';
-      grid.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start';
+      grid.id='incomeSimulationGraphGrid';
+      grid.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch';
       body.insertBefore(grid,simCard);
       grid.appendChild(currentCard);
       grid.appendChild(simCard);
 
-      if(chart){
-        const chartCard=document.createElement('div');
-        chartCard.className='card';
-        chartCard.style.marginTop='14px';
-        chartCard.innerHTML='<div class="section-head"><div><h3>Evolução do saldo com a receita</h3><div class="muted">Cenário simulado nos próximos 12 meses.</div></div></div>';
-        chartCard.appendChild(chart);
-        grid.insertAdjacentElement('afterend',chartCard);
-      }
+      simCard.style.marginBottom='0';
+      const chartWrap=simCard.querySelector('.chart-wrap');
+      if(chartWrap)chartWrap.style.minHeight='300px';
+      const currentWrap=currentCard.querySelector('.chart-wrap');
+      if(currentWrap)currentWrap.style.minHeight='300px';
 
       const style=document.createElement('style');
-      style.textContent='@media(max-width:1050px){#incomeSimulationComparisonGrid{grid-template-columns:1fr!important}}';
+      style.textContent='@media(max-width:1050px){#incomeSimulationGraphGrid{grid-template-columns:1fr!important}}';
       document.head.appendChild(style);
     }
 
-    fillCurrent();
+    drawCurrent();
+    redrawSimulated();
     return true;
   }
-
   function init(){
     let tries=0;
     const timer=setInterval(()=>{tries++;if(enhance()||tries>150)clearInterval(timer)},100);
-    const observer=new MutationObserver(()=>{
-      const modal=document.getElementById('incomeSimulationModal');
-      if(modal?.classList.contains('open'))setTimeout(()=>{enhance();fillCurrent()},0);
-    });
     const watch=()=>{
       const modal=document.getElementById('incomeSimulationModal');
       if(!modal)return false;
-      observer.observe(modal,{attributes:true,attributeFilter:['class']});
+      new MutationObserver(()=>{
+        if(modal.classList.contains('open'))setTimeout(()=>enhance(),30);
+      }).observe(modal,{attributes:true,attributeFilter:['class']});
       return true;
     };
     let watchTries=0;
     const watchTimer=setInterval(()=>{watchTries++;if(watch()||watchTries>150)clearInterval(watchTimer)},100);
   }
-
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
