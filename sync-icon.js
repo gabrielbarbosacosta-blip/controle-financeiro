@@ -23,7 +23,12 @@
     el.style.padding='0';
     el.style.border='0';
     el.style.borderRadius='50%';
-    el.style.display='inline-block';
+    el.style.display='inline-flex';
+    el.style.alignItems='center';
+    el.style.justifyContent='center';
+    el.style.alignSelf='center';
+    el.style.margin='0 2px';
+    el.style.verticalAlign='middle';
     el.style.background=COLORS[status]||COLORS.idle;
     el.style.boxShadow=`0 0 0 3px ${COLORS[status]||COLORS.idle}22`;
     el.style.transition='background .18s ease, box-shadow .18s ease';
