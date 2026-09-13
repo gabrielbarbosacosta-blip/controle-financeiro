@@ -1,4 +1,5 @@
 (function(){
+  window.__invoiceAiUiLoaded=true;
   if(window.__invoiceAiImporterCoreV2)return;
   window.__invoiceAiImporterCoreV2=true;
   const AUTO=.82;
