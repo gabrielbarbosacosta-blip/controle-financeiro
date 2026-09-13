@@ -1,5 +1,12 @@
 (function(){
-  const HORIZON=12;
+  if(window.__purchaseSimulatorLoaded)return;
+  window.__purchaseSimulatorLoaded=true;
+
+  function horizon(){
+    if(typeof window.getProjectionMonths==='function')return window.getProjectionMonths();
+    const n=Number(state?.settings?.projectionMonths);
+    return n===24?24:12;
+  }
 
   function addMonth(ym,n){
     if(typeof ymAdd==='function')return ymAdd(ym,n);
@@ -63,7 +70,7 @@
     const selected=state.settings.selectedMonth;
     let opening=projectedSelectedClosing();
     const rows=[];
-    for(let i=1;i<=HORIZON;i++){
+    for(let i=1;i<=horizon();i++){
       const ym=addMonth(selected,i);
       let income=0,otherExpense=0;
       for(const tx of state.transactions||[]){
@@ -104,7 +111,9 @@
   }
 
   function buildModal(){
-    const existing=document.getElementById('purchaseSimulationModal');
+    const all=[...document.querySelectorAll('#purchaseSimulationModal')];
+    const existing=all[0]||null;
+    all.slice(1).forEach(el=>el.remove());
     if(existing?.querySelector('#purchaseSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
@@ -189,7 +198,7 @@
     let btn=document.getElementById('purchaseSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
     if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='purchaseSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
-    btn.onclick=openSimulation;
+    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation()};
     buildModal();
     return true;
   }
