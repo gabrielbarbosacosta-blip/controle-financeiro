@@ -147,3 +147,10 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
+
+(function(){
+  if(document.querySelector('script[src="debts.js"]'))return;
+  const script=document.createElement('script');
+  script.src='debts.js';
+  document.body.appendChild(script);
+})();
