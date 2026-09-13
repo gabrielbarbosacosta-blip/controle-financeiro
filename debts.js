@@ -24,7 +24,7 @@
   }
   function money(v){return typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
   function monthLabel(ym){return typeof fmtMonth==='function'?fmtMonth(ym):ym}
-  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
 
   function injectStyles(){
     if(document.getElementById(DEBT_STYLE_ID))return;
@@ -44,7 +44,7 @@
     if(nav&&!nav.querySelector('[data-page="debts"]')){
       const btn=document.createElement('button');
       btn.dataset.page='debts';
-      btn.textContent='Dívidas';
+      btn.textContent='Despesas';
       const before=nav.querySelector('[data-page="projection"]');
       before?nav.insertBefore(btn,before):nav.appendChild(btn);
       btn.addEventListener('click',showDebtsPage);
@@ -57,18 +57,18 @@
       page.id='page-debts';
       page.innerHTML=`
         <div class="section-head">
-          <div><h3>Dívidas</h3><div class="muted">Cadastre dívidas parceladas ou cobranças sem data final.</div></div>
-          <button class="btn primary" id="addDebtBtn">+ Nova dívida</button>
+          <div><h3>Despesas</h3><div class="muted">Cadastre despesas parceladas ou cobranças sem data final.</div></div>
+          <button class="btn primary" id="addDebtBtn">+ Nova despesa</button>
         </div>
         <div class="summary-strip">
-          <div class="mini"><div class="t">Dívidas cadastradas</div><div class="v" id="debtCount">0</div></div>
+          <div class="mini"><div class="t">Despesas cadastradas</div><div class="v" id="debtCount">0</div></div>
           <div class="mini"><div class="t">Parcelas pendentes</div><div class="v" id="debtPendingCount">0</div></div>
           <div class="mini"><div class="t">Saldo pendente</div><div class="v" id="debtPendingTotal">R$ 0,00</div></div>
           <div class="mini"><div class="t">Próxima parcela</div><div class="v" id="debtNextDue">—</div></div>
         </div>
-        <div class="notice" style="margin-bottom:14px">Dívidas sem data final mantêm automaticamente uma janela futura de ${OPEN_HORIZON} meses. As parcelas aparecem em <strong>Lançamentos</strong> como despesas pendentes.</div>
+        <div class="notice" style="margin-bottom:14px">Despesas sem data final mantêm automaticamente uma janela futura de ${OPEN_HORIZON} meses. As parcelas aparecem em <strong>Lançamentos</strong> como despesas pendentes.</div>
         <div class="card">
-          <div class="table-scroll"><table class="data-table"><thead><tr><th>Dívida</th><th>Parcelas</th><th>Primeiro mês</th><th>Próxima</th><th class="num">Parcela</th><th class="num">Saldo pendente</th><th></th></tr></thead><tbody id="debtTableBody"></tbody></table></div>
+          <div class="table-scroll"><table class="data-table"><thead><tr><th>Despesa</th><th>Parcelas</th><th>Primeiro mês</th><th>Próxima</th><th class="num">Parcela</th><th class="num">Saldo pendente</th><th></th></tr></thead><tbody id="debtTableBody"></tbody></table></div>
         </div>`;
       main.appendChild(page);
       page.querySelector('#addDebtBtn').addEventListener('click',()=>openDebtModal());
@@ -78,21 +78,21 @@
       const wrap=document.createElement('div');
       wrap.innerHTML=`
         <div class="modal-backdrop" id="debtModal"><div class="modal"><form id="debtForm">
-          <div class="modal-head"><h3 id="debtModalTitle">Nova dívida</h3><button type="button" class="btn ghost" id="debtModalClose">✕</button></div>
+          <div class="modal-head"><h3 id="debtModalTitle">Nova despesa</h3><button type="button" class="btn ghost" id="debtModalClose">✕</button></div>
           <div class="modal-body"><div class="notice" style="margin-bottom:14px">Para cobranças contínuas, marque <strong>Sem data final</strong>. O sistema manterá automaticamente os próximos ${OPEN_HORIZON} meses na projeção.</div><div class="form-grid">
             <input type="hidden" id="debtId">
-            <div class="field"><label>Nome da dívida</label><input id="debtName" required placeholder="Ex.: CDC PREVI"></div>
+            <div class="field"><label>Nome da despesa</label><input id="debtName" required placeholder="Ex.: CDC PREVI"></div>
             <div class="field"><label>Credor / conta</label><input id="debtAccount" placeholder="Ex.: Banco do Brasil"></div>
             <div class="field"><label>Categoria</label><select id="debtCategory"></select></div>
             <div class="field"><label>Valor de cada parcela (R$)</label><input id="debtInstallmentAmount" type="number" min="0" step="0.01" required></div>
             <div class="field" id="debtTotalField"><label>Total de parcelas</label><input id="debtTotalInstallments" type="number" min="1" step="1" required></div>
             <div class="field"><label>Prazo</label><label class="toggle"><input type="checkbox" id="debtOpenEnded"> Sem data final</label><small class="muted">Mantém uma janela móvel de ${OPEN_HORIZON} meses.</small></div>
-            <div class="field"><label>Parcela que inicia neste cadastro</label><input id="debtFirstInstallment" type="number" min="1" step="1" value="1" required><small class="muted">Ex.: dívida em 7/108: informe 7.</small></div>
+            <div class="field"><label>Parcela que inicia neste cadastro</label><input id="debtFirstInstallment" type="number" min="1" step="1" value="1" required><small class="muted">Ex.: despesa em 7/108: informe 7.</small></div>
             <div class="field"><label>Mês dessa parcela</label><input id="debtFirstMonth" type="month" required></div>
             <div class="field"><label>Dia do vencimento</label><input id="debtDueDay" type="number" min="1" max="31" value="10" required></div>
             <div class="field full"><label>Observação</label><textarea id="debtNotes" rows="3"></textarea></div>
           </div></div>
-          <div class="modal-foot"><button type="button" class="btn" id="debtCancel">Cancelar</button><button class="btn primary" type="submit">Salvar dívida e gerar parcelas</button></div>
+          <div class="modal-foot"><button type="button" class="btn" id="debtCancel">Cancelar</button><button class="btn primary" type="submit">Salvar despesa e gerar parcelas</button></div>
         </form></div></div>`;
       document.body.appendChild(wrap.firstElementChild);
       document.getElementById('debtModalClose').addEventListener('click',closeDebtModal);
@@ -126,7 +126,7 @@
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-debts'));
     document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='debts'));
     const title=document.getElementById('pageTitle'),sub=document.getElementById('pageSubtitle');
-    if(title)title.textContent='Dívidas';
+    if(title)title.textContent='Despesas';
     if(sub)sub.textContent='Parcelas, vencimentos e impacto no caixa';
     renderDebtPage();
   }
@@ -162,7 +162,7 @@
         nature:'Parcelamento',
         amount:Number(debt.installmentAmount)||0,
         status,
-        notes:[`Parcela gerada automaticamente pela dívida "${debt.name}".`,debt.openEnded?'Dívida sem data final.':'',debt.notes||''].filter(Boolean).join(' '),
+        notes:[`Parcela gerada automaticamente pela despesa "${debt.name}".`,debt.openEnded?'Despesa sem data final.':'',debt.notes||''].filter(Boolean).join(' '),
         projection:true,
         recurring:false,
         installmentCurrent:null,
@@ -194,7 +194,7 @@
     if(!ensureDebtState())return;
     buildUi();
     const debt=id?state.debts.find(d=>d.id===id):null;
-    document.getElementById('debtModalTitle').textContent=debt?'Editar dívida':'Nova dívida';
+    document.getElementById('debtModalTitle').textContent=debt?'Editar despesa':'Nova despesa';
     document.getElementById('debtId').value=debt?.id||'';
     document.getElementById('debtName').value=debt?.name||'';
     document.getElementById('debtAccount').value=debt?.account||'';
@@ -243,7 +243,7 @@
   function deleteDebt(id){
     if(!ensureDebtState())return;
     const debt=state.debts.find(d=>d.id===id);if(!debt)return;
-    if(!confirm(`Excluir a dívida "${debt.name}" e todas as parcelas vinculadas, inclusive as já marcadas como pagas?`))return;
+    if(!confirm(`Excluir a despesa "${debt.name}" e todas as parcelas vinculadas, inclusive as já marcadas como pagas?`))return;
     state.debts=state.debts.filter(d=>d.id!==id);
     state.transactions=state.transactions.filter(t=>!(t.debtManaged===true&&t.debtId===id));
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
@@ -275,7 +275,7 @@
         <td class="num"><strong>${money(remaining)}</strong>${d.openEnded?`<div class="debt-sub">janela de ${OPEN_HORIZON} meses</div>`:''}</td>
         <td><div class="debt-actions"><button class="btn small" onclick="editDebtPlan('${d.id}')">Editar</button><button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button></div></td>
       </tr>`;
-    }).join(''):'<tr><td colspan="7" class="empty">Nenhuma dívida cadastrada.</td></tr>';
+    }).join(''):'<tr><td colspan="7" class="empty">Nenhuma despesa cadastrada.</td></tr>';
   }
 
   const originalEditTx=window.editTx;
