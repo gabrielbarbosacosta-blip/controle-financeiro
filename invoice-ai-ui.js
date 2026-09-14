@@ -72,17 +72,41 @@
     return true;
   }
 
+  function redrawDashboardCanonical(){
+    const fp=window.financeProjection,selected=state?.settings?.selectedMonth;
+    if(!fp?.rowsFrom||!selected||typeof drawLineChart!=='function')return;
+    const count=typeof window.getProjectionMonths==='function'?window.getProjectionMonths():12;
+    const rows=fp.rowsFrom(selected,count,dashboardSources());
+    drawLineChart('projectionChart',rows.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})));
+  }
+
+  function installFinalDashboardRenderHook(){
+    if(window.__finalDashboardProjectionHook)return true;
+    const base=window.renderDashboard;
+    if(typeof base!=='function')return false;
+    const wrapped=function(){
+      const result=base.apply(this,arguments);
+      requestAnimationFrame(()=>requestAnimationFrame(redrawDashboardCanonical));
+      return result;
+    };
+    wrapped.__finalDashboardProjectionHook=true;
+    window.renderDashboard=wrapped;try{renderDashboard=wrapped}catch(e){}
+    window.__finalDashboardProjectionHook=true;
+    return true;
+  }
+
   function refresh(){
     try{
       if(typeof renderDashboard==='function')renderDashboard();
       if(document.getElementById('page-projection')?.classList.contains('active')&&typeof renderProjection==='function')renderProjection();
       if(typeof window.renderProjectedClosing==='function')window.renderProjectedClosing();
+      requestAnimationFrame(()=>requestAnimationFrame(redrawDashboardCanonical));
     }catch(e){console.error('projection refresh',e)}
   }
 
   function installAll(){
-    const a=installPendingProjectionFix(),b=installDashboardCanonicalDraw();
-    if(a&&b){requestAnimationFrame(refresh);return true}
+    const a=installPendingProjectionFix(),b=installDashboardCanonicalDraw(),c=installFinalDashboardRenderHook();
+    if(a&&b&&c){requestAnimationFrame(refresh);setTimeout(redrawDashboardCanonical,150);setTimeout(redrawDashboardCanonical,700);return true}
     return false;
   }
 
