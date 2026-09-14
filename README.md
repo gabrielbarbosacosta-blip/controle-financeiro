@@ -1,14 +1,23 @@
 # Controle Financeiro
 
-Aplicação web estática para controle financeiro pessoal, com:
+Aplicação web para controle financeiro pessoal, com:
 
-- login e sincronização via Supabase Auth;
-- dados financeiros persistidos na nuvem via Supabase;
+- login via Supabase Auth;
+- banco financeiro relacional em Supabase/PostgreSQL;
 - lançamentos de caixa;
 - cartões de crédito, faturas, parcelas e compras recorrentes;
+- receitas e despesas gerenciadas com histórico de valores;
 - importação de compras de fatura analisadas dentro do ChatGPT;
-- projeção financeira de 12 meses;
+- projeção financeira configurável;
 - backup JSON e exportação CSV.
+
+## Banco de dados
+
+A fonte de verdade é relacional. Lançamentos, cartões, compras, faturas, receitas, despesas e históricos ficam em tabelas próprias, relacionadas por chaves estrangeiras e protegidas por RLS.
+
+O objeto `state` usado pela interface existe somente em memória. `cloud-sync.js` carrega e grava os dados através das RPCs `finance_get_state()` e `finance_put_state()`, que montam/decompõem esse formato sobre as tabelas relacionais de forma atômica.
+
+A arquitetura completa está em `DATABASE.md`.
 
 ## Integração com ChatGPT
 
@@ -22,10 +31,12 @@ Schema da Ação:
 
 A importação:
 
-- não edita nem exclui compras já cadastradas;
-- evita duplicidades por cartão, mês, data, descrição e valor;
+- evita duplicidades por cartão, mês, data, descrição, valor e metadados de parcela;
 - sinaliza possíveis duplicidades antes de forçar uma inclusão;
-- registra cada linha da fatura apenas no mês selecionado;
-- não cria automaticamente parcelas futuras a partir de uma parcela encontrada no PDF.
+- preserva a numeração de parcelamentos encontrados na fatura;
+- projeta somente as parcelas restantes;
+- concilia automaticamente o total final da fatura com o valor informado do PDF.
 
-Hospedagem do site em Vercel, com atualização automática a partir da branch `main` deste repositório.
+A Edge Function usa as mesmas RPCs de estado lógico, mas elas agora leem e gravam o modelo relacional; não existe mais dependência ativa do snapshot financeiro monolítico.
+
+Hospedagem do site em Vercel, com atualização a partir da branch `main` deste repositório.
