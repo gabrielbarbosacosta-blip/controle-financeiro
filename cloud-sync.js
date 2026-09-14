@@ -31,6 +31,23 @@
     if(app)app.classList.toggle('auth-hidden',!authenticated);
   }
 
+  async function clearLegacyCopies(){
+    try{
+      localStorage.removeItem('controleFinanceiroWebV2');
+      localStorage.removeItem('controleFinanceiroWebV1');
+      for(let i=localStorage.length-1;i>=0;i--){
+        const key=localStorage.key(i);
+        if(String(key||'').startsWith('controleFinanceiroWebV2UpdatedAt:user:'))localStorage.removeItem(key);
+      }
+    }catch(e){}
+    try{
+      if(currentUser?.user_metadata?.finance_state||currentUser?.user_metadata?.finance_updated_at){
+        const {data,error}=await sb.auth.updateUser({data:{finance_state:null,finance_updated_at:null}});
+        if(!error&&data?.user)currentUser=data.user;
+      }
+    }catch(e){console.warn('Não foi possível limpar metadados financeiros legados:',e)}
+  }
+
   async function applyServerState(financeState,{render=true}={}){
     if(!validFinanceState(financeState))return false;
     applyingRemote=true;
@@ -54,6 +71,7 @@
   }
 
   window.financeCloud={
+    storage:'relational',
     async load(userId){
       if(!userId)return null;
       const {data,error}=await sb.rpc('finance_get_state');
@@ -125,6 +143,7 @@
       setVisible(true);
       applyingRemote=true;
       try{if(typeof renderAll==='function')renderAll()}finally{applyingRemote=false}
+      await clearLegacyCopies();
       setSyncStatus('Sincronizado com banco relacional');
     }catch(e){
       console.error('Falha ao carregar dados financeiros relacionais:',e);
