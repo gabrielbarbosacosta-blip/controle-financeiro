@@ -3,7 +3,7 @@
   window.__purchaseSectionsLoaded=true;
 
   const STYLE_ID='purchase-sections-style';
-  const STORAGE_KEY='purchaseSectionsCollapsed:v1';
+  const STORAGE_KEY='purchaseSectionsCollapsed:v2';
   const GROUPS=[
     {key:'recorrentes',label:'Recorrentes',hint:'Cobranças que se repetem mensalmente'},
     {key:'parceladas',label:'Parceladas',hint:'Compras com duas ou mais parcelas'},
@@ -17,12 +17,18 @@
     }catch(e){return{}}
   }
 
-  function isCollapsed(key){return readCollapsed()[key]===true}
+  // Recolhido por padrão; false significa que o usuário expandiu durante a sessão.
+  function isCollapsed(key){return readCollapsed()[key]!==false}
 
   function setCollapsed(key,value){
     const current=readCollapsed();
     current[key]=!!value;
     try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(current))}catch(e){}
+  }
+
+  function money(value){
+    if(typeof fmtMoney==='function')return fmtMoney(Number(value)||0);
+    return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
   }
 
   function injectStyles(){
@@ -31,23 +37,34 @@
     style.id=STYLE_ID;
     style.textContent=`
       #purchaseManagerBody .purchase-section-row td{padding:0;border-bottom:1px solid #334155;background:#0b1220}
-      .purchase-section-toggle{width:100%;display:flex;align-items:center;gap:10px;padding:12px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
+      .purchase-section-toggle{width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
       .purchase-section-toggle:hover{background:rgba(148,163,184,.055)}
       .purchase-section-toggle:focus-visible{outline:2px solid #60a5fa;outline-offset:-2px}
       .purchase-section-copy{min-width:0;flex:1}
       .purchase-section-title{display:flex;align-items:center;gap:8px;font-weight:800;color:#e2e8f0;font-size:12px;text-transform:uppercase;letter-spacing:.055em}
       .purchase-section-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:#1e293b;color:#bfdbfe;font-size:10px;font-weight:800}
+      .purchase-section-total{flex:0 0 auto;white-space:nowrap;font-size:12px;font-weight:800;color:#e2e8f0;letter-spacing:0}
       .purchase-section-hint{margin-top:3px;color:#64748b;font-size:10px;text-transform:none;letter-spacing:0;font-weight:500}
       .purchase-section-chevron{flex:0 0 auto;color:#94a3b8;font-size:15px;line-height:1;transition:transform .16s ease;transform:rotate(90deg)}
       .purchase-section-toggle[aria-expanded="false"] .purchase-section-chevron{transform:rotate(0deg)}
-      .invoice-purchase-groups{display:block}
+      .invoice-purchase-groups{display:block;padding:0 10px}
       .invoice-purchase-group{margin-top:14px;border:1px solid #273449;border-radius:12px;overflow:hidden;background:#0b1220}
       .invoice-purchase-group-head{padding:0;background:#111827;border-bottom:1px solid #273449}
       .invoice-purchase-group.collapsed .invoice-purchase-group-head{border-bottom:0}
-      .invoice-purchase-group .detail-line{margin:0;border-radius:0;border-left:0;border-right:0;border-top:0}
-      .invoice-purchase-group .detail-line:last-child{border-bottom:0}
+      .invoice-purchase-group .detail-line{margin:0 12px!important;padding-left:12px!important;padding-right:12px!important;border-radius:0;border-left:0;border-right:0;border-top:0}
+      .invoice-purchase-group .detail-line:first-of-type{margin-top:4px!important}
+      .invoice-purchase-group .detail-line:last-child{border-bottom:0;margin-bottom:4px!important}
       .invoice-purchase-group.collapsed .detail-line{display:none!important}
+      #purchaseManagerBody tr[data-purchase-section-item] td:first-child{padding-left:26px}
+      #purchaseManagerBody tr[data-purchase-section-item] td:last-child{padding-right:18px}
       #purchaseManagerBody tr.purchase-section-item-collapsed{display:none}
+      @media(max-width:700px){
+        .purchase-section-toggle{padding:12px 13px;gap:8px}
+        .purchase-section-total{font-size:11px}
+        .invoice-purchase-groups{padding:0 4px}
+        .invoice-purchase-group .detail-line{margin:0 8px!important;padding-left:8px!important;padding-right:8px!important}
+        #purchaseManagerBody tr[data-purchase-section-item] td:first-child{padding-left:18px}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -79,9 +96,34 @@
     return id&&Array.isArray(state?.purchases)?state.purchases.find(p=>p.id===id):null;
   }
 
-  function toggleMarkup(meta,count,collapsed){
+  function allocationAmount(p,ym){
+    const allocator=window.purchaseAllocation||(typeof purchaseAllocation==='function'?purchaseAllocation:null);
+    if(typeof allocator!=='function'||!p||!ym)return 0;
+    try{
+      const alloc=allocator(p,ym);
+      const value=Number(alloc&&typeof alloc==='object'?alloc.amount:alloc);
+      return Number.isFinite(value)?value:0;
+    }catch(e){return 0}
+  }
+
+  function purchaseListedValue(p){
+    if(!p)return 0;
+    if(p.mode==='recorrente'||p.openEnded===true){
+      const monthly=Number(p.installmentValue??p.totalAmount);
+      return Number.isFinite(monthly)?monthly:0;
+    }
+    const total=Number(p.totalAmount);
+    return Number.isFinite(total)?total:0;
+  }
+
+  function sumPurchases(purchases,{invoiceMonth=null,allPurchases=false}={}){
+    return purchases.reduce((sum,p)=>sum+(allPurchases?purchaseListedValue(p):allocationAmount(p,invoiceMonth)),0);
+  }
+
+  function toggleMarkup(meta,count,total,collapsed){
     return `<button type="button" class="purchase-section-toggle" aria-expanded="${collapsed?'false':'true'}" data-section-toggle="${meta.key}">
       <span class="purchase-section-copy"><span class="purchase-section-title">${meta.label}<span class="purchase-section-count">${count}</span></span><span class="purchase-section-hint">${meta.hint}</span></span>
+      <span class="purchase-section-total">${money(total)}</span>
       <span class="purchase-section-chevron" aria-hidden="true">›</span>
     </button>`;
   }
@@ -110,21 +152,26 @@
     for(const row of rawRows){
       row.classList.remove('purchase-section-item-collapsed');
       delete row.dataset.purchaseSectionItem;
-      buckets[groupFor(purchaseForElement(row))].push(row);
+      const purchase=purchaseForElement(row);
+      buckets[groupFor(purchase)].push({row,purchase});
     }
 
+    const ym=(typeof selectedInvoiceYm!=='undefined'&&selectedInvoiceYm)||state?.settings?.selectedMonth||'';
+    const scope=document.getElementById('purchaseManagerScope')?.value||'all';
     managerObserver?.disconnect();
     body.querySelectorAll('.purchase-section-row').forEach(row=>row.remove());
     for(const meta of GROUPS){
-      const rows=buckets[meta.key];
-      if(!rows.length)continue;
+      const entries=buckets[meta.key];
+      if(!entries.length)continue;
       const collapsed=isCollapsed(meta.key);
+      const purchases=entries.map(x=>x.purchase).filter(Boolean);
+      const total=sumPurchases(purchases,{invoiceMonth:ym,allPurchases:scope!=='invoice'});
       const header=document.createElement('tr');
       header.className='purchase-section-row';
       header.dataset.purchaseSection=meta.key;
-      header.innerHTML=`<td colspan="8">${toggleMarkup(meta,rows.length,collapsed)}</td>`;
+      header.innerHTML=`<td colspan="8">${toggleMarkup(meta,entries.length,total,collapsed)}</td>`;
       body.appendChild(header);
-      rows.forEach(row=>{
+      entries.forEach(({row})=>{
         row.dataset.purchaseSectionItem=meta.key;
         row.classList.toggle('purchase-section-item-collapsed',collapsed);
         body.appendChild(row);
@@ -187,24 +234,30 @@
     if(!rows.length)return;
 
     const buckets={recorrentes:[],parceladas:[],unicas:[]};
-    for(const row of rows)buckets[groupFor(purchaseForElement(row))].push(row);
+    for(const row of rows){
+      const purchase=purchaseForElement(row);
+      buckets[groupFor(purchase)].push({row,purchase});
+    }
 
+    const ym=(typeof selectedInvoiceYm!=='undefined'&&selectedInvoiceYm)||state?.settings?.selectedMonth||'';
     const container=document.createElement('div');
     container.className='invoice-purchase-groups';
     container.dataset.invoicePurchaseGroups='1';
 
     for(const meta of GROUPS){
-      const items=buckets[meta.key];
-      if(!items.length)continue;
+      const entries=buckets[meta.key];
+      if(!entries.length)continue;
       const collapsed=isCollapsed(meta.key);
+      const purchases=entries.map(x=>x.purchase).filter(Boolean);
+      const total=sumPurchases(purchases,{invoiceMonth:ym,allPurchases:false});
       const group=document.createElement('div');
       group.className='invoice-purchase-group';
       group.dataset.purchaseSection=meta.key;
       const head=document.createElement('div');
       head.className='invoice-purchase-group-head';
-      head.innerHTML=toggleMarkup(meta,items.length,collapsed);
+      head.innerHTML=toggleMarkup(meta,entries.length,total,collapsed);
       group.appendChild(head);
-      items.forEach(row=>group.appendChild(row));
+      entries.forEach(({row})=>group.appendChild(row));
       applyInvoiceCollapsed(group,meta.key,collapsed);
       head.querySelector('.purchase-section-toggle').onclick=()=>{
         const next=!isCollapsed(meta.key);
