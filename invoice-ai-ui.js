@@ -9,6 +9,11 @@
   const statusOf=v=>String(v||'').trim().toLowerCase();
   const addMonth=(ym,n)=>typeof ymAdd==='function'?ymAdd(ym,n):ym;
 
+  function dashboardSources(){
+    const s=state?.settings?.dashboardProjectionSources||{};
+    return{transactions:s.transactions!==false,incomes:s.incomes!==false,cards:s.cards!==false,debts:s.debts!==false};
+  }
+
   function installPendingProjectionFix(){
     const fp=window.financeProjection;
     if(!fp?.flowForMonth||!fp?.baseMonth)return false;
@@ -45,9 +50,41 @@
     fp.flowForMonth=flowForMonth;fp.closingAt=closingAt;fp.rowsFrom=rowsFrom;fp.__sameMonthPendingFixed=true;
     window.projectedClosingForSelectedMonth=(ym,cfg)=>closingAt(ym,cfg||fp.allSources?.());
     const projection=(selectedYm,months=12)=>rowsFrom(selectedYm,months,fp.allSources?.());window.projectionFrom=projection;try{projectionFrom=projection}catch(e){}
-    requestAnimationFrame(()=>{try{if(typeof renderDashboard==='function')renderDashboard();if(document.getElementById('page-projection')?.classList.contains('active')&&typeof renderProjection==='function')renderProjection();if(typeof window.renderProjectedClosing==='function')window.renderProjectedClosing()}catch(e){console.error(e)}});
     return true;
   }
 
-  if(!installPendingProjectionFix()){let tries=0;const timer=setInterval(()=>{tries++;if(installPendingProjectionFix()||tries>100)clearInterval(timer)},100)}
+  function installDashboardCanonicalDraw(){
+    if(window.__dashboardCanonicalDrawInstalled)return true;
+    const fp=window.financeProjection,base=window.drawLineChart;
+    if(!fp?.rowsFrom||typeof base!=='function')return false;
+    const wrapped=function(id,data){
+      if(id==='projectionChart'&&state?.settings?.selectedMonth){
+        const count=typeof window.getProjectionMonths==='function'?window.getProjectionMonths():(Array.isArray(data)&&data.length?data.length:12);
+        const rows=fp.rowsFrom(state.settings.selectedMonth,count,dashboardSources());
+        data=rows.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing}));
+        arguments[1]=data;
+      }
+      return base.apply(this,arguments);
+    };
+    wrapped.__dashboardCanonicalDraw=true;
+    window.drawLineChart=wrapped;try{drawLineChart=wrapped}catch(e){}
+    window.__dashboardCanonicalDrawInstalled=true;
+    return true;
+  }
+
+  function refresh(){
+    try{
+      if(typeof renderDashboard==='function')renderDashboard();
+      if(document.getElementById('page-projection')?.classList.contains('active')&&typeof renderProjection==='function')renderProjection();
+      if(typeof window.renderProjectedClosing==='function')window.renderProjectedClosing();
+    }catch(e){console.error('projection refresh',e)}
+  }
+
+  function installAll(){
+    const a=installPendingProjectionFix(),b=installDashboardCanonicalDraw();
+    if(a&&b){requestAnimationFrame(refresh);return true}
+    return false;
+  }
+
+  if(!installAll()){let tries=0;const timer=setInterval(()=>{tries++;if(installAll()||tries>100)clearInterval(timer)},100)}
 })();
