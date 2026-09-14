@@ -8,6 +8,7 @@
   const monthOf=v=>String(v||'').slice(0,7);
   const statusOf=v=>String(v||'').trim().toLowerCase();
   const addMonth=(ym,n)=>typeof ymAdd==='function'?ymAdd(ym,n):ym;
+  let guardApplying=false,guardTimer=null,guardObserver=null,guardCanvas=null;
 
   function dashboardSources(){
     const s=state?.settings?.dashboardProjectionSources||{};
@@ -77,7 +78,27 @@
     if(!fp?.rowsFrom||!selected||typeof drawLineChart!=='function')return;
     const count=typeof window.getProjectionMonths==='function'?window.getProjectionMonths():12;
     const rows=fp.rowsFrom(selected,count,dashboardSources());
-    drawLineChart('projectionChart',rows.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})));
+    guardApplying=true;
+    try{drawLineChart('projectionChart',rows.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})))}finally{setTimeout(()=>{guardApplying=false},0)}
+  }
+
+  function scheduleCanonicalRedraw(){
+    if(guardApplying)return;
+    clearTimeout(guardTimer);
+    guardTimer=setTimeout(()=>requestAnimationFrame(redrawDashboardCanonical),0);
+  }
+
+  function installCanvasGuard(){
+    const canvas=document.getElementById('projectionChart');
+    if(!canvas)return false;
+    if(canvas===guardCanvas&&guardObserver)return true;
+    guardObserver?.disconnect();guardCanvas=canvas;
+    guardObserver=new MutationObserver(mutations=>{
+      if(guardApplying)return;
+      if(mutations.some(m=>m.type==='attributes'&&(m.attributeName==='width'||m.attributeName==='height')))scheduleCanonicalRedraw();
+    });
+    guardObserver.observe(canvas,{attributes:true,attributeFilter:['width','height']});
+    return true;
   }
 
   function installFinalDashboardRenderHook(){
@@ -86,7 +107,7 @@
     if(typeof base!=='function')return false;
     const wrapped=function(){
       const result=base.apply(this,arguments);
-      requestAnimationFrame(()=>requestAnimationFrame(redrawDashboardCanonical));
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{installCanvasGuard();redrawDashboardCanonical()}));
       return result;
     };
     wrapped.__finalDashboardProjectionHook=true;
@@ -95,20 +116,32 @@
     return true;
   }
 
+  function installBodyGuard(){
+    if(window.__projectionBodyGuard)return true;
+    if(!document.body)return false;
+    const observer=new MutationObserver(()=>{
+      if(document.getElementById('projectionChart')!==guardCanvas){installCanvasGuard();scheduleCanonicalRedraw()}
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.__projectionBodyGuard=observer;
+    return true;
+  }
+
   function refresh(){
     try{
       if(typeof renderDashboard==='function')renderDashboard();
       if(document.getElementById('page-projection')?.classList.contains('active')&&typeof renderProjection==='function')renderProjection();
       if(typeof window.renderProjectedClosing==='function')window.renderProjectedClosing();
+      installCanvasGuard();
       requestAnimationFrame(()=>requestAnimationFrame(redrawDashboardCanonical));
     }catch(e){console.error('projection refresh',e)}
   }
 
   function installAll(){
-    const a=installPendingProjectionFix(),b=installDashboardCanonicalDraw(),c=installFinalDashboardRenderHook();
-    if(a&&b&&c){requestAnimationFrame(refresh);setTimeout(redrawDashboardCanonical,150);setTimeout(redrawDashboardCanonical,700);return true}
+    const a=installPendingProjectionFix(),b=installDashboardCanonicalDraw(),c=installFinalDashboardRenderHook(),d=installCanvasGuard(),e=installBodyGuard();
+    if(a&&b&&c&&d&&e){requestAnimationFrame(refresh);setTimeout(redrawDashboardCanonical,150);setTimeout(redrawDashboardCanonical,700);setTimeout(redrawDashboardCanonical,1500);return true}
     return false;
   }
 
-  if(!installAll()){let tries=0;const timer=setInterval(()=>{tries++;if(installAll()||tries>100)clearInterval(timer)},100)}
+  if(!installAll()){let tries=0;const timer=setInterval(()=>{tries++;if(installAll()||tries>150)clearInterval(timer)},100)}
 })();
