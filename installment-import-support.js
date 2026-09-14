@@ -1,4 +1,8 @@
 (function(){
+  function isExcluded(p,ym){
+    return Array.isArray(p?.excludedInvoiceMonths)&&p.excludedInvoiceMonths.includes(ym);
+  }
+
   function importedMeta(p){
     const current=Number(p?.chatgptImport?.installmentCurrent);
     const total=Number(p?.chatgptImport?.installmentTotal);
@@ -20,6 +24,7 @@
     if(typeof base!=='function')return false;
     if(base.__importedInstallmentsSupport)return true;
     const wrapped=function(p,ym){
+      if(isExcluded(p,ym))return null;
       const meta=importedMeta(p);
       if(meta){
         const d=diff(p.firstInvoiceYm,ym);
@@ -35,6 +40,8 @@
     if(typeof renderAll==='function')setTimeout(()=>renderAll(),0);
     return true;
   }
+
+  window.isPurchaseOccurrenceExcluded=isExcluded;
 
   if(!install()){
     let tries=0;
