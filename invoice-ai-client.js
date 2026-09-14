@@ -19,6 +19,14 @@
     document.head.appendChild(installmentScript);
   }
 
+  if(!document.querySelector('script[data-purchase-occurrence-exclusions]')){
+    const exclusionScript=document.createElement('script');
+    exclusionScript.src='purchase-occurrence-exclusions.js';
+    exclusionScript.async=false;
+    exclusionScript.dataset.purchaseOccurrenceExclusions='1';
+    document.head.appendChild(exclusionScript);
+  }
+
   if(!document.querySelector('script[data-purchase-sections]')){
     const sectionsScript=document.createElement('script');
     sectionsScript.src='purchase-sections.js';
