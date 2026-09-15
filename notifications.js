@@ -10,6 +10,8 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
   const money=v=>typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
   const fmtDateSafe=d=>{try{return typeof fmtDate==='function'?fmtDate(d):d||''}catch(e){return d||''}};
+  function getSb(){try{return sb}catch(e){return window.sb||null}}
+  function getCurrentUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
 
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -39,12 +41,8 @@
 
   function ensureUi(){
     injectStyles();
-    if(!backdrop){
-      backdrop=document.createElement('div');backdrop.className='notifications-backdrop';backdrop.id='notificationsBackdrop';document.body.appendChild(backdrop);backdrop.onclick=closePanel;
-    }
-    if(!panel){
-      panel=document.createElement('div');panel.className='notifications-panel';panel.id='notificationsPanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Notificações');panel.innerHTML='<div class="notifications-head"><div><div class="notifications-title">Notificações</div><div class="notifications-count" id="notificationsCount"></div></div></div><div class="notifications-list" id="notificationsList"></div>';document.body.appendChild(panel);panel.addEventListener('click',e=>e.stopPropagation());
-    }
+    if(!backdrop){backdrop=document.createElement('div');backdrop.className='notifications-backdrop';backdrop.id='notificationsBackdrop';document.body.appendChild(backdrop);backdrop.onclick=closePanel}
+    if(!panel){panel=document.createElement('div');panel.className='notifications-panel';panel.id='notificationsPanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Notificações');panel.innerHTML='<div class="notifications-head"><div><div class="notifications-title">Notificações</div><div class="notifications-count" id="notificationsCount"></div></div></div><div class="notifications-list" id="notificationsList"></div>';document.body.appendChild(panel);panel.addEventListener('click',e=>e.stopPropagation())}
     bindBell();
   }
 
@@ -67,28 +65,18 @@
   }
 
   function openPanel(){
-    ensureUi();
-    document.querySelector('body > .profile-dropdown.open')?.classList.remove('open');
-    document.body.classList.remove('profile-menu-open');
-    positionPanel();
-    backdrop.classList.add('open');requestAnimationFrame(()=>panel.classList.add('open'));
-    loadNotifications();
+    ensureUi();document.querySelector('body > .profile-dropdown.open')?.classList.remove('open');document.body.classList.remove('profile-menu-open');positionPanel();backdrop.classList.add('open');requestAnimationFrame(()=>panel.classList.add('open'));loadNotifications();
   }
   function closePanel(){if(panel)panel.classList.remove('open');if(backdrop)backdrop.classList.remove('open')}
   function togglePanel(){ensureUi();panel.classList.contains('open')?closePanel():openPanel()}
 
   function updateBadge(){
     const b=bell();if(!b)return;
-    const pending=items.filter(i=>i.myStatus==='pending').length;
-    const charges=balances.filter(x=>(Number(x.toReceive)||0)>0).length;
-    const count=pending+charges;
+    const pending=items.filter(i=>i.myStatus==='pending').length;const charges=balances.filter(x=>(Number(x.toReceive)||0)>0).length;const count=pending+charges;
     b.classList.toggle('has-notifications',count>0);const badge=b.querySelector('.notification-badge');if(badge)badge.textContent=count>9?'9+':String(count);
   }
 
-  function creatorLabel(i){
-    const creator=(i.participants||[]).find(p=>p.userId===i.creatorUserId||p.isCreator);
-    return creator?.nickname||creator?.fullName||i.creatorName||'Outro usuário';
-  }
+  function creatorLabel(i){const creator=(i.participants||[]).find(p=>p.userId===i.creatorUserId||p.isCreator);return creator?.nickname||creator?.fullName||i.creatorName||'Outro usuário'}
 
   function invitationCard(i){
     const value=i.isPayer?Number(i.amount)||0:Number(i.myAmount)||0;
@@ -96,12 +84,12 @@
   }
 
   function chargeCard(b){
-    const name=b.name||'Participante';const amount=Number(b.toReceive)||0;
+    const name=b.name||'Participante',amount=Number(b.toReceive)||0;
     return `<div class="notification-card charge"><div class="notification-type">Cobrança pendente</div><div class="notification-title">${esc(name)} ainda possui valor pendente com você</div><div class="notification-meta">Há um saldo a receber ainda não quitado nos compartilhamentos.</div><div class="notification-value">${money(amount)}</div><div class="notification-actions"><button type="button" class="btn small" data-notification-open-sharing="1">Abrir compartilhamentos</button></div></div>`;
   }
 
   function render(){
-    ensureUi();const pending=items.filter(i=>i.myStatus==='pending');const charges=balances.filter(b=>(Number(b.toReceive)||0)>0);
+    ensureUi();const pending=items.filter(i=>i.myStatus==='pending'),charges=balances.filter(b=>(Number(b.toReceive)||0)>0);
     const host=document.getElementById('notificationsList'),count=document.getElementById('notificationsCount');if(count)count.textContent=`${pending.length+charges.length} pendência${pending.length+charges.length===1?'':'s'}`;
     if(host){host.innerHTML=(pending.length||charges.length)?pending.map(invitationCard).join('')+charges.map(chargeCard).join(''):'<div class="notification-empty">Nenhuma notificação pendente.</div>';bindActions(host)}
     updateBadge();
@@ -113,29 +101,26 @@
   }
 
   async function acceptShared(id,button){
-    if(!id||!window.sb)return;
+    const client=getSb();if(!id||!client)return;
     const old=button?.textContent;if(button){button.disabled=true;button.textContent='Aceitando…'}
     try{
-      const {data,error}=await sb.rpc('finance_respond_shared_expense',{p_shared_id:id,p_accept:true});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'respond_failed');
-      if(window.financeCloud?.refresh)await window.financeCloud.refresh();
-      await loadNotifications();
-      try{if(typeof setSyncStatus==='function')setSyncStatus('Despesa compartilhada confirmada')}catch(e){}
+      const {data,error}=await client.rpc('finance_respond_shared_expense',{p_shared_id:id,p_accept:true});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'respond_failed');
+      if(window.financeCloud?.refresh)await window.financeCloud.refresh();await loadNotifications();try{if(typeof setSyncStatus==='function')setSyncStatus('Despesa compartilhada confirmada')}catch(e){}
     }catch(e){console.error('Falha ao aceitar despesa compartilhada pela notificação.',e);alert('Não foi possível aceitar esta despesa agora.');if(button){button.disabled=false;button.textContent=old||'Aceitar despesa'}}
   }
 
   async function loadNotifications(){
-    if(loading||!window.sb||!window.currentUser?.id)return;loading=true;
+    const client=getSb(),userId=getCurrentUserId();if(loading||!client||!userId)return;loading=true;
     try{
-      const [listRes,balanceRes]=await Promise.all([sb.rpc('finance_list_shared_expenses'),sb.rpc('finance_shared_balances')]);
-      if(listRes.error)throw listRes.error;if(balanceRes.error)throw balanceRes.error;
-      items=listRes.data?.items||[];balances=balanceRes.data?.items||[];render();
+      const [listRes,balanceRes]=await Promise.all([client.rpc('finance_list_shared_expenses'),client.rpc('finance_shared_balances')]);
+      if(listRes.error)throw listRes.error;if(balanceRes.error)throw balanceRes.error;items=listRes.data?.items||[];balances=balanceRes.data?.items||[];render();
     }catch(e){console.warn('Falha ao carregar notificações.',e)}finally{loading=false}
   }
 
   function init(){
     ensureUi();
-    let tries=0;const readyTimer=setInterval(()=>{tries++;bindBell();if(window.currentUser?.id&&window.sb){clearInterval(readyTimer);loadNotifications()}else if(tries>300)clearInterval(readyTimer)},100);
-    setInterval(()=>{if(window.currentUser?.id)loadNotifications()},30000);
+    let tries=0;const readyTimer=setInterval(()=>{tries++;bindBell();if(getCurrentUserId()&&getSb()){clearInterval(readyTimer);loadNotifications()}else if(tries>300)clearInterval(readyTimer)},100);
+    setInterval(()=>{if(getCurrentUserId())loadNotifications()},30000);
     window.addEventListener('resize',()=>{if(panel?.classList.contains('open'))positionPanel()});
     window.addEventListener('scroll',()=>{if(panel?.classList.contains('open'))positionPanel()},{passive:true});
     document.addEventListener('click',e=>{if(panel?.classList.contains('open')&&!panel.contains(e.target)&&!bell()?.contains(e.target))closePanel()});
