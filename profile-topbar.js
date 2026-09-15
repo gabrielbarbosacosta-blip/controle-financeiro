@@ -23,11 +23,11 @@
       #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:110px;font-weight:760}
       #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-      .profile-dropdown{display:none;position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827;border:1px solid var(--line);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.38)}
-      .profile-brand-wrap.open .profile-dropdown{display:block}
+      .profile-dropdown{position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.22);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.38);backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-9px) scale(.985);transform-origin:top left;transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+      .profile-brand-wrap.open .profile-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear 0s}
       .profile-dropdown-title{font-size:13px;font-weight:780;margin:1px 2px 10px;color:#f8fafc}
       .profile-dropdown .profile-layout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
-      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:#0f172a}
+      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:rgba(15,23,42,.64);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
       .profile-dropdown .profile-photo-card h3,.profile-dropdown .section-head{display:none}
       .profile-dropdown .profile-avatar{width:92px;height:92px;border-radius:26px;margin:0 auto 11px;font-size:25px}
       .profile-dropdown .profile-photo-actions .btn{padding:7px 9px;font-size:11px}
@@ -39,28 +39,17 @@
       .profile-dropdown #profileCpfHint{font-size:10px;line-height:1.35}
       .profile-dropdown #profileSaveBtn{width:100%;padding:9px 11px}
       .profile-dropdown .profile-status{margin-top:8px;min-height:16px;font-size:11px}
-      .profile-dropdown-footer{display:grid;grid-template-columns:1fr;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-      .profile-dropdown-footer button{width:100%;border:1px solid var(--line);background:#182235;color:#e5edf8;text-align:center;padding:9px 10px;border-radius:9px;font:inherit;font-size:11px;cursor:pointer}
-      .profile-dropdown-footer button:hover{filter:brightness(1.08)}
       #page-profile{display:none!important}
       .topbar #logoutBtn{display:none!important}
 
-      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:90px;width:auto;max-height:calc(100vh - 109px)}}
+      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:90px;width:auto;max-height:calc(100vh - 109px);transform-origin:top center}}
+      @media(prefers-reduced-motion:reduce){.profile-dropdown{transition:none!important}}
     `;
     document.head.appendChild(style);
   }
 
   function removeProfileNav(){
     document.querySelectorAll('.nav [data-page="profile"]').forEach(el=>el.remove());
-  }
-
-  function openSettings(){
-    const btn=document.querySelector('.nav [data-page="settings"]');
-    if(btn){btn.click();return}
-    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-settings'));
-    const title=document.getElementById('pageTitle'),subtitle=document.getElementById('pageSubtitle');
-    if(title)title.textContent='Configurações';
-    if(subtitle)subtitle.textContent='Preferências e dados';
   }
 
   function ensureCardTools(card){
@@ -91,8 +80,7 @@
     const page=document.getElementById('page-profile');
     const layout=page?.querySelector('.profile-layout');
     if(!layout)return false;
-    const footer=menu.querySelector('.profile-dropdown-footer');
-    menu.insertBefore(layout,footer||null);
+    menu.appendChild(layout);
     return true;
   }
 
@@ -105,15 +93,11 @@
     let menu=wrap.querySelector('.profile-dropdown');
     if(!menu){
       menu=document.createElement('div');menu.className='profile-dropdown';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Perfil');
-      menu.innerHTML='<div class="profile-dropdown-title">Perfil</div><div class="profile-dropdown-footer"><button type="button" data-profile-action="settings">Configurações</button></div>';
+      menu.innerHTML='<div class="profile-dropdown-title">Perfil</div>';
       wrap.appendChild(menu);
       menu.addEventListener('click',e=>e.stopPropagation());
-      menu.querySelector('[data-profile-action="settings"]').onclick=()=>{wrap.classList.remove('open');openSettings()};
     }else{
-      const logout=menu.querySelector('[data-profile-action="logout"]');
-      if(logout)logout.remove();
-      const divider=menu.querySelector('.profile-dropdown-divider');
-      if(divider)divider.remove();
+      menu.querySelectorAll('[data-profile-action="settings"],.profile-dropdown-footer,.profile-dropdown-divider,[data-profile-action="logout"]').forEach(el=>el.remove());
     }
     moveProfileEditorIntoMenu(menu);
     if(card.dataset.dropdownBound!=='1'){
