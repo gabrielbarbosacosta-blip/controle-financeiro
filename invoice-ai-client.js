@@ -51,6 +51,14 @@
     document.head.appendChild(animationScript);
   }
 
+  if(!document.querySelector('script[data-purchase-accordion]')){
+    const accordionScript=document.createElement('script');
+    accordionScript.src='purchase-accordion.js';
+    accordionScript.async=false;
+    accordionScript.dataset.purchaseAccordion='1';
+    document.head.appendChild(accordionScript);
+  }
+
   function fixPurchaseGroupingHeader(){
     const heading=[...document.querySelectorAll('#cardDetail .section-head h3')].find(h=>String(h.textContent||'').trim()==='Itens da fatura');
     const head=heading?.closest('.section-head');
