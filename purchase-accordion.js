@@ -20,6 +20,26 @@
     return button;
   }
 
+  function invoiceModule(){
+    const host=document.getElementById('cardDetail');
+    if(!host)return null;
+    const heading=[...host.querySelectorAll('.invoice-layout > .card h3')]
+      .find(h=>/^Fatura\b/i.test(String(h.textContent||'').trim()));
+    return heading?.closest('.card')||host.querySelector('.invoice-layout > .card:first-child');
+  }
+
+  function scrollToTarget(target,button=null){
+    if(!(target instanceof HTMLElement))return;
+    if(button instanceof HTMLElement){
+      try{button.focus({preventScroll:true})}catch(e){}
+    }
+    target.scrollIntoView({
+      behavior:reducedMotion()?'auto':'smooth',
+      block:'start',
+      inline:'nearest'
+    });
+  }
+
   function focusOpened(button){
     if(!(button instanceof HTMLElement))return;
     clearTimeout(focusTimer);
@@ -28,19 +48,22 @@
     const delay=reducedMotion()?0:300;
     focusTimer=setTimeout(()=>{
       if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
-
       const module=openedModule(button);
-      if(!(module instanceof HTMLElement))return;
+      scrollToTarget(module,button);
+    },delay);
+  }
 
-      // Mantém o foco de teclado no controle sem alterar o scroll por conta própria.
-      try{button.focus({preventScroll:true})}catch(e){}
+  function returnToInvoiceModule(button){
+    if(!(button instanceof HTMLElement)||!button.closest('#cardDetail'))return;
+    clearTimeout(focusTimer);
 
-      // O topo do módulo aberto vira a âncora da tela, deixando o máximo de conteúdo visível abaixo.
-      module.scrollIntoView({
-        behavior:reducedMotion()?'auto':'smooth',
-        block:'start',
-        inline:'nearest'
-      });
+    // Só retorna à fatura quando o usuário realmente fechou a seção e nenhuma outra ficou aberta.
+    const delay=reducedMotion()?0:300;
+    focusTimer=setTimeout(()=>{
+      if(!button.isConnected||button.getAttribute('aria-expanded')!=='false')return;
+      const openInInvoice=document.querySelector('#cardDetail .purchase-section-toggle[aria-expanded="true"]');
+      if(openInInvoice)return;
+      scrollToTarget(invoiceModule());
     },delay);
   }
 
@@ -75,7 +98,11 @@
     const sectionBtn=target.closest('.purchase-section-toggle');
     if(sectionBtn){
       queueMicrotask(()=>{
-        if(sectionBtn.getAttribute('aria-expanded')!=='true')return;
+        const expanded=sectionBtn.getAttribute('aria-expanded')==='true';
+        if(!expanded){
+          returnToInvoiceModule(sectionBtn);
+          return;
+        }
         const activeKey=sectionBtn.dataset.sectionToggle||'';
         if(!activeKey)return;
         syncing=true;
