@@ -43,6 +43,7 @@
     try{if(typeof renderAll==='function')renderAll()}catch(e){}
     await refreshData();
     try{await window.financeNotificationsRefresh?.()}catch(e){}
+    try{await window.financeSharedDeleteNotificationsRefresh?.()}catch(e){}
     try{window.financeSharedIncomeRefresh?.()}catch(e){}
   }
 
@@ -72,20 +73,22 @@
     if(deletionPending){
       const pending=Number(item.pendingDeleteCount)||0;
       const badge=document.createElement('div');badge.className='shared-delete-badge';
-      badge.textContent=pending>0?`Exclusão aguardando ${pending} confirmação${pending===1?'':'ões'}`:'Exclusão em processamento';
+      badge.textContent=pending>0?`Cancelamento aguardando ${pending} confirmação${pending===1?'':'ões'}`:'Cancelamento em processamento';
       card.appendChild(badge);
     }
 
     if(item.myDeleteStatus==='pending'){
+      const requester=item.deletionRequesterName||'Outro participante';
       const box=document.createElement('div');box.className='shared-delete-state';
-      box.innerHTML=`<strong>Solicitação de exclusão</strong><br>O criador quer excluir esta despesa compartilhada. Se você confirmar, seus lançamentos vinculados serão removidos quando todos os participantes necessários aceitarem.<div class="shared-delete-actions"><button type="button" class="btn small danger" data-shared-delete-accept="${esc(id)}">Confirmar exclusão</button><button type="button" class="btn small" data-shared-delete-reject="${esc(id)}">Manter despesa</button></div>`;
+      box.innerHTML=`<strong>Solicitação de cancelamento</strong><br>${esc(requester)} quer cancelar esta despesa compartilhada. Se você confirmar, seus lançamentos vinculados serão removidos quando todos os participantes necessários aceitarem.<div class="shared-delete-actions"><button type="button" class="btn small danger" data-shared-delete-accept="${esc(id)}">Aprovar cancelamento</button><button type="button" class="btn small" data-shared-delete-reject="${esc(id)}">Recusar</button></div>`;
       card.appendChild(box);
     }
 
-    if(item.isCreator&&item.deletionStatus!=='pending'){
+    const canRequestDelete=item.myStatus==='accepted'&&item.deletionStatus!=='pending';
+    if(canRequestDelete){
       const host=ensureActionHost(card);
       const btn=document.createElement('button');
-      btn.type='button';btn.className='btn small danger shared-delete-btn';btn.dataset.sharedDeleteRequest=id;btn.textContent='Excluir';
+      btn.type='button';btn.className='btn small danger shared-delete-btn';btn.dataset.sharedDeleteRequest=id;btn.textContent='Excluir despesa compartilhada';
       host.appendChild(btn);
     }
 
@@ -103,12 +106,12 @@
   function confirmDeleteTwice(item,acceptedOthers){
     const description=item?.description||'esta despesa';
     const firstMessage=acceptedOthers
-      ?`Excluir “${description}”? Como ${acceptedOthers} participante${acceptedOthers===1?' já aceitou':'s já aceitaram'}, a exclusão ficará aguardando confirmação antes de remover os lançamentos.`
-      :`Excluir “${description}”? Como ninguém além de você confirmou, a despesa poderá ser removida imediatamente após a segunda confirmação.`;
+      ?`Cancelar “${description}”? Como ${acceptedOthers} outro${acceptedOthers===1?' participante já aceitou':'s participantes já aceitaram'}, o cancelamento ficará aguardando aprovação antes de remover os lançamentos.`
+      :`Cancelar “${description}”? Como ninguém além de você confirmou, a despesa poderá ser removida imediatamente após a segunda confirmação.`;
     if(!confirm(firstMessage))return false;
     const secondMessage=acceptedOthers
-      ?`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente o pedido de exclusão de “${description}”? A solicitação será enviada aos demais participantes que precisam aprovar a remoção.`
-      :`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente a exclusão de “${description}”? Esta ação removerá a despesa compartilhada e os lançamentos vinculados e não poderá ser desfeita.`;
+      ?`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente o pedido de cancelamento de “${description}”? Os demais participantes receberão uma notificação para aprovar ou recusar.`
+      :`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente o cancelamento de “${description}”? Esta ação removerá a despesa compartilhada e todos os lançamentos vinculados e não poderá ser desfeita.`;
     return confirm(secondMessage);
   }
 
@@ -118,27 +121,27 @@
     if(!item||!userId||!client)return;
     const acceptedOthers=(item.participants||[]).filter(p=>p.userId!==userId&&p.status==='accepted').length;
     if(!confirmDeleteTwice(item,acceptedOthers))return;
-    busy.add(id);setCardBusy(id,true,'Excluindo…');
+    busy.add(id);setCardBusy(id,true,'Solicitando…');
     try{
       const {data,error}=await client.rpc('finance_request_delete_shared_expense',{p_shared_id:id});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'delete_request_failed');
-      try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':'Exclusão aguardando confirmação')}catch(e){}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':'Cancelamento aguardando confirmação')}catch(e){}
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
       await syncEverywhere();
-    }catch(e){console.error('Falha ao solicitar exclusão.',e);alert('Não foi possível solicitar a exclusão desta despesa.');setCardBusy(id,false)}
+    }catch(e){console.error('Falha ao solicitar cancelamento.',e);alert('Não foi possível solicitar o cancelamento desta despesa.');setCardBusy(id,false)}
     finally{busy.delete(id)}
   }
 
   async function respondDelete(id,accept){
     if(busy.has(id))return;
     const client=getSb();if(!client)return;
-    const verb=accept?'confirmar a exclusão':'manter a despesa';
-    if(!confirm(accept?'Confirmar a exclusão desta despesa? Seus lançamentos vinculados serão removidos quando todos confirmarem.':'Recusar a exclusão e manter esta despesa compartilhada?'))return;
-    busy.add(id);setCardBusy(id,true,accept?'Confirmando…':'Mantendo…');
+    const verb=accept?'aprovar o cancelamento':'recusar o cancelamento';
+    if(!confirm(accept?'Aprovar o cancelamento desta despesa? Seus lançamentos vinculados serão removidos quando todos confirmarem.':'Recusar o cancelamento e manter esta despesa compartilhada?'))return;
+    busy.add(id);setCardBusy(id,true,accept?'Aprovando…':'Recusando…');
     try{
       const {data,error}=await client.rpc('finance_respond_delete_shared_expense',{p_shared_id:id,p_accept:accept});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'delete_response_failed');
-      try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':data.status==='cancelled'?'Exclusão recusada':'Confirmação registrada')}catch(e){}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':data.status==='cancelled'?'Cancelamento recusado':'Confirmação registrada')}catch(e){}
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
       await syncEverywhere();
     }catch(e){console.error(`Falha ao ${verb}.`,e);alert(`Não foi possível ${verb}.`);setCardBusy(id,false)}
