@@ -2,19 +2,15 @@
   if(window.__purchaseAccordionLoaded)return;
   window.__purchaseAccordionLoaded=true;
 
-  if(!document.querySelector('script[data-purchase-sticky-sections]')){
-    const stickyScript=document.createElement('script');
-    stickyScript.src='purchase-sticky-sections.js';
-    stickyScript.async=false;
-    stickyScript.dataset.purchaseStickySections='1';
-    document.head.appendChild(stickyScript);
-  }
-
   let syncing=false;
   let focusTimer=null;
   const preClickState=new WeakMap();
   const OPEN_TOP_GAP=20;
   const TRANSITION_SETTLE_MS=410;
+
+  function dynamicMode(){
+    return window.purchaseNavigationMode!=='fixed';
+  }
 
   function reducedMotion(){
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -43,7 +39,7 @@
   }
 
   function scrollToTarget(target,button=null,topGap=OPEN_TOP_GAP){
-    if(!(target instanceof HTMLElement))return;
+    if(!dynamicMode()||!(target instanceof HTMLElement))return;
     if(button instanceof HTMLElement){
       try{button.focus({preventScroll:true})}catch(e){}
     }
@@ -57,36 +53,33 @@
   }
 
   function focusOpened(button){
-    if(!(button instanceof HTMLElement))return;
+    if(!dynamicMode()||!(button instanceof HTMLElement))return;
     clearTimeout(focusTimer);
 
-    // Aguarda a troca abrir/fechar terminar para o scroll não competir com a alteração de altura.
     const delay=reducedMotion()?0:TRANSITION_SETTLE_MS;
     focusTimer=setTimeout(()=>{
-      if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
+      if(!dynamicMode()||!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
       const module=openedModule(button);
       scrollToTarget(module,button,OPEN_TOP_GAP);
     },delay);
   }
 
   function scrollBackToInvoice(){
+    if(!dynamicMode())return;
     clearTimeout(focusTimer);
     const delay=reducedMotion()?0:TRANSITION_SETTLE_MS+30;
 
     focusTimer=setTimeout(()=>{
+      if(!dynamicMode())return;
       const module=invoiceModule();
       if(!(module instanceof HTMLElement))return;
 
-      // Se outra seção principal foi aberta nesse intervalo, ela passa a ser a referência da tela.
       const openInInvoice=document.querySelector('#cardDetail .purchase-section-toggle[aria-expanded="true"]');
       if(openInInvoice)return;
 
-      // Remove o foco do botão recolhido para o navegador não tentar mantê-lo visível.
       const active=document.activeElement;
       if(active instanceof HTMLElement&&active.matches('.purchase-section-toggle'))active.blur();
 
-      // Calcula a posição final do card após a retração. É mais previsível que scrollIntoView
-      // quando a altura da página muda durante a animação do accordion.
       const rect=module.getBoundingClientRect();
       const top=Math.max(0,window.scrollY+rect.top-8);
 
@@ -99,7 +92,7 @@
   }
 
   function scrollBackToSection(button){
-    if(!(button instanceof HTMLElement))return;
+    if(!dynamicMode()||!(button instanceof HTMLElement))return;
     const section=containingSection(button);
     if(!(section instanceof HTMLElement))return;
 
@@ -107,9 +100,8 @@
     const delay=reducedMotion()?0:TRANSITION_SETTLE_MS+30;
 
     focusTimer=setTimeout(()=>{
-      if(!section.isConnected)return;
+      if(!dynamicMode()||!section.isConnected)return;
 
-      // Se outro agrupamento foi aberto nesse intervalo, ele passa a controlar o foco da tela.
       const sectionKey=button.dataset.nameSection||'';
       const openNameGroups=[...document.querySelectorAll('.purchase-name-toggle[aria-expanded="true"]')]
         .some(btn=>(btn.dataset.nameSection||'')===sectionKey);
@@ -130,6 +122,7 @@
   }
 
   function collapseOtherSections(activeKey){
+    if(!dynamicMode())return;
     const seen=new Set();
     const buttons=[...document.querySelectorAll('.purchase-section-toggle[aria-expanded="true"]')];
     for(const btn of buttons){
@@ -141,6 +134,7 @@
   }
 
   function collapseOtherNameGroups(sectionKey,activeNameKey){
+    if(!dynamicMode())return;
     const seen=new Set();
     const buttons=[...document.querySelectorAll('.purchase-name-toggle[aria-expanded="true"]')];
     for(const btn of buttons){
@@ -152,9 +146,8 @@
     }
   }
 
-  // Captura o estado ANTES do onclick do componente alterar aria-expanded.
   document.addEventListener('click',event=>{
-    if(syncing)return;
+    if(!dynamicMode()||syncing)return;
     const target=event.target instanceof Element?event.target:null;
     const btn=target?.closest('.purchase-section-toggle,.purchase-name-toggle');
     if(btn instanceof HTMLElement){
@@ -163,7 +156,7 @@
   },true);
 
   document.addEventListener('click',event=>{
-    if(syncing)return;
+    if(!dynamicMode()||syncing)return;
     const target=event.target instanceof Element?event.target:null;
     if(!target)return;
 
@@ -173,10 +166,9 @@
       preClickState.delete(sectionBtn);
 
       setTimeout(()=>{
-        if(!sectionBtn.isConnected)return;
+        if(!dynamicMode()||!sectionBtn.isConnected)return;
         const expanded=sectionBtn.getAttribute('aria-expanded')==='true';
 
-        // Fechamento manual: antes estava aberta e agora está recolhida.
         if(wasExpanded&&!expanded){
           if(sectionBtn.closest('#cardDetail'))scrollBackToInvoice();
           return;
@@ -198,10 +190,9 @@
       preClickState.delete(nameBtn);
 
       setTimeout(()=>{
-        if(!nameBtn.isConnected)return;
+        if(!dynamicMode()||!nameBtn.isConnected)return;
         const expanded=nameBtn.getAttribute('aria-expanded')==='true';
 
-        // Fechamento manual de um agrupamento por nome: volta ao topo da seção principal.
         if(wasExpanded&&!expanded){
           if(nameBtn.closest('#cardDetail'))scrollBackToSection(nameBtn);
           return;
@@ -216,5 +207,10 @@
         focusOpened(nameBtn);
       },0);
     }
+  });
+
+  window.addEventListener('purchase-navigation-mode-change',()=>{
+    clearTimeout(focusTimer);
+    focusTimer=null;
   });
 })();
