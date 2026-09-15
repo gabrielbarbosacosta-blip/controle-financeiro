@@ -35,6 +35,32 @@
     document.head.appendChild(sectionsScript);
   }
 
+  function fixPurchaseGroupingHeader(){
+    const heading=[...document.querySelectorAll('#cardDetail .section-head h3')].find(h=>String(h.textContent||'').trim()==='Itens da fatura');
+    const head=heading?.closest('.section-head');
+    const btn=head?.querySelector('.purchase-grouping-toggle');
+    if(!head||!btn)return false;
+    let actions=head.querySelector(':scope > .purchase-grouping-actions');
+    if(!actions){
+      actions=document.createElement('div');
+      actions.className='toolbar purchase-grouping-actions';
+      const count=[...head.children].find(el=>el.classList?.contains('muted'));
+      if(count)actions.appendChild(count);
+      head.appendChild(actions);
+    }
+    if(btn.parentElement!==actions)actions.appendChild(btn);
+    return true;
+  }
+
+  const groupingObserver=new MutationObserver(fixPurchaseGroupingHeader);
+  if(document.body)groupingObserver.observe(document.body,{childList:true,subtree:true});
+  let groupingTries=0;
+  const groupingTimer=setInterval(()=>{
+    groupingTries++;
+    fixPurchaseGroupingHeader();
+    if(groupingTries>120){clearInterval(groupingTimer);groupingObserver.disconnect()}
+  },250);
+
   function token(){const b=new Uint8Array(32);crypto.getRandomValues(b);return 'cf_'+btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
   function copy(v){return navigator.clipboard&&navigator.clipboard.writeText(v)}
   function mount(){
