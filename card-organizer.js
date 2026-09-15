@@ -22,22 +22,36 @@
         z-index:8!important;
         top:8px;
         right:8px;
-        width:26px;
-        height:26px;
-        display:grid;
-        place-items:center;
+        width:27px;
+        height:27px;
+        box-sizing:border-box;
+        display:block;
         padding:0;
         border:1px solid rgba(255,255,255,.16);
         border-radius:999px;
         background:rgba(3,7,18,.24);
-        color:rgba(255,255,255,.72);
-        font:500 20px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        color:rgba(255,255,255,.78);
+        font-size:0;
+        line-height:0;
         cursor:pointer;
         backdrop-filter:blur(8px);
         -webkit-backdrop-filter:blur(8px);
-        opacity:.62;
+        opacity:.66;
         transition:opacity .16s ease,background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease;
       }
+      .card-delete-btn::before,.card-delete-btn::after{
+        content:'';
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:11px;
+        height:1.5px;
+        border-radius:999px;
+        background:currentColor;
+        transform-origin:center;
+      }
+      .card-delete-btn::before{transform:translate(-50%,-50%) rotate(45deg)}
+      .card-delete-btn::after{transform:translate(-50%,-50%) rotate(-45deg)}
       .credit-card:hover .card-delete-btn,.card-delete-btn:focus-visible{opacity:1}
       .card-delete-btn:hover,.card-delete-btn:focus-visible{
         background:rgba(127,29,29,.72);
@@ -47,7 +61,8 @@
         transform:scale(1.05);
       }
       @media(max-width:700px){
-        .card-delete-btn{opacity:.82;width:28px;height:28px}
+        .card-delete-btn{opacity:.84;width:29px;height:29px}
+        .card-delete-btn::before,.card-delete-btn::after{width:12px}
       }
       @media(prefers-reduced-motion:reduce){
         .card-delete-btn,#cardsGrid .credit-card.card-is-dragging{transition:none}
@@ -62,7 +77,8 @@
 
   function cardById(id){
     if(!stateReady())return null;
-    return state.cards.find(card=>String(card.id)===String(id))||null;
+    const key=String(id);
+    return state.cards.find(card=>String(card.id)===key)||null;
   }
 
   function clearDragClasses(){
@@ -72,26 +88,47 @@
     });
   }
 
+  function refreshDependentViews(){
+    let cardsRendered=false;
+    try{
+      if(typeof window.renderCards==='function'){
+        window.renderCards();
+        cardsRendered=true;
+      }
+    }catch(error){console.error('Falha ao redesenhar cartões.',error)}
+
+    try{if(typeof populateGlobalSelects==='function')populateGlobalSelects()}catch(e){}
+    try{if(typeof renderDashboard==='function')renderDashboard()}catch(e){}
+    try{if(typeof renderHistory==='function')renderHistory()}catch(e){}
+    try{if(typeof renderProjection==='function')renderProjection()}catch(e){}
+    try{if(typeof renderSettings==='function')renderSettings()}catch(e){}
+
+    if(!cardsRendered){
+      try{if(typeof renderAll==='function')renderAll()}catch(error){console.error('Falha ao atualizar interface após alteração de cartão.',error)}
+    }
+  }
+
   function persistDomOrder(){
-    if(!stateReady())return;
+    if(!stateReady())return false;
     const grid=document.getElementById('cardsGrid');
-    if(!grid)return;
-    const ids=[...grid.querySelectorAll('.credit-card[data-card-id]')].map(el=>el.dataset.cardId);
-    if(ids.length!==state.cards.length)return;
+    if(!grid)return false;
+    const ids=[...grid.querySelectorAll('.credit-card[data-card-id]')].map(el=>String(el.dataset.cardId));
+    if(ids.length!==state.cards.length)return false;
     const map=new Map(state.cards.map(card=>[String(card.id),card]));
-    const reordered=ids.map(id=>map.get(String(id))).filter(Boolean);
-    if(reordered.length!==state.cards.length)return;
+    const reordered=ids.map(id=>map.get(id)).filter(Boolean);
+    if(reordered.length!==state.cards.length)return false;
     const changed=reordered.some((card,index)=>card!==state.cards[index]);
-    if(!changed)return;
+    if(!changed)return false;
     state.cards=reordered;
     try{if(typeof save==='function')save()}catch(error){console.warn('Não foi possível salvar a nova ordem dos cartões.',error)}
+    return true;
   }
 
   function deleteCard(id){
     if(!stateReady())return;
-    const card=cardById(id);if(!card)return;
-    const purchases=Array.isArray(state.purchases)?state.purchases.filter(p=>p.cardId===id).length:0;
-    const invoices=Array.isArray(state.invoices)?state.invoices.filter(i=>i.cardId===id).length:0;
+    const key=String(id),card=cardById(key);if(!card)return;
+    const purchases=Array.isArray(state.purchases)?state.purchases.filter(p=>String(p.cardId)===key).length:0;
+    const invoices=Array.isArray(state.invoices)?state.invoices.filter(i=>String(i.cardId)===key).length:0;
     const details=[];
     if(purchases)details.push(`${purchases} compra${purchases===1?'':'s'}`);
     if(invoices)details.push(`${invoices} fatura${invoices===1?'':'s'}`);
@@ -99,35 +136,35 @@
     const ok=confirm(`Excluir o cartão “${card.name||'Cartão'}”?${related}\n\nEsta ação não pode ser desfeita.`);
     if(!ok)return;
 
-    const oldIndex=state.cards.findIndex(c=>c.id===id);
-    state.cards=state.cards.filter(c=>c.id!==id);
-    if(Array.isArray(state.purchases))state.purchases=state.purchases.filter(p=>p.cardId!==id);
-    if(Array.isArray(state.invoices))state.invoices=state.invoices.filter(i=>i.cardId!==id);
+    const oldIndex=state.cards.findIndex(c=>String(c.id)===key);
+
+    // Remove visualmente primeiro para que a ação tenha resposta imediata.
+    const cardEl=document.querySelector(`#cardsGrid .credit-card[data-card-id="${CSS.escape(key)}"]`);
+    if(cardEl)cardEl.remove();
+
+    state.cards=state.cards.filter(c=>String(c.id)!==key);
+    if(Array.isArray(state.purchases))state.purchases=state.purchases.filter(p=>String(p.cardId)!==key);
+    if(Array.isArray(state.invoices))state.invoices=state.invoices.filter(i=>String(i.cardId)!==key);
 
     try{
-      if(typeof selectedCardId!=='undefined'&&selectedCardId===id){
-        const next=state.cards[Math.min(Math.max(oldIndex,0),Math.max(state.cards.length-1,0))]||state.cards[0]||null;
+      if(typeof selectedCardId!=='undefined'&&String(selectedCardId)===key){
+        const safeIndex=Math.min(Math.max(oldIndex,0),Math.max(state.cards.length-1,0));
+        const next=state.cards[safeIndex]||state.cards[0]||null;
         selectedCardId=next?.id||null;
       }
     }catch(e){}
 
-    try{
-      if(typeof renderAll==='function')renderAll();
-      else{
-        if(typeof window.renderCards==='function')window.renderCards();
-        if(typeof save==='function')save();
-      }
-    }catch(error){
-      console.error('Falha ao atualizar a tela após excluir cartão.',error);
-      try{if(typeof save==='function')save()}catch(e){}
-    }
+    // Persiste o estado já limpo antes de qualquer nova renderização.
+    try{if(typeof save==='function')save()}catch(error){console.error('Falha ao salvar exclusão do cartão.',error)}
+
+    refreshDependentViews();
   }
 
   window.deleteFinanceCard=deleteCard;
 
   function bindCard(el){
     if(el.dataset.cardOrganizerReady==='1')return;
-    const id=el.dataset.cardId;if(!id)return;
+    const id=String(el.dataset.cardId||'');if(!id)return;
     el.dataset.cardOrganizerReady='1';
     el.draggable=true;
     el.setAttribute('aria-grabbed','false');
@@ -137,9 +174,9 @@
     del.className='card-delete-btn';
     del.setAttribute('aria-label',`Excluir ${cardById(id)?.name||'cartão'}`);
     del.title='Excluir cartão';
-    del.textContent='×';
     del.addEventListener('pointerdown',event=>event.stopPropagation());
     del.addEventListener('mousedown',event=>event.stopPropagation());
+    del.addEventListener('dragstart',event=>{event.preventDefault();event.stopPropagation()});
     del.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
@@ -185,9 +222,10 @@
     });
     el.addEventListener('dragend',()=>{
       suppressClickUntil=Date.now()+300;
-      persistDomOrder();
+      const changed=persistDomOrder();
       draggingId=null;
       clearDragClasses();
+      if(changed)refreshDependentViews();
     });
   }
 
