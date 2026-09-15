@@ -6,6 +6,7 @@
   let focusTimer=null;
   const preClickState=new WeakMap();
   const OPEN_TOP_GAP=20;
+  const TRANSITION_SETTLE_MS=410;
 
   function reducedMotion(){
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -51,7 +52,8 @@
     if(!(button instanceof HTMLElement))return;
     clearTimeout(focusTimer);
 
-    const delay=reducedMotion()?0:300;
+    // Aguarda a troca abrir/fechar terminar para o scroll não competir com a alteração de altura.
+    const delay=reducedMotion()?0:TRANSITION_SETTLE_MS;
     focusTimer=setTimeout(()=>{
       if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
       const module=openedModule(button);
@@ -61,7 +63,7 @@
 
   function scrollBackToInvoice(){
     clearTimeout(focusTimer);
-    const delay=reducedMotion()?0:340;
+    const delay=reducedMotion()?0:TRANSITION_SETTLE_MS+30;
 
     focusTimer=setTimeout(()=>{
       const module=invoiceModule();
@@ -94,7 +96,7 @@
     if(!(section instanceof HTMLElement))return;
 
     clearTimeout(focusTimer);
-    const delay=reducedMotion()?0:340;
+    const delay=reducedMotion()?0:TRANSITION_SETTLE_MS+30;
 
     focusTimer=setTimeout(()=>{
       if(!section.isConnected)return;
