@@ -81,14 +81,24 @@
     document.querySelectorAll('.shared-item[data-shared-id]').forEach(decorateCard);
   }
 
+  function confirmDeleteTwice(item,acceptedOthers){
+    const description=item?.description||'esta despesa';
+    const firstMessage=acceptedOthers
+      ?`Excluir “${description}”? Como ${acceptedOthers} participante${acceptedOthers===1?' já aceitou':'s já aceitaram'}, a exclusão ficará aguardando confirmação antes de remover os lançamentos.`
+      :`Excluir “${description}”? Como ninguém além de você confirmou, a despesa poderá ser removida imediatamente após a segunda confirmação.`;
+    if(!confirm(firstMessage))return false;
+
+    const secondMessage=acceptedOthers
+      ?`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente o pedido de exclusão de “${description}”? A solicitação será enviada aos demais participantes que precisam aprovar a remoção.`
+      :`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente a exclusão de “${description}”? Esta ação removerá a despesa compartilhada e os lançamentos vinculados e não poderá ser desfeita.`;
+    return confirm(secondMessage);
+  }
+
   async function requestDelete(id){
     if(busy.has(id))return;
     const item=itemById(id);if(!item)return;
     const acceptedOthers=(item.participants||[]).filter(p=>p.userId!==currentUser.id&&p.status==='accepted').length;
-    const msg=acceptedOthers
-      ?`Excluir “${item.description}”? Como ${acceptedOthers} participante${acceptedOthers===1?' já aceitou':'s já aceitaram'}, a exclusão ficará aguardando confirmação antes de remover os lançamentos.`
-      :`Excluir “${item.description}”? Como ninguém além de você confirmou, a despesa será removida imediatamente.`;
-    if(!confirm(msg))return;
+    if(!confirmDeleteTwice(item,acceptedOthers))return;
     busy.add(id);
     try{
       const {data,error}=await sb.rpc('finance_request_delete_shared_expense',{p_shared_id:id});
@@ -96,6 +106,7 @@
       try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':'Exclusão aguardando confirmação')}catch(e){}
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(id)}"]`).forEach(el=>el.remove());
       await refreshData();
+      window.financeNotificationsRefresh?.();
       window.dispatchEvent(new Event('focus'));
     }catch(e){console.error('Falha ao solicitar exclusão.',e);alert('Não foi possível solicitar a exclusão desta despesa.')}
     finally{busy.delete(id)}
@@ -112,6 +123,7 @@
       try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':data.status==='cancelled'?'Exclusão recusada':'Confirmação registrada')}catch(e){}
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(id)}"]`).forEach(el=>el.remove());
       await refreshData();
+      window.financeNotificationsRefresh?.();
       window.dispatchEvent(new Event('focus'));
     }catch(e){console.error(`Falha ao ${verb}.`,e);alert(`Não foi possível ${verb}.`)}
     finally{busy.delete(id)}
