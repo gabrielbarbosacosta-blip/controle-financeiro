@@ -9,16 +9,36 @@
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
+  function openedModule(button){
+    if(!(button instanceof HTMLElement))return null;
+    if(button.classList.contains('purchase-section-toggle')){
+      return button.closest('.invoice-purchase-group')||button.closest('.purchase-section-row')||button;
+    }
+    if(button.classList.contains('purchase-name-toggle')){
+      return button.closest('.purchase-name-group')||button.closest('.purchase-name-group-row')||button;
+    }
+    return button;
+  }
+
   function focusOpened(button){
     if(!(button instanceof HTMLElement))return;
     clearTimeout(focusTimer);
-    const delay=reducedMotion()?0:290;
+
+    // Espera a animação das outras seções terminar para calcular a posição final correta.
+    const delay=reducedMotion()?0:300;
     focusTimer=setTimeout(()=>{
       if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
-      try{button.focus({preventScroll:true})}catch(e){button.focus()}
-      button.scrollIntoView({
+
+      const module=openedModule(button);
+      if(!(module instanceof HTMLElement))return;
+
+      // Mantém o foco de teclado no controle sem alterar o scroll por conta própria.
+      try{button.focus({preventScroll:true})}catch(e){}
+
+      // O topo do módulo aberto vira a âncora da tela, deixando o máximo de conteúdo visível abaixo.
+      module.scrollIntoView({
         behavior:reducedMotion()?'auto':'smooth',
-        block:'center',
+        block:'start',
         inline:'nearest'
       });
     },delay);
