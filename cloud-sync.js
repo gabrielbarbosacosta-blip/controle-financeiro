@@ -4,6 +4,7 @@
   let localWritePending=false;
   let lastRefreshAt=0;
   let lastRemoteUpdatedAt=null;
+  let relationalReady=false;
 
   function validFinanceState(value){
     return !!(
@@ -86,6 +87,7 @@
     },
     async save(userId,financeState){
       if(!userId)throw new Error('user_required');
+      if(!relationalReady)throw new Error('relational_not_ready');
       const {data,error}=await sb.rpc('finance_put_state',{
         p_state:cloneState(financeState),
         p_expected_updated_at:lastRemoteUpdatedAt
@@ -121,7 +123,7 @@
       }
     },
     async refresh(){
-      if(!currentUser?.id||remoteWriteInFlight||localWritePending)return null;
+      if(!currentUser?.id||!relationalReady||remoteWriteInFlight||localWritePending)return null;
       const cloud=await this.load(currentUser.id);
       if(validFinanceState(cloud?.state)){
         await applyServerState(cloud.state,{render:true});
@@ -130,17 +132,18 @@
       return cloud;
     },
     get version(){return lastRemoteUpdatedAt},
-    get hasPendingLocalWrite(){return localWritePending||remoteWriteInFlight}
+    get hasPendingLocalWrite(){return localWritePending||remoteWriteInFlight},
+    get ready(){return relationalReady}
   };
 
   save=function(){
-    if(applyingRemote)return;
+    if(!relationalReady||applyingRemote)return;
     localWritePending=true;
     scheduleCloudSave();
   };
 
   pushStateToCloud=async function(){
-    if(!currentUser||applyingRemote)return;
+    if(!currentUser||!relationalReady||applyingRemote)return;
     if(remoteWriteInFlight){writeQueued=true;localWritePending=true;return}
     remoteWriteInFlight=true;
     localWritePending=true;
@@ -151,6 +154,7 @@
     }catch(e){
       console.error('Falha ao salvar dados financeiros relacionais:',e);
       if(e?.code==='conflict')setSyncStatus('Dados alterados em outra sessão — atualize a página',true);
+      else if(e?.code==='destructive_state_replacement_blocked')setSyncStatus('Proteção de dados acionada — atualização bloqueada',true);
       else setSyncStatus('Falha ao salvar no servidor',true);
     }finally{
       remoteWriteInFlight=false;
@@ -165,6 +169,9 @@
 
   handleSession=async function(session){
     currentUser=session?.user||null;
+    relationalReady=false;
+    localWritePending=false;
+    writeQueued=false;
     if(!currentUser){setVisible(false);return}
     setSyncStatus('Carregando banco relacional…');
     try{
@@ -172,7 +179,9 @@
       let serverState=validFinanceState(cloud?.state)?cloud.state:null;
       if(!serverState){
         serverState=blankFinanceState();
+        relationalReady=true;
         await window.financeCloud.save(currentUser.id,serverState);
+        relationalReady=false;
       }
       await applyServerState(serverState,{render:false});
       selectedCardId=state.cards[0]?.id||null;
@@ -180,9 +189,11 @@
       setVisible(true);
       applyingRemote=true;
       try{if(typeof renderAll==='function')renderAll()}finally{applyingRemote=false}
+      relationalReady=true;
       await clearLegacyCopies();
       setSyncStatus('Sincronizado com banco relacional');
     }catch(e){
+      relationalReady=false;
       console.error('Falha ao carregar dados financeiros relacionais:',e);
       setVisible(false);
       const msg=document.getElementById('authMsg');
@@ -192,7 +203,7 @@
   };
 
   async function refreshFromServer(){
-    if(!currentUser?.id||remoteWriteInFlight||localWritePending||Date.now()-lastRefreshAt<2000)return;
+    if(!currentUser?.id||!relationalReady||remoteWriteInFlight||localWritePending||Date.now()-lastRefreshAt<2000)return;
     lastRefreshAt=Date.now();
     try{
       const cloud=await window.financeCloud.load(currentUser.id);
@@ -212,6 +223,7 @@
       if(error)throw error;
       if(data?.session)await handleSession(data.session);
     }catch(e){
+      relationalReady=false;
       console.error('Falha ao inicializar sincronização:',e);
       setSyncStatus('Falha ao sincronizar',true);
     }
