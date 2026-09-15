@@ -90,7 +90,7 @@
   function init(){
     ensureStyles();
     let tries=0;const ready=setInterval(()=>{tries++;if(getSb()&&getUserId()&&document.getElementById('notificationsList')){clearInterval(ready);load()}else if(tries>300)clearInterval(ready)},100);
-    const obs=new MutationObserver(()=>{if(!decorating)queueMicrotask(decoratePanel)});obs.observe(document.body,{childList:true,subtree:true});
+    document.addEventListener('click',e=>{if(e.target?.closest?.('#profileNotificationBtn'))setTimeout(load,120)},true);
     timer=setInterval(load,15000);window.addEventListener('focus',load);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
     window.financeSharedDeleteNotificationsRefresh=load;
   }
