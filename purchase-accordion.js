@@ -22,6 +22,11 @@
     return button;
   }
 
+  function containingSection(button){
+    if(!(button instanceof HTMLElement))return null;
+    return button.closest('.invoice-purchase-group')||button.closest('.purchase-section-row');
+  }
+
   function invoiceModule(){
     const host=document.getElementById('cardDetail');
     if(!host)return null;
@@ -74,6 +79,37 @@
       // quando a altura da página muda durante a animação do accordion.
       const rect=module.getBoundingClientRect();
       const top=Math.max(0,window.scrollY+rect.top-8);
+
+      const root=document.documentElement;
+      const oldAnchor=root.style.overflowAnchor;
+      root.style.overflowAnchor='none';
+      window.scrollTo({top,behavior:reducedMotion()?'auto':'smooth'});
+      setTimeout(()=>{root.style.overflowAnchor=oldAnchor},reducedMotion()?0:500);
+    },delay);
+  }
+
+  function scrollBackToSection(button){
+    if(!(button instanceof HTMLElement))return;
+    const section=containingSection(button);
+    if(!(section instanceof HTMLElement))return;
+
+    clearTimeout(focusTimer);
+    const delay=reducedMotion()?0:340;
+
+    focusTimer=setTimeout(()=>{
+      if(!section.isConnected)return;
+
+      // Se outro agrupamento foi aberto nesse intervalo, ele passa a controlar o foco da tela.
+      const sectionKey=button.dataset.nameSection||'';
+      const openNameGroups=[...document.querySelectorAll('.purchase-name-toggle[aria-expanded="true"]')]
+        .some(btn=>(btn.dataset.nameSection||'')===sectionKey);
+      if(openNameGroups)return;
+
+      const active=document.activeElement;
+      if(active instanceof HTMLElement&&active.matches('.purchase-name-toggle'))active.blur();
+
+      const rect=section.getBoundingClientRect();
+      const top=Math.max(0,window.scrollY+rect.top-OPEN_TOP_GAP);
 
       const root=document.documentElement;
       const oldAnchor=root.style.overflowAnchor;
@@ -148,9 +184,20 @@
 
     const nameBtn=target.closest('.purchase-name-toggle');
     if(nameBtn){
+      const wasExpanded=preClickState.get(nameBtn)===true;
       preClickState.delete(nameBtn);
+
       setTimeout(()=>{
-        if(!nameBtn.isConnected||nameBtn.getAttribute('aria-expanded')!=='true')return;
+        if(!nameBtn.isConnected)return;
+        const expanded=nameBtn.getAttribute('aria-expanded')==='true';
+
+        // Fechamento manual de um agrupamento por nome: volta ao topo da seção principal.
+        if(wasExpanded&&!expanded){
+          if(nameBtn.closest('#cardDetail'))scrollBackToSection(nameBtn);
+          return;
+        }
+
+        if(!expanded)return;
         const sectionKey=nameBtn.dataset.nameSection||'';
         const activeNameKey=nameBtn.dataset.nameGroup||'';
         if(!sectionKey||!activeNameKey)return;
