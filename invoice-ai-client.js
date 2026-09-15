@@ -43,6 +43,14 @@
     document.head.appendChild(groupingStyleScript);
   }
 
+  if(!document.querySelector('script[data-purchase-expansion-animation]')){
+    const animationScript=document.createElement('script');
+    animationScript.src='purchase-expansion-animation.js';
+    animationScript.async=false;
+    animationScript.dataset.purchaseExpansionAnimation='1';
+    document.head.appendChild(animationScript);
+  }
+
   function fixPurchaseGroupingHeader(){
     const heading=[...document.querySelectorAll('#cardDetail .section-head h3')].find(h=>String(h.textContent||'').trim()==='Itens da fatura');
     const head=heading?.closest('.section-head');
