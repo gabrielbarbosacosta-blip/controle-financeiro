@@ -2,6 +2,14 @@
   if(window.__purchaseAccordionLoaded)return;
   window.__purchaseAccordionLoaded=true;
 
+  if(!document.querySelector('script[data-purchase-sticky-sections]')){
+    const stickyScript=document.createElement('script');
+    stickyScript.src='purchase-sticky-sections.js';
+    stickyScript.async=false;
+    stickyScript.dataset.purchaseStickySections='1';
+    document.head.appendChild(stickyScript);
+  }
+
   let syncing=false;
   let focusTimer=null;
   const preClickState=new WeakMap();
