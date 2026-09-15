@@ -9,20 +9,19 @@
     style.textContent=`
       .sidebar > .brand{display:none!important}
       .profile-brand-wrap{position:relative;margin:0 0 28px;width:100%}
-      #profileSidebarCard.profile-brand-card{margin:0;padding:9px 40px 11px 11px;min-height:94px;border:1px solid var(--line);border-radius:15px;background:rgba(23,32,51,.58);display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:12px;row-gap:8px;cursor:pointer;width:100%;transition:background .15s ease,border-color .15s ease;position:relative}
+      #profileSidebarCard.profile-brand-card{margin:0;padding:10px 78px 10px 11px;min-height:66px;border:1px solid var(--line);border-radius:15px;background:rgba(23,32,51,.58);display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;transition:background .15s ease,border-color .15s ease;position:relative}
       #profileSidebarCard.profile-brand-card:hover{background:rgba(30,41,59,.82);border-color:#3a4b64}
-      #profileSidebarCard.profile-brand-card:after{content:'⌄';position:absolute;right:13px;bottom:19px;font-size:17px;color:var(--muted);transition:transform .16s ease}
-      .profile-brand-wrap.open #profileSidebarCard.profile-brand-card:after{transform:rotate(180deg)}
-      #profileSidebarCard.profile-brand-card .profile-card-tools{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-right:-28px}
+      #profileSidebarCard.profile-brand-card:after{display:none}
+      #profileSidebarCard.profile-brand-card .profile-card-tools{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:3px}
       #profileSidebarCard.profile-brand-card .profile-card-icon{width:31px;height:31px;min-width:31px;padding:0;display:grid;place-items:center;border:1px solid transparent;border-radius:9px;background:transparent;color:#dbe5f3;line-height:0;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
       #profileSidebarCard.profile-brand-card .profile-card-icon:hover{background:#1d293b;border-color:var(--line);color:#fff}
       #profileSidebarCard.profile-brand-card .profile-card-icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
       #profileSidebarCard.profile-brand-card .profile-card-icon svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       #profileSidebarCard.profile-brand-card .profile-card-bell{position:relative}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;font-size:13px;grid-column:1;grid-row:2}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;grid-column:2;grid-row:2}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:145px;font-weight:760}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted)}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;font-size:13px}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;flex:1}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:110px;font-weight:760}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
       .profile-dropdown{display:none;position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827;border:1px solid var(--line);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.38)}
       .profile-brand-wrap.open .profile-dropdown{display:block}
@@ -46,7 +45,7 @@
       #page-profile{display:none!important}
       .topbar #logoutBtn{display:none!important}
 
-      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:118px;width:auto;max-height:calc(100vh - 137px)}}
+      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:90px;width:auto;max-height:calc(100vh - 109px)}}
     `;
     document.head.appendChild(style);
   }
@@ -76,7 +75,7 @@
         <button type="button" class="profile-card-icon profile-card-exit" id="profileCardLogoutBtn" aria-label="Sair" title="Sair">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20H10"/><path d="M14 8l4 4-4 4"/><path d="M8 12h10"/></svg>
         </button>`;
-      card.insertBefore(tools,card.firstChild);
+      card.appendChild(tools);
       const bell=tools.querySelector('#profileNotificationBtn');
       const exit=tools.querySelector('#profileCardLogoutBtn');
       bell.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
