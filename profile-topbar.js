@@ -17,13 +17,29 @@
       #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;flex:1}
       #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:145px;font-weight:760}
       #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted)}
-      .profile-dropdown{display:none;position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:60;padding:6px;background:#111827;border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 46px rgba(0,0,0,.30)}
-      .profile-brand-wrap.open .profile-dropdown{display:grid;gap:3px}
-      .profile-dropdown button{width:100%;border:0;background:transparent;color:#e5edf8;text-align:left;padding:10px 11px;border-radius:9px;font:inherit;font-size:12px;cursor:pointer}
-      .profile-dropdown button:hover{background:#1a2639}
-      .profile-dropdown .profile-dropdown-danger{color:#fecaca}
-      .profile-dropdown-divider{height:1px;background:var(--line);margin:3px 5px}
-      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}}
+
+      .profile-dropdown{display:none;position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827;border:1px solid var(--line);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.38)}
+      .profile-brand-wrap.open .profile-dropdown{display:block}
+      .profile-dropdown-title{font-size:13px;font-weight:780;margin:1px 2px 10px;color:#f8fafc}
+      .profile-dropdown .profile-layout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:#0f172a}
+      .profile-dropdown .profile-photo-card h3,.profile-dropdown .section-head{display:none}
+      .profile-dropdown .profile-avatar{width:92px;height:92px;border-radius:26px;margin:0 auto 11px;font-size:25px}
+      .profile-dropdown .profile-photo-actions .btn{padding:7px 9px;font-size:11px}
+      .profile-dropdown .profile-identity-note{display:none}
+      .profile-dropdown .form-grid{grid-template-columns:1fr!important;gap:10px}
+      .profile-dropdown .form-grid .full{grid-column:auto}
+      .profile-dropdown .field label{font-size:11px}
+      .profile-dropdown .field input{padding:9px 10px;font-size:12px}
+      .profile-dropdown #profileCpfHint{font-size:10px;line-height:1.35}
+      .profile-dropdown #profileSaveBtn{width:100%;padding:9px 11px}
+      .profile-dropdown .profile-status{margin-top:8px;min-height:16px;font-size:11px}
+      .profile-dropdown-footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+      .profile-dropdown-footer button{width:100%;border:1px solid var(--line);background:#182235;color:#e5edf8;text-align:center;padding:9px 10px;border-radius:9px;font:inherit;font-size:11px;cursor:pointer}
+      .profile-dropdown-footer button:hover{filter:brightness(1.08)}
+      .profile-dropdown-footer .profile-dropdown-danger{color:#fecaca;border-color:#542020;background:#321515}
+      #page-profile{display:none!important}
+      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:86px;width:auto;max-height:calc(100vh - 105px)}}
     `;
     document.head.appendChild(style);
   }
@@ -41,6 +57,16 @@
     if(subtitle)subtitle.textContent='Preferências e dados';
   }
 
+  function moveProfileEditorIntoMenu(menu){
+    if(menu.querySelector('.profile-layout'))return true;
+    const page=document.getElementById('page-profile');
+    const layout=page?.querySelector('.profile-layout');
+    if(!layout)return false;
+    const footer=menu.querySelector('.profile-dropdown-footer');
+    menu.insertBefore(layout,footer||null);
+    return true;
+  }
+
   function ensureDropdown(card){
     let wrap=card.parentElement?.classList?.contains('profile-brand-wrap')?card.parentElement:null;
     if(!wrap){
@@ -49,18 +75,18 @@
     }
     let menu=wrap.querySelector('.profile-dropdown');
     if(!menu){
-      menu=document.createElement('div');menu.className='profile-dropdown';menu.setAttribute('role','menu');
-      menu.innerHTML='<button type="button" data-profile-action="profile">Meu perfil</button><button type="button" data-profile-action="settings">Configurações</button><div class="profile-dropdown-divider"></div><button type="button" class="profile-dropdown-danger" data-profile-action="logout">Sair</button>';
+      menu=document.createElement('div');menu.className='profile-dropdown';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Perfil');
+      menu.innerHTML='<div class="profile-dropdown-title">Perfil</div><div class="profile-dropdown-footer"><button type="button" data-profile-action="settings">Configurações</button><button type="button" class="profile-dropdown-danger" data-profile-action="logout">Sair</button></div>';
       wrap.appendChild(menu);
       menu.addEventListener('click',e=>e.stopPropagation());
-      menu.querySelector('[data-profile-action="profile"]').onclick=()=>{wrap.classList.remove('open');if(typeof window.openFinanceProfile==='function')window.openFinanceProfile()};
       menu.querySelector('[data-profile-action="settings"]').onclick=()=>{wrap.classList.remove('open');openSettings()};
       menu.querySelector('[data-profile-action="logout"]').onclick=()=>{wrap.classList.remove('open');document.getElementById('logoutBtn')?.click()};
     }
+    moveProfileEditorIntoMenu(menu);
     if(card.dataset.dropdownBound!=='1'){
       card.dataset.dropdownBound='1';
-      card.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.toggle('open')};
-      card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();wrap.classList.toggle('open')}else if(e.key==='Escape')wrap.classList.remove('open')};
+      card.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)};
+      card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)}else if(e.key==='Escape')wrap.classList.remove('open')};
       document.addEventListener('click',e=>{if(!wrap.contains(e.target))wrap.classList.remove('open')});
     }
     return wrap;
@@ -79,14 +105,20 @@
 
     card.classList.remove('profile-topbar-card');
     card.classList.add('profile-brand-card');
-    card.setAttribute('aria-label','Abrir menu do perfil');
-    card.setAttribute('aria-haspopup','menu');
-    card.title='Abrir menu do perfil';
+    card.setAttribute('aria-label','Abrir perfil');
+    card.setAttribute('aria-haspopup','dialog');
+    card.title='Abrir perfil';
     return true;
+  }
+
+  function escapeSeparateProfilePage(){
+    const page=document.getElementById('page-profile');
+    if(page?.classList.contains('active'))document.querySelector('.nav [data-page="dashboard"]')?.click();
   }
 
   function sync(){
     removeProfileNav();
+    escapeSeparateProfilePage();
     return moveProfileCard();
   }
 
@@ -97,7 +129,8 @@
     const timer=setInterval(()=>{
       tries++;
       const ready=sync();
-      if(ready&&tries>5)clearInterval(timer);
+      const moved=!!document.querySelector('.profile-dropdown .profile-layout');
+      if(ready&&moved&&tries>5)clearInterval(timer);
       if(tries>200)clearInterval(timer);
     },100);
     const observer=new MutationObserver(sync);
