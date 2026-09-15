@@ -17,20 +17,19 @@
       #profileSidebarCard.profile-brand-card .profile-card-icon:hover{background:#1d293b;border-color:var(--line);color:#fff}
       #profileSidebarCard.profile-brand-card .profile-card-icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
       #profileSidebarCard.profile-brand-card .profile-card-icon svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-      #profileSidebarCard.profile-brand-card .profile-card-bell{position:relative}
       #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;font-size:13px}
       #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;flex:1}
       #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:110px;font-weight:760}
       #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-      .profile-page-backdrop{position:fixed;inset:0;z-index:55;background:rgba(2,6,23,.10);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .20s ease,visibility 0s linear .22s}
+      .profile-page-backdrop{position:fixed;inset:0;z-index:900;background:rgba(2,6,23,.08);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .20s ease,visibility 0s linear .22s}
       body.profile-menu-open .profile-page-backdrop{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .20s ease,visibility 0s linear 0s}
 
-      .profile-dropdown{position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827;border:1px solid var(--line);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.42);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-9px) scale(.985);transform-origin:top left;transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
-      .profile-brand-wrap.open .profile-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear 0s}
+      .profile-dropdown{position:fixed;z-index:1000;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827!important;border:1px solid #334155;border-radius:15px;box-shadow:0 24px 64px rgba(0,0,0,.52);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-9px) scale(.985);transform-origin:top left;transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+      .profile-dropdown.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear 0s}
       .profile-dropdown-title{font-size:13px;font-weight:780;margin:1px 2px 10px;color:#f8fafc}
       .profile-dropdown .profile-layout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
-      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:#0f172a}
+      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:#0f172a!important}
       .profile-dropdown .profile-photo-card h3,.profile-dropdown .section-head{display:none}
       .profile-dropdown .profile-avatar{width:92px;height:92px;border-radius:26px;margin:0 auto 11px;font-size:25px}
       .profile-dropdown .profile-photo-actions .btn{padding:7px 9px;font-size:11px}
@@ -38,7 +37,7 @@
       .profile-dropdown .form-grid{grid-template-columns:1fr!important;gap:10px}
       .profile-dropdown .form-grid .full{grid-column:auto}
       .profile-dropdown .field label{font-size:11px}
-      .profile-dropdown .field input{padding:9px 10px;font-size:12px}
+      .profile-dropdown .field input{padding:9px 10px;font-size:12px;background:#111827!important}
       .profile-dropdown #profileCpfHint{font-size:10px;line-height:1.35}
       .profile-dropdown #profileSaveBtn{width:100%;padding:9px 11px}
       .profile-dropdown .profile-status{margin-top:8px;min-height:16px;font-size:11px}
@@ -49,15 +48,13 @@
         html,body{scrollbar-width:none;-ms-overflow-style:none}
         html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}
       }
-      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:90px;width:auto;max-height:calc(100vh - 109px);transform-origin:top center}}
+      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{left:15px!important;right:15px!important;top:90px!important;width:auto;max-height:calc(100vh - 109px);transform-origin:top center}}
       @media(prefers-reduced-motion:reduce){.profile-dropdown,.profile-page-backdrop{transition:none!important}}
     `;
     document.head.appendChild(style);
   }
 
-  function removeProfileNav(){
-    document.querySelectorAll('.nav [data-page="profile"]').forEach(el=>el.remove());
-  }
+  function removeProfileNav(){document.querySelectorAll('.nav [data-page="profile"]').forEach(el=>el.remove())}
 
   function ensureBackdrop(){
     let backdrop=document.getElementById('profilePageBackdrop');
@@ -67,136 +64,91 @@
     backdrop.className='profile-page-backdrop';
     backdrop.setAttribute('aria-hidden','true');
     document.body.appendChild(backdrop);
-    backdrop.addEventListener('click',()=>{
-      document.querySelectorAll('.profile-brand-wrap.open').forEach(w=>w.classList.remove('open'));
-      document.body.classList.remove('profile-menu-open');
-    });
+    backdrop.addEventListener('click',()=>closeMenu());
     return backdrop;
   }
 
-  function setMenuOpen(wrap,open){
-    if(!wrap)return;
-    wrap.classList.toggle('open',!!open);
-    document.body.classList.toggle('profile-menu-open',!!open);
+  function currentMenu(){return document.querySelector('body > .profile-dropdown')}
+  function currentWrap(){return document.querySelector('.profile-brand-wrap')}
+
+  function positionMenu(card,menu){
+    if(!card||!menu||window.innerWidth<=900)return;
+    const r=card.getBoundingClientRect();
+    const maxLeft=Math.max(16,window.innerWidth-Math.min(440,window.innerWidth-34)-16);
+    menu.style.left=Math.min(Math.max(16,r.left),maxLeft)+'px';
+    menu.style.top=(r.bottom+7)+'px';
+  }
+
+  function openMenu(wrap,card,menu){
+    if(!wrap||!card||!menu)return;
+    wrap.classList.add('open');
+    document.body.classList.add('profile-menu-open');
+    positionMenu(card,menu);
+    requestAnimationFrame(()=>menu.classList.add('open'));
+  }
+
+  function closeMenu(){
+    document.querySelectorAll('.profile-brand-wrap.open').forEach(w=>w.classList.remove('open'));
+    const menu=currentMenu();if(menu)menu.classList.remove('open');
+    document.body.classList.remove('profile-menu-open');
   }
 
   function ensureCardTools(card){
     let tools=card.querySelector('.profile-card-tools');
     if(!tools){
-      tools=document.createElement('div');
-      tools.className='profile-card-tools';
-      tools.innerHTML=`
-        <button type="button" class="profile-card-icon profile-card-bell" id="profileNotificationBtn" aria-label="Notificações" title="Notificações (em breve)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
-        </button>
-        <button type="button" class="profile-card-icon profile-card-exit" id="profileCardLogoutBtn" aria-label="Sair" title="Sair">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20H10"/><path d="M14 8l4 4-4 4"/><path d="M8 12h10"/></svg>
-        </button>`;
+      tools=document.createElement('div');tools.className='profile-card-tools';
+      tools.innerHTML=`<button type="button" class="profile-card-icon profile-card-bell" id="profileNotificationBtn" aria-label="Notificações" title="Notificações (em breve)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button><button type="button" class="profile-card-icon profile-card-exit" id="profileCardLogoutBtn" aria-label="Sair" title="Sair"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20H10"/><path d="M14 8l4 4-4 4"/><path d="M8 12h10"/></svg></button>`;
       card.appendChild(tools);
-      const bell=tools.querySelector('#profileNotificationBtn');
-      const exit=tools.querySelector('#profileCardLogoutBtn');
+      const bell=tools.querySelector('#profileNotificationBtn'),exit=tools.querySelector('#profileCardLogoutBtn');
       bell.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
       exit.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();document.getElementById('logoutBtn')?.click()});
-      bell.addEventListener('keydown',e=>e.stopPropagation());
-      exit.addEventListener('keydown',e=>e.stopPropagation());
+      bell.addEventListener('keydown',e=>e.stopPropagation());exit.addEventListener('keydown',e=>e.stopPropagation());
     }
     return tools;
   }
 
   function moveProfileEditorIntoMenu(menu){
     if(menu.querySelector('.profile-layout'))return true;
-    const page=document.getElementById('page-profile');
-    const layout=page?.querySelector('.profile-layout');
+    const page=document.getElementById('page-profile'),layout=page?.querySelector('.profile-layout');
     if(!layout)return false;
-    menu.appendChild(layout);
-    return true;
+    menu.appendChild(layout);return true;
   }
 
   function ensureDropdown(card){
     let wrap=card.parentElement?.classList?.contains('profile-brand-wrap')?card.parentElement:null;
-    if(!wrap){
-      wrap=document.createElement('div');wrap.className='profile-brand-wrap';
-      card.parentNode.insertBefore(wrap,card);wrap.appendChild(card);
-    }
-    let menu=wrap.querySelector('.profile-dropdown');
-    if(!menu){
-      menu=document.createElement('div');menu.className='profile-dropdown';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Perfil');
-      menu.innerHTML='<div class="profile-dropdown-title">Perfil</div>';
-      wrap.appendChild(menu);
-      menu.addEventListener('click',e=>e.stopPropagation());
-    }else{
-      menu.querySelectorAll('[data-profile-action="settings"],.profile-dropdown-footer,.profile-dropdown-divider,[data-profile-action="logout"]').forEach(el=>el.remove());
-    }
+    if(!wrap){wrap=document.createElement('div');wrap.className='profile-brand-wrap';card.parentNode.insertBefore(wrap,card);wrap.appendChild(card)}
+    let menu=currentMenu();
+    if(!menu){menu=document.createElement('div');menu.className='profile-dropdown';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Perfil');menu.innerHTML='<div class="profile-dropdown-title">Perfil</div>';document.body.appendChild(menu);menu.addEventListener('click',e=>e.stopPropagation())}
+    menu.querySelectorAll('[data-profile-action="settings"],.profile-dropdown-footer,.profile-dropdown-divider,[data-profile-action="logout"]').forEach(el=>el.remove());
     moveProfileEditorIntoMenu(menu);
     if(card.dataset.dropdownBound!=='1'){
       card.dataset.dropdownBound='1';
-      card.onclick=e=>{
-        e.preventDefault();e.stopPropagation();
-        const willOpen=!wrap.classList.contains('open');
-        setMenuOpen(wrap,willOpen);
-        if(willOpen)moveProfileEditorIntoMenu(menu);
-      };
-      card.onkeydown=e=>{
-        if(e.target!==card)return;
-        if(e.key==='Enter'||e.key===' '){
-          e.preventDefault();
-          const willOpen=!wrap.classList.contains('open');
-          setMenuOpen(wrap,willOpen);
-          if(willOpen)moveProfileEditorIntoMenu(menu);
-        }else if(e.key==='Escape')setMenuOpen(wrap,false);
-      };
-      document.addEventListener('click',e=>{if(!wrap.contains(e.target)&&wrap.classList.contains('open'))setMenuOpen(wrap,false)});
+      card.onclick=e=>{e.preventDefault();e.stopPropagation();const willOpen=!wrap.classList.contains('open');if(willOpen){moveProfileEditorIntoMenu(menu);openMenu(wrap,card,menu)}else closeMenu()};
+      card.onkeydown=e=>{if(e.target!==card)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();const willOpen=!wrap.classList.contains('open');if(willOpen){moveProfileEditorIntoMenu(menu);openMenu(wrap,card,menu)}else closeMenu()}else if(e.key==='Escape')closeMenu()};
     }
-    return wrap;
+    return {wrap,menu};
   }
 
   function moveProfileCard(){
-    const card=document.getElementById('profileSidebarCard');
-    const sidebar=document.querySelector('.sidebar');
-    const nav=sidebar?.querySelector('.nav');
+    const card=document.getElementById('profileSidebarCard'),sidebar=document.querySelector('.sidebar'),nav=sidebar?.querySelector('.nav');
     if(!card||!sidebar||!nav)return false;
-
-    ensureBackdrop();
-    ensureCardTools(card);
-    const wrap=ensureDropdown(card);
-    if(wrap.parentElement!==sidebar||wrap.nextElementSibling!==nav){
-      sidebar.insertBefore(wrap,nav);
-    }
-
-    card.classList.remove('profile-topbar-card');
-    card.classList.add('profile-brand-card');
-    card.setAttribute('aria-label','Abrir perfil');
-    card.setAttribute('aria-haspopup','dialog');
-    card.title='Abrir perfil';
+    ensureBackdrop();ensureCardTools(card);
+    const result=ensureDropdown(card),wrap=result.wrap;
+    if(wrap.parentElement!==sidebar||wrap.nextElementSibling!==nav)sidebar.insertBefore(wrap,nav);
+    card.classList.remove('profile-topbar-card');card.classList.add('profile-brand-card');card.setAttribute('aria-label','Abrir perfil');card.setAttribute('aria-haspopup','dialog');card.title='Abrir perfil';
     return true;
   }
 
-  function escapeSeparateProfilePage(){
-    const page=document.getElementById('page-profile');
-    if(page?.classList.contains('active'))document.querySelector('.nav [data-page="dashboard"]')?.click();
-  }
-
-  function sync(){
-    removeProfileNav();
-    escapeSeparateProfilePage();
-    return moveProfileCard();
-  }
+  function escapeSeparateProfilePage(){const page=document.getElementById('page-profile');if(page?.classList.contains('active'))document.querySelector('.nav [data-page="dashboard"]')?.click()}
+  function sync(){removeProfileNav();escapeSeparateProfilePage();return moveProfileCard()}
 
   function init(){
-    injectStyles();
-    ensureBackdrop();
-    sync();
-    let tries=0;
-    const timer=setInterval(()=>{
-      tries++;
-      const ready=sync();
-      const moved=!!document.querySelector('.profile-dropdown .profile-layout');
-      if(ready&&moved&&tries>5)clearInterval(timer);
-      if(tries>200)clearInterval(timer);
-    },100);
-    const observer=new MutationObserver(sync);
-    observer.observe(document.body,{childList:true,subtree:true});
-    setTimeout(()=>observer.disconnect(),15000);
+    injectStyles();ensureBackdrop();sync();
+    let tries=0;const timer=setInterval(()=>{tries++;const ready=sync(),moved=!!currentMenu()?.querySelector('.profile-layout');if(ready&&moved&&tries>5)clearInterval(timer);if(tries>200)clearInterval(timer)},100);
+    const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),15000);
+    window.addEventListener('resize',()=>{const wrap=currentWrap(),menu=currentMenu(),card=document.getElementById('profileSidebarCard');if(wrap?.classList.contains('open'))positionMenu(card,menu)});
+    window.addEventListener('scroll',()=>{const wrap=currentWrap(),menu=currentMenu(),card=document.getElementById('profileSidebarCard');if(wrap?.classList.contains('open'))positionMenu(card,menu)},{passive:true});
+    document.addEventListener('click',e=>{const wrap=currentWrap(),menu=currentMenu();if(wrap?.classList.contains('open')&&!wrap.contains(e.target)&&!menu?.contains(e.target))closeMenu()});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
