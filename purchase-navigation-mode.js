@@ -82,13 +82,15 @@
 
   function setButtonOpen(btn,open){
     if(!(btn instanceof HTMLElement))return;
-    btn.setAttribute('aria-expanded',open?'true':'false');
-    if(readMode()==='fixed')btn.setAttribute('aria-disabled','true');
-    else btn.removeAttribute('aria-disabled');
+    const expanded=open?'true':'false';
+    if(btn.getAttribute('aria-expanded')!==expanded)btn.setAttribute('aria-expanded',expanded);
+    if(readMode()==='fixed'){
+      if(btn.getAttribute('aria-disabled')!=='true')btn.setAttribute('aria-disabled','true');
+    }else if(btn.hasAttribute('aria-disabled'))btn.removeAttribute('aria-disabled');
   }
 
   function openEverything(){
-    document.querySelectorAll('.invoice-purchase-group,.purchase-name-group').forEach(el=>el.classList.remove('collapsed'));
+    document.querySelectorAll('.invoice-purchase-group.collapsed,.purchase-name-group.collapsed').forEach(el=>el.classList.remove('collapsed'));
     document.querySelectorAll('.purchase-section-toggle,.purchase-name-toggle').forEach(btn=>setButtonOpen(btn,true));
     document.querySelectorAll('#purchaseManagerBody .purchase-section-item-collapsed').forEach(row=>row.classList.remove('purchase-section-item-collapsed'));
     document.querySelectorAll('#purchaseManagerBody .purchase-name-item-hidden').forEach(row=>row.classList.remove('purchase-name-item-hidden'));
@@ -146,9 +148,11 @@
   function updateModeButtons(){
     const mode=readMode();
     document.querySelectorAll('.purchase-navigation-mode-toggle').forEach(btn=>{
-      btn.dataset.mode=mode;
-      btn.textContent=mode==='dynamic'?'Dinâmico':'Fixo';
-      btn.setAttribute('aria-pressed',mode==='fixed'?'true':'false');
+      if(btn.dataset.mode!==mode)btn.dataset.mode=mode;
+      const label=mode==='dynamic'?'Dinâmico':'Fixo';
+      if(btn.textContent!==label)btn.textContent=label;
+      const pressed=mode==='fixed'?'true':'false';
+      if(btn.getAttribute('aria-pressed')!==pressed)btn.setAttribute('aria-pressed',pressed);
       btn.title=mode==='dynamic'?'Alternar para modo fixo: mostrar todos os lançamentos':'Alternar para modo dinâmico: usar expansão e retração';
     });
   }
