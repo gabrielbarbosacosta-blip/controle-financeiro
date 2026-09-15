@@ -23,11 +23,14 @@
       #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:110px;font-weight:760}
       #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-      .profile-dropdown{position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.22);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.38);backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-9px) scale(.985);transform-origin:top left;transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+      .profile-page-backdrop{position:fixed;inset:0;z-index:55;background:rgba(2,6,23,.10);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .20s ease,visibility 0s linear .22s}
+      body.profile-menu-open .profile-page-backdrop{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .20s ease,visibility 0s linear 0s}
+
+      .profile-dropdown{position:absolute;left:0;top:calc(100% + 7px);z-index:60;width:min(440px,calc(100vw - 34px));max-height:min(76vh,680px);overflow:auto;padding:12px;background:#111827;border:1px solid var(--line);border-radius:15px;box-shadow:0 22px 54px rgba(0,0,0,.42);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-9px) scale(.985);transform-origin:top left;transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
       .profile-brand-wrap.open .profile-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .20s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear 0s}
       .profile-dropdown-title{font-size:13px;font-weight:780;margin:1px 2px 10px;color:#f8fafc}
       .profile-dropdown .profile-layout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
-      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:rgba(15,23,42,.64);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+      .profile-dropdown .profile-layout>.card{padding:14px;box-shadow:none;border-radius:13px;background:#0f172a}
       .profile-dropdown .profile-photo-card h3,.profile-dropdown .section-head{display:none}
       .profile-dropdown .profile-avatar{width:92px;height:92px;border-radius:26px;margin:0 auto 11px;font-size:25px}
       .profile-dropdown .profile-photo-actions .btn{padding:7px 9px;font-size:11px}
@@ -42,14 +45,39 @@
       #page-profile{display:none!important}
       .topbar #logoutBtn{display:none!important}
 
+      @media(min-width:901px){
+        html,body{scrollbar-width:none;-ms-overflow-style:none}
+        html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}
+      }
       @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:90px;width:auto;max-height:calc(100vh - 109px);transform-origin:top center}}
-      @media(prefers-reduced-motion:reduce){.profile-dropdown{transition:none!important}}
+      @media(prefers-reduced-motion:reduce){.profile-dropdown,.profile-page-backdrop{transition:none!important}}
     `;
     document.head.appendChild(style);
   }
 
   function removeProfileNav(){
     document.querySelectorAll('.nav [data-page="profile"]').forEach(el=>el.remove());
+  }
+
+  function ensureBackdrop(){
+    let backdrop=document.getElementById('profilePageBackdrop');
+    if(backdrop)return backdrop;
+    backdrop=document.createElement('div');
+    backdrop.id='profilePageBackdrop';
+    backdrop.className='profile-page-backdrop';
+    backdrop.setAttribute('aria-hidden','true');
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click',()=>{
+      document.querySelectorAll('.profile-brand-wrap.open').forEach(w=>w.classList.remove('open'));
+      document.body.classList.remove('profile-menu-open');
+    });
+    return backdrop;
+  }
+
+  function setMenuOpen(wrap,open){
+    if(!wrap)return;
+    wrap.classList.toggle('open',!!open);
+    document.body.classList.toggle('profile-menu-open',!!open);
   }
 
   function ensureCardTools(card){
@@ -102,9 +130,22 @@
     moveProfileEditorIntoMenu(menu);
     if(card.dataset.dropdownBound!=='1'){
       card.dataset.dropdownBound='1';
-      card.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)};
-      card.onkeydown=e=>{if(e.target!==card)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)}else if(e.key==='Escape')wrap.classList.remove('open')};
-      document.addEventListener('click',e=>{if(!wrap.contains(e.target))wrap.classList.remove('open')});
+      card.onclick=e=>{
+        e.preventDefault();e.stopPropagation();
+        const willOpen=!wrap.classList.contains('open');
+        setMenuOpen(wrap,willOpen);
+        if(willOpen)moveProfileEditorIntoMenu(menu);
+      };
+      card.onkeydown=e=>{
+        if(e.target!==card)return;
+        if(e.key==='Enter'||e.key===' '){
+          e.preventDefault();
+          const willOpen=!wrap.classList.contains('open');
+          setMenuOpen(wrap,willOpen);
+          if(willOpen)moveProfileEditorIntoMenu(menu);
+        }else if(e.key==='Escape')setMenuOpen(wrap,false);
+      };
+      document.addEventListener('click',e=>{if(!wrap.contains(e.target)&&wrap.classList.contains('open'))setMenuOpen(wrap,false)});
     }
     return wrap;
   }
@@ -115,6 +156,7 @@
     const nav=sidebar?.querySelector('.nav');
     if(!card||!sidebar||!nav)return false;
 
+    ensureBackdrop();
     ensureCardTools(card);
     const wrap=ensureDropdown(card);
     if(wrap.parentElement!==sidebar||wrap.nextElementSibling!==nav){
@@ -142,6 +184,7 @@
 
   function init(){
     injectStyles();
+    ensureBackdrop();
     sync();
     let tries=0;
     const timer=setInterval(()=>{
