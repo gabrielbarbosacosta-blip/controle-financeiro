@@ -29,6 +29,20 @@
         box-shadow:0 10px 24px rgba(2,6,23,.28),0 1px 0 rgba(148,163,184,.08);
       }
 
+      /* Máscara que cobre o respiro de 20 px acima do cabeçalho sticky.
+         Assim os lançamentos que passam por trás não ficam visíveis acima dele. */
+      #cardDetail .invoice-purchase-group:not(.collapsed) > .invoice-purchase-group-head.purchase-section-head-stuck::before{
+        content:"";
+        position:absolute;
+        left:-1px;
+        right:-1px;
+        top:-${TOP_GAP}px;
+        height:${TOP_GAP}px;
+        background:#0b1220;
+        pointer-events:none;
+        z-index:-1;
+      }
+
       #cardDetail .invoice-purchase-group.collapsed > .invoice-purchase-group-head{
         position:relative;
         top:auto;
