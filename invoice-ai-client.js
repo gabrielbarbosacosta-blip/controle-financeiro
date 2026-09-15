@@ -67,6 +67,14 @@
     document.head.appendChild(modeScript);
   }
 
+  if(!document.querySelector('script[data-smart-purchase-import]')){
+    const importScript=document.createElement('script');
+    importScript.src='smart-purchase-import.js';
+    importScript.async=false;
+    importScript.dataset.smartPurchaseImport='1';
+    document.head.appendChild(importScript);
+  }
+
   function fixPurchaseGroupingHeader(){
     const heading=[...document.querySelectorAll('#cardDetail .section-head h3')].find(h=>String(h.textContent||'').trim()==='Itens da fatura');
     const head=heading?.closest('.section-head');
