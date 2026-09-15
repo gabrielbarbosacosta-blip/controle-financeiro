@@ -7,13 +7,14 @@
     const style=document.createElement('style');
     style.id='finance-profile-topbar-style';
     style.textContent=`
-      #profileSidebarCard.profile-topbar-card{margin:0;padding:5px 8px 5px 5px;min-height:42px;border:1px solid var(--line);border-radius:12px;background:#111a2a;display:flex;align-items:center;gap:8px;cursor:pointer;max-width:220px;transition:background .15s ease,border-color .15s ease}
-      #profileSidebarCard.profile-topbar-card:hover{background:#182235;border-color:#3a4b64}
-      #profileSidebarCard.profile-topbar-card .profile-sidebar-avatar{width:32px;height:32px;flex:0 0 32px;border-radius:10px;font-size:10px}
-      #profileSidebarCard.profile-topbar-card .profile-sidebar-copy{min-width:0}
-      #profileSidebarCard.profile-topbar-card .profile-sidebar-name{font-size:12px;line-height:1.15;max-width:145px}
-      #profileSidebarCard.profile-topbar-card .profile-sidebar-label{font-size:9px;margin-top:2px}
-      @media(max-width:700px){#profileSidebarCard.profile-topbar-card{max-width:100%;order:-1}}
+      .sidebar > .brand{display:none!important}
+      #profileSidebarCard.profile-brand-card{margin:0 0 26px;padding:8px 9px;min-height:54px;border:1px solid var(--line);border-radius:14px;background:rgba(23,32,51,.58);display:flex;align-items:center;gap:10px;cursor:pointer;width:100%;transition:background .15s ease,border-color .15s ease}
+      #profileSidebarCard.profile-brand-card:hover{background:rgba(30,41,59,.82);border-color:#3a4b64}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:12px;font-size:12px}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;flex:1}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:13px;line-height:1.2;max-width:165px;font-weight:750}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:10px;margin-top:3px;color:var(--muted)}
+      @media(max-width:900px){#profileSidebarCard.profile-brand-card{margin-bottom:18px;max-width:320px}}
     `;
     document.head.appendChild(style);
   }
@@ -24,13 +25,16 @@
 
   function moveProfileCard(){
     const card=document.getElementById('profileSidebarCard');
-    const actions=document.querySelector('.topbar .actions');
-    if(!card||!actions)return false;
-    if(card.parentElement!==actions){
-      const logout=document.getElementById('logoutBtn');
-      actions.insertBefore(card,logout||actions.firstChild);
+    const sidebar=document.querySelector('.sidebar');
+    const nav=sidebar?.querySelector('.nav');
+    if(!card||!sidebar||!nav)return false;
+
+    if(card.parentElement!==sidebar||card.nextElementSibling!==nav){
+      sidebar.insertBefore(card,nav);
     }
-    card.classList.add('profile-topbar-card');
+
+    card.classList.remove('profile-topbar-card');
+    card.classList.add('profile-brand-card');
     card.setAttribute('aria-label','Abrir perfil');
     card.title='Abrir perfil';
     return true;
