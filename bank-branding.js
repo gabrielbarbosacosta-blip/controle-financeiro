@@ -7,6 +7,19 @@
   const CACHE_KEY='financeBankDirectory:v1';
   const CACHE_MAX_AGE=7*24*60*60*1000;
   const STYLE_ID='bank-branding-style';
+  const COMMON_BANK_CODES={
+    'bb':'001','banco do brasil':'001','banco do brasil sa':'001','bco do brasil sa':'001',
+    'nubank':'260','nu pagamentos':'260','nu pagamentos sa':'260',
+    'itau':'341','itau unibanco':'341','itau unibanco sa':'341',
+    'santander':'033','banco santander':'033','banco santander brasil sa':'033',
+    'caixa':'104','caixa economica federal':'104',
+    'bradesco':'237','banco bradesco':'237','banco bradesco sa':'237',
+    'inter':'077','banco inter':'077','banco inter sa':'077',
+    'c6':'336','c6 bank':'336','banco c6':'336','banco c6 sa':'336',
+    'btg':'208','btg pactual':'208','banco btg pactual':'208',
+    'sicoob':'756','bancoob':'756','banco cooperativo sicoob':'756',
+    'sicredi':'748','banco cooperativo sicredi':'748'
+  };
   let institutions=[];
   let byIspb=new Map();
   let selectedBank=null;
@@ -79,6 +92,16 @@
     byIspb=new Map(list.map(item=>[item.ispb,item]));
   }
 
+  function findByCode(code){
+    const normalized=String(code||'').replace(/\D/g,'').padStart(3,'0');
+    return institutions.find(inst=>inst.code===normalized)||null;
+  }
+
+  function aliasInstitution(value){
+    const code=COMMON_BANK_CODES[normalize(value)];
+    return code?findByCode(code):null;
+  }
+
   function readCache(){
     try{
       const cached=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
@@ -97,6 +120,7 @@
       const data=await response.json();
       parseDirectory(data);
       try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),data}))}catch(e){}
+      migrateLegacyCards();
       scheduleEnhance();
       syncOpenCardModal();
     }catch(error){
@@ -106,8 +130,10 @@
 
   function institutionLogoUrl(instOrCard){
     if(!instOrCard)return null;
-    const ispb=String(instOrCard.logoIspb||instOrCard.bankIspb||instOrCard.ispb||'').replace(/\D/g,'').padStart(8,'0');
-    if(!/^\d{8}$/.test(ispb)||ispb==='0000000')return null;
+    const raw=String(instOrCard.logoIspb||instOrCard.bankIspb||instOrCard.ispb||'').replace(/\D/g,'');
+    if(!raw)return null;
+    const ispb=raw.padStart(8,'0');
+    if(!/^\d{8}$/.test(ispb))return null;
     if('flags' in instOrCard && !(Number(instOrCard.flags)&1))return null;
     return `${LOGO_BASE}${ispb}.png`;
   }
@@ -144,28 +170,55 @@
   function searchBanks(value){
     const q=normalize(value);
     if(!q)return [];
-    return institutions.map(inst=>({inst,score:score(inst,q)})).filter(x=>x.score>0)
+    const alias=aliasInstitution(q);
+    const ranked=institutions.map(inst=>({inst,score:score(inst,q)})).filter(x=>x.score>0)
       .sort((a,b)=>b.score-a.score||a.inst.name.localeCompare(b.inst.name,'pt-BR'))
-      .slice(0,14).map(x=>x.inst);
+      .map(x=>x.inst);
+    if(alias){
+      const without=ranked.filter(inst=>inst.ispb!==alias.ispb);
+      without.unshift(alias);
+      return without.slice(0,14);
+    }
+    return ranked.slice(0,14);
   }
 
   function resolveInstitution(card){
     if(!card)return null;
-    const ispb=String(card.bankIspb||'').replace(/\D/g,'').padStart(8,'0');
+    const rawIspb=String(card.bankIspb||'').replace(/\D/g,'');
+    const ispb=rawIspb?rawIspb.padStart(8,'0'):'';
     if(ispb&&byIspb.has(ispb))return byIspb.get(ispb);
     if(ispb&&/^\d{8}$/.test(ispb))return{ispb,logoIspb:ispb,code:String(card.bankCode||''),name:card.bankName||card.account||card.name,flags:1};
     const q=normalize(card.bankName||card.account||'');
     if(!q)return null;
+    const alias=aliasInstitution(q);
+    if(alias)return alias;
     let exact=institutions.find(inst=>normalize(inst.name)===q);
     if(exact)return exact;
     const common=institutions.filter(inst=>normalize(inst.name).includes(q)||q.includes(normalize(inst.name)));
     if(common.length===1)return common[0];
     const cardName=normalize(card.name||'');
+    const nameAlias=aliasInstitution(cardName);
+    if(nameAlias)return nameAlias;
     if(cardName){
       const candidates=institutions.map(inst=>({inst,score:score(inst,cardName)})).filter(x=>x.score>=60).sort((a,b)=>b.score-a.score);
       if(candidates.length&&(!candidates[1]||candidates[0].score>candidates[1].score))return candidates[0].inst;
     }
     return null;
+  }
+
+  function migrateLegacyCards(){
+    if(typeof state==='undefined'||!Array.isArray(state?.cards)||!institutions.length)return;
+    let changed=false;
+    for(const card of state.cards){
+      if(card.bankIspb)continue;
+      const inst=aliasInstitution(card.account)||aliasInstitution(card.name);
+      if(!inst)continue;
+      card.bankIspb=inst.ispb;
+      card.bankCode=inst.code||null;
+      card.bankName=inst.name;
+      changed=true;
+    }
+    if(changed&&typeof renderAll==='function')renderAll();
   }
 
   function bankDisplayName(card,inst){return card?.bankName||inst?.name||card?.account||'Banco / emissor'}
