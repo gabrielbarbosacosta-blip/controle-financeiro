@@ -3,21 +3,49 @@
   window.__cardOrganizerLoaded=true;
 
   const STYLE_ID='card-organizer-style';
+  const ACTION_SELECTOR='.card-delete-btn,.card-edit-btn,button,input,select,textarea,a';
+  const FLIP_DURATION=220;
+  const FLIP_EASING='cubic-bezier(.22,.78,.22,1)';
   let draggingId=null;
   let suppressClickUntil=0;
   let installed=false;
   let baseRenderCards=null;
+  let dragGhost=null;
+  let lastPlacementKey='';
+  const flipAnimations=new WeakMap();
 
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      #cardsGrid .credit-card[data-card-id]{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+      #cardsGrid .credit-card[data-card-id]{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y;will-change:transform}
       #cardsGrid .credit-card[data-card-id]:active{cursor:grabbing}
-      #cardsGrid .credit-card.card-is-dragging{opacity:.52;transform:scale(.985);cursor:grabbing!important}
-      #cardsGrid .credit-card.card-drag-target{outline:1px solid rgba(var(--bank-accent-rgb,96,165,250),.50);outline-offset:3px}
+      #cardsGrid.cards-dragging{cursor:grabbing}
+      #cardsGrid .credit-card.card-is-dragging{
+        opacity:.16;
+        transform:scale(.965);
+        filter:saturate(.72);
+        cursor:grabbing!important;
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)!important;
+      }
+      #cardsGrid .credit-card.card-drag-target{
+        outline:1px solid rgba(var(--bank-accent-rgb,96,165,250),.30);
+        outline-offset:3px;
+      }
       #cardsGrid .credit-card.card-is-deleting{opacity:.38;pointer-events:none;transform:scale(.985)}
+      .card-drag-ghost{
+        position:fixed!important;
+        left:-10000px!important;
+        top:-10000px!important;
+        z-index:99999!important;
+        margin:0!important;
+        pointer-events:none!important;
+        opacity:.96!important;
+        transform:rotate(.65deg) scale(1.015)!important;
+        box-shadow:0 22px 52px rgba(0,0,0,.36),0 0 28px rgba(var(--bank-accent-rgb,96,165,250),.13)!important;
+      }
+      .card-drag-ghost .card-delete-btn,.card-drag-ghost .card-edit-btn{display:none!important}
       .card-delete-btn{
         position:absolute!important;
         z-index:8!important;
@@ -82,11 +110,91 @@
     return state.cards.find(card=>String(card.id)===key)||null;
   }
 
+  function cardElements(grid){
+    return [...grid.querySelectorAll('.credit-card[data-card-id]')];
+  }
+
+  function stopFlipAnimations(grid){
+    if(!grid)return;
+    cardElements(grid).forEach(el=>{
+      const animation=flipAnimations.get(el);
+      if(animation){
+        try{animation.cancel()}catch(e){}
+        flipAnimations.delete(el);
+      }
+    });
+  }
+
+  function captureRects(grid,except){
+    stopFlipAnimations(grid);
+    const rects=new Map();
+    cardElements(grid).forEach(el=>{
+      if(el!==except)rects.set(el,el.getBoundingClientRect());
+    });
+    return rects;
+  }
+
+  function animateReflow(grid,beforeRects,except){
+    if(!grid||!beforeRects)return;
+    const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if(reduce)return;
+    cardElements(grid).forEach(el=>{
+      if(el===except)return;
+      const before=beforeRects.get(el);
+      if(!before)return;
+      const after=el.getBoundingClientRect();
+      const dx=before.left-after.left,dy=before.top-after.top;
+      if(Math.abs(dx)<.5&&Math.abs(dy)<.5)return;
+      try{
+        const animation=el.animate(
+          [{transform:`translate3d(${dx}px,${dy}px,0)`},{transform:'translate3d(0,0,0)'}],
+          {duration:FLIP_DURATION,easing:FLIP_EASING,fill:'both'}
+        );
+        flipAnimations.set(el,animation);
+        animation.onfinish=animation.oncancel=()=>{
+          if(flipAnimations.get(el)===animation)flipAnimations.delete(el);
+        };
+      }catch(e){}
+    });
+  }
+
+  function removeDragGhost(){
+    if(dragGhost){
+      try{dragGhost.remove()}catch(e){}
+      dragGhost=null;
+    }
+  }
+
+  function setSmoothDragImage(event,el){
+    removeDragGhost();
+    if(!event.dataTransfer||!el)return;
+    const rect=el.getBoundingClientRect();
+    const ghost=el.cloneNode(true);
+    ghost.classList.remove('card-is-dragging','card-drag-target');
+    ghost.classList.add('card-drag-ghost');
+    ghost.removeAttribute('draggable');
+    ghost.style.width=`${rect.width}px`;
+    ghost.style.height=`${rect.height}px`;
+    ghost.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
+    document.body.appendChild(ghost);
+    dragGhost=ghost;
+    const x=Math.max(0,Math.min(rect.width,event.clientX-rect.left));
+    const y=Math.max(0,Math.min(rect.height,event.clientY-rect.top));
+    try{event.dataTransfer.setDragImage(ghost,x,y)}catch(e){}
+  }
+
   function clearDragClasses(){
+    const grid=document.getElementById('cardsGrid');
+    if(grid){
+      grid.classList.remove('cards-dragging');
+      stopFlipAnimations(grid);
+    }
     document.querySelectorAll('#cardsGrid .credit-card').forEach(el=>{
       el.classList.remove('card-is-dragging','card-drag-target');
       el.setAttribute('aria-grabbed','false');
     });
+    lastPlacementKey='';
+    removeDragGhost();
   }
 
   function refreshDependentViews(){
@@ -113,7 +221,7 @@
     if(!stateReady())return false;
     const grid=document.getElementById('cardsGrid');
     if(!grid)return false;
-    const ids=[...grid.querySelectorAll('.credit-card[data-card-id]')].map(el=>String(el.dataset.cardId));
+    const ids=cardElements(grid).map(el=>String(el.dataset.cardId));
     if(ids.length!==state.cards.length)return false;
     const map=new Map(state.cards.map(card=>[String(card.id),card]));
     const reordered=ids.map(id=>map.get(id)).filter(Boolean);
@@ -123,6 +231,36 @@
     state.cards=reordered;
     try{if(typeof save==='function')save()}catch(error){console.warn('Não foi possível salvar a nova ordem dos cartões.',error)}
     return true;
+  }
+
+  function desiredPlacement(el,event){
+    const rect=el.getBoundingClientRect();
+    const centerX=rect.left+rect.width/2;
+    const centerY=rect.top+rect.height/2;
+    const verticalDistance=Math.abs(event.clientY-centerY);
+    const inSameRow=verticalDistance<=rect.height*.40;
+    return inSameRow?event.clientX<centerX:event.clientY<centerY;
+  }
+
+  function moveDraggedAround(target,event){
+    if(!draggingId||!target||String(target.dataset.cardId)===String(draggingId))return;
+    const grid=target.parentElement;
+    if(!grid)return;
+    const dragged=grid.querySelector(`.credit-card[data-card-id="${CSS.escape(String(draggingId))}"]`);
+    if(!dragged||dragged===target)return;
+
+    const before=desiredPlacement(target,event);
+    const placementKey=`${target.dataset.cardId}:${before?'before':'after'}`;
+    if(placementKey===lastPlacementKey)return;
+
+    if(before&&target.previousElementSibling===dragged){lastPlacementKey=placementKey;return}
+    if(!before&&target.nextElementSibling===dragged){lastPlacementKey=placementKey;return}
+
+    const rects=captureRects(grid,dragged);
+    if(before)grid.insertBefore(dragged,target);
+    else grid.insertBefore(dragged,target.nextSibling);
+    lastPlacementKey=placementKey;
+    animateReflow(grid,rects,dragged);
   }
 
   async function deleteCard(id){
@@ -208,14 +346,18 @@
     el.appendChild(del);
 
     el.addEventListener('dragstart',event=>{
-      if(event.target.closest?.('.card-delete-btn')){event.preventDefault();return}
+      if(event.target.closest?.(ACTION_SELECTOR)){event.preventDefault();return}
+      const grid=el.parentElement;
       draggingId=id;
-      suppressClickUntil=Date.now()+400;
+      lastPlacementKey='';
+      suppressClickUntil=Date.now()+450;
+      grid?.classList.add('cards-dragging');
       el.classList.add('card-is-dragging');
       el.setAttribute('aria-grabbed','true');
       if(event.dataTransfer){
         event.dataTransfer.effectAllowed='move';
         try{event.dataTransfer.setData('text/plain',id)}catch(e){}
+        setSmoothDragImage(event,el);
       }
     });
 
@@ -229,26 +371,21 @@
       if(!draggingId||draggingId===id)return;
       event.preventDefault();
       if(event.dataTransfer)event.dataTransfer.dropEffect='move';
-      const grid=el.parentElement,dragged=grid?.querySelector(`.credit-card[data-card-id="${CSS.escape(String(draggingId))}"]`);
-      if(!grid||!dragged||dragged===el)return;
-      const rect=el.getBoundingClientRect();
-      const centerY=rect.top+rect.height/2;
-      const sameBand=Math.abs(event.clientY-centerY)<rect.height*.45;
-      const before=event.clientY<rect.top+rect.height*.32||(sameBand&&event.clientX<rect.left+rect.width/2);
-      grid.insertBefore(dragged,before?el:el.nextSibling);
+      moveDraggedAround(el,event);
     });
     el.addEventListener('drop',event=>{
       if(!draggingId)return;
       event.preventDefault();
       el.classList.remove('card-drag-target');
-      persistDomOrder();
     });
     el.addEventListener('dragend',()=>{
-      suppressClickUntil=Date.now()+300;
+      suppressClickUntil=Date.now()+350;
       const changed=persistDomOrder();
       draggingId=null;
       clearDragClasses();
-      if(changed)refreshDependentViews();
+      if(changed){
+        try{if(typeof setSyncStatus==='function')setSyncStatus('Salvando nova ordem…')}catch(e){}
+      }
     });
   }
 
@@ -258,7 +395,7 @@
     if(grid.dataset.cardOrganizerCapture!=='1'){
       grid.dataset.cardOrganizerCapture='1';
       grid.addEventListener('click',event=>{
-        if(Date.now()<suppressClickUntil&&!event.target.closest('.card-delete-btn')){
+        if(Date.now()<suppressClickUntil&&!event.target.closest(ACTION_SELECTOR)){
           event.preventDefault();
           event.stopPropagation();
           event.stopImmediatePropagation();
