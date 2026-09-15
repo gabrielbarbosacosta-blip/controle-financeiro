@@ -9,12 +9,18 @@
     style.textContent=`
       .sidebar > .brand{display:none!important}
       .profile-brand-wrap{position:relative;margin:0 0 28px;width:100%}
-      #profileSidebarCard.profile-brand-card{margin:0;padding:10px 40px 10px 11px;min-height:62px;border:1px solid var(--line);border-radius:15px;background:rgba(23,32,51,.58);display:flex;align-items:center;gap:12px;cursor:pointer;width:100%;transition:background .15s ease,border-color .15s ease;position:relative}
+      #profileSidebarCard.profile-brand-card{margin:0;padding:9px 40px 11px 11px;min-height:94px;border:1px solid var(--line);border-radius:15px;background:rgba(23,32,51,.58);display:grid;grid-template-columns:46px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:12px;row-gap:8px;cursor:pointer;width:100%;transition:background .15s ease,border-color .15s ease;position:relative}
       #profileSidebarCard.profile-brand-card:hover{background:rgba(30,41,59,.82);border-color:#3a4b64}
-      #profileSidebarCard.profile-brand-card:after{content:'⌄';position:absolute;right:13px;top:50%;transform:translateY(-54%);font-size:17px;color:var(--muted);transition:transform .16s ease}
-      .profile-brand-wrap.open #profileSidebarCard.profile-brand-card:after{transform:translateY(-46%) rotate(180deg)}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;font-size:13px}
-      #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;flex:1}
+      #profileSidebarCard.profile-brand-card:after{content:'⌄';position:absolute;right:13px;bottom:19px;font-size:17px;color:var(--muted);transition:transform .16s ease}
+      .profile-brand-wrap.open #profileSidebarCard.profile-brand-card:after{transform:rotate(180deg)}
+      #profileSidebarCard.profile-brand-card .profile-card-tools{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-right:-28px}
+      #profileSidebarCard.profile-brand-card .profile-card-icon{width:31px;height:31px;min-width:31px;padding:0;display:grid;place-items:center;border:1px solid transparent;border-radius:9px;background:transparent;color:#dbe5f3;line-height:0;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+      #profileSidebarCard.profile-brand-card .profile-card-icon:hover{background:#1d293b;border-color:var(--line);color:#fff}
+      #profileSidebarCard.profile-brand-card .profile-card-icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+      #profileSidebarCard.profile-brand-card .profile-card-icon svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+      #profileSidebarCard.profile-brand-card .profile-card-bell{position:relative}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;font-size:13px;grid-column:1;grid-row:2}
+      #profileSidebarCard.profile-brand-card .profile-sidebar-copy{min-width:0;grid-column:2;grid-row:2}
       #profileSidebarCard.profile-brand-card .profile-sidebar-name{font-size:14px;line-height:1.2;max-width:145px;font-weight:760}
       #profileSidebarCard.profile-brand-card .profile-sidebar-label{font-size:11px;margin-top:4px;color:var(--muted)}
 
@@ -38,13 +44,9 @@
       .profile-dropdown-footer button{width:100%;border:1px solid var(--line);background:#182235;color:#e5edf8;text-align:center;padding:9px 10px;border-radius:9px;font:inherit;font-size:11px;cursor:pointer}
       .profile-dropdown-footer button:hover{filter:brightness(1.08)}
       #page-profile{display:none!important}
+      .topbar #logoutBtn{display:none!important}
 
-      #logoutBtn.logout-icon-btn{width:42px;height:42px;min-width:42px;padding:0;display:inline-grid;place-items:center;border-radius:12px;background:transparent;color:#e5e7eb;border:1px solid transparent;line-height:0}
-      #logoutBtn.logout-icon-btn:hover{background:#182235;border-color:var(--line);filter:none}
-      #logoutBtn.logout-icon-btn svg{width:25px;height:25px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-      #logoutBtn.logout-icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:86px;width:auto;max-height:calc(100vh - 105px)}}
+      @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{position:fixed;left:15px;right:15px;top:118px;width:auto;max-height:calc(100vh - 137px)}}
     `;
     document.head.appendChild(style);
   }
@@ -62,19 +64,27 @@
     if(subtitle)subtitle.textContent='Preferências e dados';
   }
 
-  function ensureLogoutIcon(){
-    const button=document.getElementById('logoutBtn');
-    const actions=document.querySelector('.topbar .actions');
-    if(!button||!actions)return false;
-    if(button.dataset.exitIcon!=='1'){
-      button.dataset.exitIcon='1';
-      button.classList.add('logout-icon-btn');
-      button.setAttribute('aria-label','Sair');
-      button.title='Sair';
-      button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20H10"/><path d="M14 8l4 4-4 4"/><path d="M8 12h10"/></svg>';
+  function ensureCardTools(card){
+    let tools=card.querySelector('.profile-card-tools');
+    if(!tools){
+      tools=document.createElement('div');
+      tools.className='profile-card-tools';
+      tools.innerHTML=`
+        <button type="button" class="profile-card-icon profile-card-bell" id="profileNotificationBtn" aria-label="Notificações" title="Notificações (em breve)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+        </button>
+        <button type="button" class="profile-card-icon profile-card-exit" id="profileCardLogoutBtn" aria-label="Sair" title="Sair">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.8A1.8 1.8 0 0 0 4 5.8v12.4A1.8 1.8 0 0 0 5.8 20H10"/><path d="M14 8l4 4-4 4"/><path d="M8 12h10"/></svg>
+        </button>`;
+      card.insertBefore(tools,card.firstChild);
+      const bell=tools.querySelector('#profileNotificationBtn');
+      const exit=tools.querySelector('#profileCardLogoutBtn');
+      bell.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
+      exit.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();document.getElementById('logoutBtn')?.click()});
+      bell.addEventListener('keydown',e=>e.stopPropagation());
+      exit.addEventListener('keydown',e=>e.stopPropagation());
     }
-    if(actions.lastElementChild!==button)actions.appendChild(button);
-    return true;
+    return tools;
   }
 
   function moveProfileEditorIntoMenu(menu){
@@ -110,7 +120,7 @@
     if(card.dataset.dropdownBound!=='1'){
       card.dataset.dropdownBound='1';
       card.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)};
-      card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)}else if(e.key==='Escape')wrap.classList.remove('open')};
+      card.onkeydown=e=>{if(e.target!==card)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();wrap.classList.toggle('open');if(wrap.classList.contains('open'))moveProfileEditorIntoMenu(menu)}else if(e.key==='Escape')wrap.classList.remove('open')};
       document.addEventListener('click',e=>{if(!wrap.contains(e.target))wrap.classList.remove('open')});
     }
     return wrap;
@@ -122,6 +132,7 @@
     const nav=sidebar?.querySelector('.nav');
     if(!card||!sidebar||!nav)return false;
 
+    ensureCardTools(card);
     const wrap=ensureDropdown(card);
     if(wrap.parentElement!==sidebar||wrap.nextElementSibling!==nav){
       sidebar.insertBefore(wrap,nav);
@@ -143,7 +154,6 @@
   function sync(){
     removeProfileNav();
     escapeSeparateProfilePage();
-    ensureLogoutIcon();
     return moveProfileCard();
   }
 
