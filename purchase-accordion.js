@@ -5,6 +5,7 @@
   let syncing=false;
   let focusTimer=null;
   const preClickState=new WeakMap();
+  const OPEN_TOP_GAP=24;
 
   function reducedMotion(){
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -27,15 +28,17 @@
     return host.querySelector('.invoice-layout > .card:first-child')||host;
   }
 
-  function scrollToTarget(target,button=null){
+  function scrollToTarget(target,button=null,topGap=OPEN_TOP_GAP){
     if(!(target instanceof HTMLElement))return;
     if(button instanceof HTMLElement){
       try{button.focus({preventScroll:true})}catch(e){}
     }
-    target.scrollIntoView({
-      behavior:reducedMotion()?'auto':'smooth',
-      block:'start',
-      inline:'nearest'
+
+    const rect=target.getBoundingClientRect();
+    const top=Math.max(0,window.scrollY+rect.top-Math.max(0,Number(topGap)||0));
+    window.scrollTo({
+      top,
+      behavior:reducedMotion()?'auto':'smooth'
     });
   }
 
@@ -47,7 +50,7 @@
     focusTimer=setTimeout(()=>{
       if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
       const module=openedModule(button);
-      scrollToTarget(module,button);
+      scrollToTarget(module,button,OPEN_TOP_GAP);
     },delay);
   }
 
