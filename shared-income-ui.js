@@ -3,6 +3,7 @@
   window.__sharedIncomeUiLoaded=true;
 
   const STYLE_ID='shared-income-ui-style';
+  let syncing=false;
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c))}
   function money(v){return typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
@@ -46,12 +47,14 @@
     const card=ensureCard();if(!card)return;
     const body=document.getElementById('sharedIncomeBody');if(!body)return;
     const rows=sharedReceivables().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-    if(!rows.length){body.innerHTML='<tr><td colspan="5"><div class="shared-income-empty">Nenhum reembolso de despesa compartilhada a receber.</div></td></tr>';return}
-    body.innerHTML=rows.map(t=>{
-      const status=String(t.status||'Pendente');
-      const received=status.toLowerCase()==='recebido';
-      return `<tr><td><strong>${esc(t.description||'Reembolso')}</strong><br><span class="shared-income-tag">Compartilhamento</span></td><td>${esc(t.account||'Compartilhamento')}</td><td>${esc(fmtDateSafe(t.date||''))}</td><td><span class="shared-income-status ${received?'received':''}">${esc(status)}</span></td><td class="num"><strong>${money(t.amount)}</strong></td></tr>`;
-    }).join('');
+    const html=!rows.length
+      ?'<tr><td colspan="5"><div class="shared-income-empty">Nenhum reembolso de despesa compartilhada a receber.</div></td></tr>'
+      :rows.map(t=>{
+        const status=String(t.status||'Pendente');
+        const received=status.toLowerCase()==='recebido';
+        return `<tr><td><strong>${esc(t.description||'Reembolso')}</strong><br><span class="shared-income-tag">Compartilhamento</span></td><td>${esc(t.account||'Compartilhamento')}</td><td>${esc(fmtDateSafe(t.date||''))}</td><td><span class="shared-income-status ${received?'received':''}">${esc(status)}</span></td><td class="num"><strong>${money(t.amount)}</strong></td></tr>`;
+      }).join('');
+    if(body.innerHTML!==html)body.innerHTML=html;
   }
 
   function updateSummary(){
@@ -67,17 +70,36 @@
   }
 
   function sync(){
+    if(syncing)return;
     const page=document.getElementById('page-incomes');if(!page)return;
-    renderCard();updateSummary();
+    syncing=true;
+    try{renderCard();updateSummary()}finally{syncing=false}
+  }
+
+  function hookIncomeRender(){
+    if(typeof window.renderIncomePage!=='function'||window.renderIncomePage.__sharedIncomeHooked)return false;
+    const original=window.renderIncomePage;
+    const wrapped=function(){
+      const result=original.apply(this,arguments);
+      queueMicrotask(sync);
+      return result;
+    };
+    wrapped.__sharedIncomeHooked=true;
+    window.renderIncomePage=wrapped;
+    return true;
   }
 
   function init(){
     injectStyles();
-    let tries=0;const timer=setInterval(()=>{tries++;sync();if(document.getElementById('page-incomes')&&tries>10)clearInterval(timer);if(tries>300)clearInterval(timer)},100);
-    const observer=new MutationObserver(()=>{if(document.getElementById('page-incomes')?.classList.contains('active'))queueMicrotask(sync)});
-    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    let tries=0;
+    const timer=setInterval(()=>{
+      tries++;
+      hookIncomeRender();
+      if(document.getElementById('page-incomes'))sync();
+      if((hookIncomeRender()&&document.getElementById('page-incomes'))||tries>300)clearInterval(timer);
+    },100);
     document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="incomes"]'))setTimeout(sync,0)});
-    window.addEventListener('focus',sync);
+    window.addEventListener('focus',()=>{if(document.getElementById('page-incomes')?.classList.contains('active'))sync()});
     window.financeSharedIncomeRefresh=sync;
   }
 
