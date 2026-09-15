@@ -17,6 +17,7 @@
       #cardsGrid .credit-card[data-card-id]:active{cursor:grabbing}
       #cardsGrid .credit-card.card-is-dragging{opacity:.52;transform:scale(.985);cursor:grabbing!important}
       #cardsGrid .credit-card.card-drag-target{outline:1px solid rgba(var(--bank-accent-rgb,96,165,250),.50);outline-offset:3px}
+      #cardsGrid .credit-card.card-is-deleting{opacity:.38;pointer-events:none;transform:scale(.985)}
       .card-delete-btn{
         position:absolute!important;
         z-index:8!important;
@@ -65,7 +66,7 @@
         .card-delete-btn::before,.card-delete-btn::after{width:12px}
       }
       @media(prefers-reduced-motion:reduce){
-        .card-delete-btn,#cardsGrid .credit-card.card-is-dragging{transition:none}
+        .card-delete-btn,#cardsGrid .credit-card.card-is-dragging,#cardsGrid .credit-card.card-is-deleting{transition:none}
       }
     `;
     document.head.appendChild(style);
@@ -124,7 +125,7 @@
     return true;
   }
 
-  function deleteCard(id){
+  async function deleteCard(id){
     if(!stateReady())return;
     const key=String(id),card=cardById(key);if(!card)return;
     const purchases=Array.isArray(state.purchases)?state.purchases.filter(p=>String(p.cardId)===key).length:0;
@@ -137,10 +138,15 @@
     if(!ok)return;
 
     const oldIndex=state.cards.findIndex(c=>String(c.id)===key);
+    const previous={
+      cards:state.cards.slice(),
+      purchases:Array.isArray(state.purchases)?state.purchases.slice():[],
+      invoices:Array.isArray(state.invoices)?state.invoices.slice():[],
+      selectedCardId:typeof selectedCardId!=='undefined'?selectedCardId:null
+    };
 
-    // Remove visualmente primeiro para que a ação tenha resposta imediata.
     const cardEl=document.querySelector(`#cardsGrid .credit-card[data-card-id="${CSS.escape(key)}"]`);
-    if(cardEl)cardEl.remove();
+    cardEl?.classList.add('card-is-deleting');
 
     state.cards=state.cards.filter(c=>String(c.id)!==key);
     if(Array.isArray(state.purchases))state.purchases=state.purchases.filter(p=>String(p.cardId)!==key);
@@ -154,10 +160,27 @@
       }
     }catch(e){}
 
-    // Persiste o estado já limpo antes de qualquer nova renderização.
-    try{if(typeof save==='function')save()}catch(error){console.error('Falha ao salvar exclusão do cartão.',error)}
+    if(cardEl)cardEl.remove();
+    try{if(typeof setSyncStatus==='function')setSyncStatus('Excluindo cartão…')}catch(e){}
 
-    refreshDependentViews();
+    try{
+      if(window.financeCloud?.deleteCard){
+        await window.financeCloud.deleteCard(key);
+      }else{
+        if(typeof save==='function')save();
+        throw new Error('atomic_card_delete_unavailable');
+      }
+      refreshDependentViews();
+    }catch(error){
+      console.error('Falha ao excluir cartão no servidor.',error);
+      state.cards=previous.cards;
+      state.purchases=previous.purchases;
+      state.invoices=previous.invoices;
+      try{selectedCardId=previous.selectedCardId}catch(e){}
+      refreshDependentViews();
+      try{if(typeof setSyncStatus==='function')setSyncStatus('Falha ao excluir cartão',true)}catch(e){}
+      alert('Não foi possível excluir o cartão no servidor. Nenhum dado foi removido.');
+    }
   }
 
   window.deleteFinanceCard=deleteCard;
