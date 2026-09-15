@@ -20,6 +20,7 @@
     'sicoob':'756','bancoob':'756','banco cooperativo sicoob':'756',
     'sicredi':'748','banco cooperativo sicredi':'748'
   };
+
   let institutions=[];
   let byIspb=new Map();
   let selectedBank=null;
@@ -45,7 +46,11 @@
       .bank-picker-control:focus-within{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.12)}
       .bank-picker-control input{min-width:0;flex:1;border:0!important;background:transparent!important;padding:9px 0!important;outline:0!important;box-shadow:none!important}
       .bank-logo-shell{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:grid;place-items:center;background:#fff;border:1px solid rgba(148,163,184,.25);overflow:hidden;color:#172033;font-size:10px;font-weight:900;letter-spacing:-.02em}
-      .bank-logo-shell img{width:100%;height:100%;object-fit:contain;padding:3px;box-sizing:border-box}
+      .bank-logo-shell .bank-logo-fallback,.bank-logo-shell img{grid-area:1/1;width:100%;height:100%}
+      .bank-logo-shell .bank-logo-fallback{display:grid;place-items:center;padding:2px;box-sizing:border-box}
+      .bank-logo-shell img{object-fit:contain;padding:3px;box-sizing:border-box;opacity:0;transition:opacity .14s ease}
+      .bank-logo-shell.logo-loaded img{opacity:1}
+      .bank-logo-shell.logo-loaded .bank-logo-fallback{visibility:hidden}
       .bank-picker-results{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:120;background:#101827;border:1px solid #334155;border-radius:11px;box-shadow:0 18px 40px rgba(0,0,0,.38);max-height:300px;overflow:auto;padding:5px}
       .bank-picker.open .bank-picker-results{display:block}
       .bank-picker-result{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:8px;background:transparent;color:#e2e8f0;text-align:left;cursor:pointer}
@@ -113,7 +118,7 @@
 
   async function loadDirectory(){
     const hadCache=readCache();
-    if(hadCache){scheduleEnhance();syncOpenCardModal();}
+    if(hadCache){migrateLegacyCards();scheduleEnhance();syncOpenCardModal();}
     try{
       const response=await fetch(INDEX_URL,{cache:'force-cache'});
       if(!response.ok)throw new Error(`bank_directory_${response.status}`);
@@ -141,13 +146,23 @@
   function makeLogo(instOrCard,name,className=''){
     const shell=document.createElement('span');
     shell.className=`bank-logo-shell ${className}`.trim();
-    shell.textContent=initials(name);
+
+    const fallback=document.createElement('span');
+    fallback.className='bank-logo-fallback';
+    fallback.textContent=initials(name);
+    shell.appendChild(fallback);
+
     const url=institutionLogoUrl(instOrCard);
     if(url){
       const img=document.createElement('img');
-      img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.src=url;
-      img.onload=()=>{shell.textContent='';shell.appendChild(img)};
-      img.onerror=()=>{};
+      img.alt='';
+      img.loading='eager';
+      img.decoding='async';
+      img.referrerPolicy='no-referrer';
+      img.onload=()=>shell.classList.add('logo-loaded');
+      img.onerror=()=>{img.remove();shell.classList.remove('logo-loaded')};
+      shell.appendChild(img);
+      img.src=url;
     }
     return shell;
   }
@@ -182,6 +197,15 @@
     return ranked.slice(0,14);
   }
 
+  function resolveTypedInstitution(value){
+    const q=normalize(value);
+    if(!q)return null;
+    const alias=aliasInstitution(q);
+    if(alias)return alias;
+    const exact=institutions.filter(inst=>normalize(inst.name)===q);
+    return exact.length===1?exact[0]:null;
+  }
+
   function resolveInstitution(card){
     if(!card)return null;
     const rawIspb=String(card.bankIspb||'').replace(/\D/g,'');
@@ -189,13 +213,14 @@
     if(ispb&&byIspb.has(ispb))return byIspb.get(ispb);
     if(ispb&&/^\d{8}$/.test(ispb))return{ispb,logoIspb:ispb,code:String(card.bankCode||''),name:card.bankName||card.account||card.name,flags:1};
     const q=normalize(card.bankName||card.account||'');
-    if(!q)return null;
-    const alias=aliasInstitution(q);
-    if(alias)return alias;
-    let exact=institutions.find(inst=>normalize(inst.name)===q);
-    if(exact)return exact;
-    const common=institutions.filter(inst=>normalize(inst.name).includes(q)||q.includes(normalize(inst.name)));
-    if(common.length===1)return common[0];
+    if(q){
+      const alias=aliasInstitution(q);
+      if(alias)return alias;
+      const exact=institutions.find(inst=>normalize(inst.name)===q);
+      if(exact)return exact;
+      const common=institutions.filter(inst=>normalize(inst.name).includes(q)||q.includes(normalize(inst.name)));
+      if(common.length===1)return common[0];
+    }
     const cardName=normalize(card.name||'');
     const nameAlias=aliasInstitution(cardName);
     if(nameAlias)return nameAlias;
@@ -233,9 +258,12 @@
     if(!matches.length){results.innerHTML='<div class="bank-picker-empty">Nenhuma instituição encontrada. Você pode manter o nome digitado como emissor.</div>';return}
     results.innerHTML='';
     matches.forEach(inst=>{
-      const btn=document.createElement('button');btn.type='button';btn.className='bank-picker-result';
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='bank-picker-result';
       btn.appendChild(makeLogo(inst,inst.name));
-      const copy=document.createElement('span');copy.className='bank-picker-result-copy';
+      const copy=document.createElement('span');
+      copy.className='bank-picker-result-copy';
       copy.innerHTML=`<span class="bank-picker-result-name">${esc(inst.name)}</span><span class="bank-picker-result-code">${inst.code?`Banco ${esc(inst.code)} • `:''}ISPB ${esc(inst.ispb)}</span>`;
       btn.appendChild(copy);
       btn.addEventListener('click',()=>selectBank(inst));
@@ -270,17 +298,21 @@
     if(label)label.textContent='Banco / emissor';
     account.type='hidden';
     account.style.display='none';
+
     const picker=document.createElement('div');
-    picker.id='cardBankPicker';picker.className='bank-picker';
+    picker.id='cardBankPicker';
+    picker.className='bank-picker';
     picker.innerHTML=`<div class="bank-picker-control"><span id="cardBankLogo"></span><input id="cardBankSearch" autocomplete="off" placeholder="Digite Banco do Brasil, Nubank, 341…" aria-label="Banco ou emissor"></div><div class="bank-picker-results" id="cardBankResults"></div><small class="bank-picker-help">Busca por nome, código bancário ou ISPB. Se não encontrar, o texto digitado será salvo como emissor.</small>`;
     field.insertBefore(picker,account);
+
     const input=picker.querySelector('#cardBankSearch');
     input.addEventListener('focus',()=>{picker.classList.add('open');renderResults(input.value)});
     input.addEventListener('input',()=>{
       selectedBank=null;
       account.value=input.value.trim();
-      updatePickerLogo(null,input.value);
-      picker.classList.add('open');renderResults(input.value);
+      updatePickerLogo(resolveTypedInstitution(input.value),input.value);
+      picker.classList.add('open');
+      renderResults(input.value);
     });
     input.addEventListener('keydown',event=>{if(event.key==='Escape')picker.classList.remove('open')});
     document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target))picker.classList.remove('open')});
@@ -333,7 +365,9 @@
       accountEl.classList.add('bank-card-account');
       accountEl.replaceChildren();
       accountEl.appendChild(makeLogo(inst||card,bankDisplayName(card,inst)));
-      const text=document.createElement('span');text.className='bank-card-account-text';text.textContent=bankDisplayName(card,inst);
+      const text=document.createElement('span');
+      text.className='bank-card-account-text';
+      text.textContent=bankDisplayName(card,inst);
       accountEl.appendChild(text);
     });
   }
@@ -359,9 +393,13 @@
     if(!head||!title||!card)return;
     head.querySelector('.invoice-bank-brand')?.remove();
     const inst=resolveInstitution(card);
-    const brand=document.createElement('span');brand.className='invoice-bank-brand';
+    const brand=document.createElement('span');
+    brand.className='invoice-bank-brand';
     brand.appendChild(makeLogo(inst||card,bankDisplayName(card,inst)));
-    const name=document.createElement('span');name.className='bank-name-text';name.textContent=bankDisplayName(card,inst);brand.appendChild(name);
+    const name=document.createElement('span');
+    name.className='bank-name-text';
+    name.textContent=bankDisplayName(card,inst);
+    brand.appendChild(name);
     title.insertAdjacentElement('afterend',brand);
   }
 
@@ -373,25 +411,30 @@
     if(!form||form.dataset.bankBrandingWrapped==='1')return !!form;
     const baseSubmit=form.onsubmit;
     if(typeof baseSubmit!=='function')return false;
+
     form.dataset.bankBrandingWrapped='1';
     form.onsubmit=function(event){
       const idBefore=document.getElementById('cardId')?.value||'';
       const input=document.getElementById('cardBankSearch');
       const account=document.getElementById('cardAccount');
       const typed=String(input?.value||'').trim();
-      if(account)account.value=selectedBank?.name||typed;
+      const resolved=selectedBank||resolveTypedInstitution(typed);
+      if(account)account.value=resolved?.name||typed;
       baseSubmit.call(this,event);
+
       let id=idBefore;
       if(!id){try{id=selectedCardId||''}catch(e){}}
       const card=id&&typeof state!=='undefined'?state.cards.find(c=>c.id===id):null;
       if(card){
-        if(selectedBank){
-          card.bankIspb=selectedBank.ispb;
-          card.bankCode=selectedBank.code||null;
-          card.bankName=selectedBank.name;
-          card.account=selectedBank.name;
+        if(resolved){
+          card.bankIspb=resolved.ispb;
+          card.bankCode=resolved.code||null;
+          card.bankName=resolved.name;
+          card.account=resolved.name;
         }else{
-          delete card.bankIspb;delete card.bankCode;delete card.bankName;
+          delete card.bankIspb;
+          delete card.bankCode;
+          delete card.bankName;
           card.account=typed;
         }
         if(typeof renderAll==='function')renderAll();
@@ -403,14 +446,23 @@
 
     const baseEdit=window.editCard;
     if(typeof baseEdit==='function'&&!baseEdit.__bankBrandingWrapped){
-      const wrapped=function(id){const result=baseEdit.apply(this,arguments);setTimeout(()=>{const card=typeof state!=='undefined'?state.cards.find(c=>c.id===id):null;syncPicker(card)},0);return result};
+      const wrapped=function(id){
+        const result=baseEdit.apply(this,arguments);
+        setTimeout(()=>{const card=typeof state!=='undefined'?state.cards.find(c=>c.id===id):null;syncPicker(card)},0);
+        return result;
+      };
       wrapped.__bankBrandingWrapped=true;
       window.editCard=wrapped;
     }
 
     const baseInvoice=window.openInvoiceModal;
     if(typeof baseInvoice==='function'&&!baseInvoice.__bankBrandingWrapped){
-      const wrapped=function(cardId,ym){const result=baseInvoice.apply(this,arguments);const card=typeof state!=='undefined'?state.cards.find(c=>c.id===cardId):null;decorateInvoiceModal(card);return result};
+      const wrapped=function(cardId,ym){
+        const result=baseInvoice.apply(this,arguments);
+        const card=typeof state!=='undefined'?state.cards.find(c=>c.id===cardId):null;
+        decorateInvoiceModal(card);
+        return result;
+      };
       wrapped.__bankBrandingWrapped=true;
       window.openInvoiceModal=wrapped;
     }
@@ -430,7 +482,8 @@
     const timer=setInterval(()=>{
       tries++;
       const ok=installFormIntegration();
-      initObservers();scheduleEnhance();
+      initObservers();
+      scheduleEnhance();
       if(ok||tries>80)clearInterval(timer);
     },100);
     loadDirectory();
