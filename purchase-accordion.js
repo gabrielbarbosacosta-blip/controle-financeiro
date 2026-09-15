@@ -4,6 +4,7 @@
 
   let syncing=false;
   let focusTimer=null;
+  const preClickState=new WeakMap();
 
   function reducedMotion(){
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -23,9 +24,7 @@
   function invoiceModule(){
     const host=document.getElementById('cardDetail');
     if(!host)return null;
-    const heading=[...host.querySelectorAll('.invoice-layout > .card h3')]
-      .find(h=>/^Fatura\b/i.test(String(h.textContent||'').trim()));
-    return heading?.closest('.card')||host.querySelector('.invoice-layout > .card:first-child');
+    return host.querySelector('.invoice-layout > .card:first-child')||host;
   }
 
   function scrollToTarget(target,button=null){
@@ -44,7 +43,6 @@
     if(!(button instanceof HTMLElement))return;
     clearTimeout(focusTimer);
 
-    // Espera a animação das outras seções terminar para calcular a posição final correta.
     const delay=reducedMotion()?0:300;
     focusTimer=setTimeout(()=>{
       if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
@@ -53,17 +51,32 @@
     },delay);
   }
 
-  function returnToInvoiceModule(button){
-    if(!(button instanceof HTMLElement)||!button.closest('#cardDetail'))return;
+  function scrollBackToInvoice(){
     clearTimeout(focusTimer);
+    const delay=reducedMotion()?0:340;
 
-    // Só retorna à fatura quando o usuário realmente fechou a seção e nenhuma outra ficou aberta.
-    const delay=reducedMotion()?0:300;
     focusTimer=setTimeout(()=>{
-      if(!button.isConnected||button.getAttribute('aria-expanded')!=='false')return;
+      const module=invoiceModule();
+      if(!(module instanceof HTMLElement))return;
+
+      // Se outra seção principal foi aberta nesse intervalo, ela passa a ser a referência da tela.
       const openInInvoice=document.querySelector('#cardDetail .purchase-section-toggle[aria-expanded="true"]');
       if(openInInvoice)return;
-      scrollToTarget(invoiceModule());
+
+      // Remove o foco do botão recolhido para o navegador não tentar mantê-lo visível.
+      const active=document.activeElement;
+      if(active instanceof HTMLElement&&active.matches('.purchase-section-toggle'))active.blur();
+
+      // Calcula a posição final do card após a retração. É mais previsível que scrollIntoView
+      // quando a altura da página muda durante a animação do accordion.
+      const rect=module.getBoundingClientRect();
+      const top=Math.max(0,window.scrollY+rect.top-8);
+
+      const root=document.documentElement;
+      const oldAnchor=root.style.overflowAnchor;
+      root.style.overflowAnchor='none';
+      window.scrollTo({top,behavior:reducedMotion()?'auto':'smooth'});
+      setTimeout(()=>{root.style.overflowAnchor=oldAnchor},reducedMotion()?0:500);
     },delay);
   }
 
@@ -90,6 +103,16 @@
     }
   }
 
+  // Captura o estado ANTES do onclick do componente alterar aria-expanded.
+  document.addEventListener('click',event=>{
+    if(syncing)return;
+    const target=event.target instanceof Element?event.target:null;
+    const btn=target?.closest('.purchase-section-toggle,.purchase-name-toggle');
+    if(btn instanceof HTMLElement){
+      preClickState.set(btn,btn.getAttribute('aria-expanded')==='true');
+    }
+  },true);
+
   document.addEventListener('click',event=>{
     if(syncing)return;
     const target=event.target instanceof Element?event.target:null;
@@ -97,32 +120,41 @@
 
     const sectionBtn=target.closest('.purchase-section-toggle');
     if(sectionBtn){
-      queueMicrotask(()=>{
+      const wasExpanded=preClickState.get(sectionBtn)===true;
+      preClickState.delete(sectionBtn);
+
+      setTimeout(()=>{
+        if(!sectionBtn.isConnected)return;
         const expanded=sectionBtn.getAttribute('aria-expanded')==='true';
-        if(!expanded){
-          returnToInvoiceModule(sectionBtn);
+
+        // Fechamento manual: antes estava aberta e agora está recolhida.
+        if(wasExpanded&&!expanded){
+          if(sectionBtn.closest('#cardDetail'))scrollBackToInvoice();
           return;
         }
+
+        if(!expanded)return;
         const activeKey=sectionBtn.dataset.sectionToggle||'';
         if(!activeKey)return;
         syncing=true;
         try{collapseOtherSections(activeKey)}finally{syncing=false}
         focusOpened(sectionBtn);
-      });
+      },0);
       return;
     }
 
     const nameBtn=target.closest('.purchase-name-toggle');
     if(nameBtn){
-      queueMicrotask(()=>{
-        if(nameBtn.getAttribute('aria-expanded')!=='true')return;
+      preClickState.delete(nameBtn);
+      setTimeout(()=>{
+        if(!nameBtn.isConnected||nameBtn.getAttribute('aria-expanded')!=='true')return;
         const sectionKey=nameBtn.dataset.nameSection||'';
         const activeNameKey=nameBtn.dataset.nameGroup||'';
         if(!sectionKey||!activeNameKey)return;
         syncing=true;
         try{collapseOtherNameGroups(sectionKey,activeNameKey)}finally{syncing=false}
         focusOpened(nameBtn);
-      });
+      },0);
     }
   });
 })();
