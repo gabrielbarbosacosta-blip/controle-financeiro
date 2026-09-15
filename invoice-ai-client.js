@@ -59,6 +59,14 @@
     document.head.appendChild(accordionScript);
   }
 
+  if(!document.querySelector('script[data-purchase-navigation-mode]')){
+    const modeScript=document.createElement('script');
+    modeScript.src='purchase-navigation-mode.js';
+    modeScript.async=false;
+    modeScript.dataset.purchaseNavigationMode='1';
+    document.head.appendChild(modeScript);
+  }
+
   function fixPurchaseGroupingHeader(){
     const heading=[...document.querySelectorAll('#cardDetail .section-head h3')].find(h=>String(h.textContent||'').trim()==='Itens da fatura');
     const head=heading?.closest('.section-head');
