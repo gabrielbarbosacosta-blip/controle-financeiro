@@ -67,7 +67,7 @@
 })();
 
 (function(){
-  ['cloud-sync.js','profile.js','shared-expenses-bootstrap.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
+  ['cloud-sync.js','profile.js','shared-expenses-bootstrap.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','shared-debts-ui.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
     if(document.querySelector(`script[src="${src}"]`))return;
     const script=document.createElement('script');script.src=src;document.body.appendChild(script);
   });
