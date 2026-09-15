@@ -5,6 +5,7 @@
   let items=[];
   let loading=false;
   let busy=new Set();
+  let decorateScheduled=false;
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c))}
   function getSb(){try{return sb}catch(e){return window.sb||null}}
@@ -64,9 +65,25 @@
     });
   }
 
+  function cardSignature(item){
+    return JSON.stringify([
+      item.id,
+      item.myStatus,
+      item.deletionStatus,
+      item.myDeleteStatus,
+      Number(item.pendingDeleteCount)||0,
+      item.deletionRequesterName||'',
+      busy.has(String(item.id))||busy.has(item.id)
+    ]);
+  }
+
   function decorateCard(card){
     const id=card?.dataset?.sharedId;if(!id)return;
     const item=itemById(id);if(!item)return;
+    const signature=cardSignature(item);
+    if(card.dataset.sharedDeleteSignature===signature)return;
+    card.dataset.sharedDeleteSignature=signature;
+
     card.querySelectorAll('.shared-delete-state,.shared-delete-badge,.shared-delete-btn').forEach(el=>el.remove());
 
     const deletionPending=item.deletionStatus==='pending';
@@ -101,7 +118,16 @@
     card.querySelectorAll('[data-shared-delete-reject]').forEach(btn=>btn.onclick=()=>respondDelete(btn.dataset.sharedDeleteReject,false));
   }
 
-  function decorateAll(){document.querySelectorAll('.shared-item[data-shared-id]').forEach(decorateCard)}
+  function decorateAll(){
+    decorateScheduled=false;
+    document.querySelectorAll('.shared-item[data-shared-id]').forEach(decorateCard);
+  }
+
+  function scheduleDecorate(){
+    if(decorateScheduled)return;
+    decorateScheduled=true;
+    requestAnimationFrame(decorateAll);
+  }
 
   function confirmDeleteTwice(item,acceptedOthers){
     const description=item?.description||'esta despesa';
@@ -129,7 +155,7 @@
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
       await syncEverywhere();
     }catch(e){console.error('Falha ao solicitar cancelamento.',e);alert('Não foi possível solicitar o cancelamento desta despesa.');setCardBusy(id,false)}
-    finally{busy.delete(id)}
+    finally{busy.delete(id);scheduleDecorate()}
   }
 
   async function respondDelete(id,accept){
@@ -145,12 +171,15 @@
       if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
       await syncEverywhere();
     }catch(e){console.error(`Falha ao ${verb}.`,e);alert(`Não foi possível ${verb}.`);setCardBusy(id,false)}
-    finally{busy.delete(id)}
+    finally{busy.delete(id);scheduleDecorate()}
   }
 
   function boot(){
     injectStyles();
-    const observer=new MutationObserver(()=>decorateAll());
+    const observer=new MutationObserver(mutations=>{
+      const relevant=mutations.some(m=>[...m.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.shared-item[data-shared-id]')||n.querySelector?.('.shared-item[data-shared-id]'))));
+      if(relevant)scheduleDecorate();
+    });
     observer.observe(document.documentElement,{childList:true,subtree:true});
     let tries=0;
     const timer=setInterval(()=>{tries++;if(getSb()&&getCurrentUserId()){clearInterval(timer);refreshData()}else if(tries>600)clearInterval(timer)},100);
