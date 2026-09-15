@@ -31,6 +31,15 @@
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
+      /*
+        renderCardDetail cria primeiro as linhas cruas da fatura e, no frame seguinte,
+        purchase-sections monta a estrutura final. Esconde apenas esse estado intermediário
+        para evitar o flash de todos os lançamentos ao trocar rapidamente de página.
+      */
+      #cardDetail .invoice-layout > .card:first-child:not(:has(> .invoice-purchase-groups)) > .detail-line{
+        visibility:hidden!important;
+      }
+
       .purchase-navigation-mode-toggle{white-space:nowrap}
       .purchase-navigation-mode-toggle[data-mode="dynamic"]{
         border-color:#3b82f6;
