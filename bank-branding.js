@@ -42,31 +42,31 @@
     style.id=STYLE_ID;
     style.textContent=`
       .bank-picker{position:relative}
-      .bank-picker-control{display:flex;align-items:center;gap:9px;min-height:40px;padding:0 10px;border:1px solid #334155;border-radius:9px;background:#0f172a}
+      .bank-picker-control{display:flex;align-items:center;gap:11px;min-height:44px;padding:0 10px;border:1px solid #334155;border-radius:9px;background:#0f172a}
       .bank-picker-control:focus-within{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.12)}
       .bank-picker-control input{min-width:0;flex:1;border:0!important;background:transparent!important;padding:9px 0!important;outline:0!important;box-shadow:none!important}
-      .bank-logo-shell{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:grid;place-items:center;background:#fff;border:1px solid rgba(148,163,184,.25);overflow:hidden;color:#172033;font-size:10px;font-weight:900;letter-spacing:-.02em}
+      .bank-logo-shell{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;background:transparent;border:0;border-radius:0;overflow:visible;color:#94a3b8;font-size:10px;font-weight:900;letter-spacing:-.02em}
       .bank-logo-shell .bank-logo-fallback,.bank-logo-shell img{grid-area:1/1;width:100%;height:100%}
-      .bank-logo-shell .bank-logo-fallback{display:grid;place-items:center;padding:2px;box-sizing:border-box}
-      .bank-logo-shell img{object-fit:contain;padding:3px;box-sizing:border-box;opacity:0;transition:opacity .14s ease}
+      .bank-logo-shell .bank-logo-fallback{display:grid;place-items:center;padding:0;box-sizing:border-box}
+      .bank-logo-shell img{object-fit:contain;padding:0;box-sizing:border-box;background:transparent;display:block;opacity:0;transition:opacity .14s ease}
       .bank-logo-shell.logo-loaded img{opacity:1}
       .bank-logo-shell.logo-loaded .bank-logo-fallback{visibility:hidden}
       .bank-picker-results{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:120;background:#101827;border:1px solid #334155;border-radius:11px;box-shadow:0 18px 40px rgba(0,0,0,.38);max-height:300px;overflow:auto;padding:5px}
       .bank-picker.open .bank-picker-results{display:block}
-      .bank-picker-result{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-radius:8px;background:transparent;color:#e2e8f0;text-align:left;cursor:pointer}
+      .bank-picker-result{width:100%;display:flex;align-items:center;gap:11px;padding:8px;border:0;border-radius:8px;background:transparent;color:#e2e8f0;text-align:left;cursor:pointer}
       .bank-picker-result:hover,.bank-picker-result:focus{background:#1e293b;outline:0}
       .bank-picker-result-copy{min-width:0;flex:1}
       .bank-picker-result-name{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .bank-picker-result-code{margin-top:2px;font-size:10px;color:#64748b}
       .bank-picker-empty{padding:13px 10px;color:#64748b;font-size:11px;text-align:center}
       .bank-picker-help{display:block;margin-top:5px;color:#64748b;font-size:10px}
-      .bank-card-account{display:flex!important;align-items:center;gap:8px!important}
-      .bank-card-account .bank-logo-shell{width:24px;height:24px;flex-basis:24px;border-radius:7px}
+      .bank-card-account{display:flex!important;align-items:center;gap:10px!important}
+      .bank-card-account .bank-logo-shell{width:32px;height:32px;flex-basis:32px}
       .bank-card-account-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .invoice-bank-brand{display:inline-flex;align-items:center;gap:7px;margin-left:10px;color:#94a3b8;font-size:11px;font-weight:650}
-      .invoice-bank-brand .bank-logo-shell{width:25px;height:25px;flex-basis:25px;border-radius:7px}
-      .invoice-title-bank-logo{display:inline-grid!important;vertical-align:middle;margin-right:8px;width:27px!important;height:27px!important;transform:translateY(4px)}
-      @media(max-width:700px){.invoice-bank-brand .bank-name-text{display:none}}
+      .invoice-bank-brand{display:inline-flex;align-items:center;gap:8px;margin-left:10px;color:#94a3b8;font-size:11px;font-weight:650}
+      .invoice-bank-brand .bank-logo-shell{width:34px;height:34px;flex-basis:34px}
+      .invoice-title-bank-logo{display:inline-grid!important;vertical-align:middle;margin-right:9px;width:36px!important;height:36px!important;transform:translateY(5px)}
+      @media(max-width:700px){.invoice-bank-brand .bank-name-text{display:none}.bank-card-account .bank-logo-shell{width:30px;height:30px;flex-basis:30px}.invoice-title-bank-logo{width:34px!important;height:34px!important}}
     `;
     document.head.appendChild(style);
   }
