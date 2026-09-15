@@ -3,6 +3,26 @@
   window.__purchaseAccordionLoaded=true;
 
   let syncing=false;
+  let focusTimer=null;
+
+  function reducedMotion(){
+    return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  function focusOpened(button){
+    if(!(button instanceof HTMLElement))return;
+    clearTimeout(focusTimer);
+    const delay=reducedMotion()?0:290;
+    focusTimer=setTimeout(()=>{
+      if(!button.isConnected||button.getAttribute('aria-expanded')!=='true')return;
+      try{button.focus({preventScroll:true})}catch(e){button.focus()}
+      button.scrollIntoView({
+        behavior:reducedMotion()?'auto':'smooth',
+        block:'center',
+        inline:'nearest'
+      });
+    },delay);
+  }
 
   function collapseOtherSections(activeKey){
     const seen=new Set();
@@ -40,6 +60,7 @@
         if(!activeKey)return;
         syncing=true;
         try{collapseOtherSections(activeKey)}finally{syncing=false}
+        focusOpened(sectionBtn);
       });
       return;
     }
@@ -53,6 +74,7 @@
         if(!sectionKey||!activeNameKey)return;
         syncing=true;
         try{collapseOtherNameGroups(sectionKey,activeNameKey)}finally{syncing=false}
+        focusOpened(nameBtn);
       });
     }
   });
