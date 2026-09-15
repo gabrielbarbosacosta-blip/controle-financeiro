@@ -4,6 +4,7 @@
     recebido:{bg:'#16351f',border:'#2f7d46',text:'#bbf7d0'},
     paga:{bg:'#16351f',border:'#2f7d46',text:'#bbf7d0'},
     pendente:{bg:'#3a2d12',border:'#8a6a1f',text:'#fde68a'},
+    'aguardando confirmação':{bg:'#102845',border:'#1d497b',text:'#bfdbfe'},
     'não paga':{bg:'#3b1717',border:'#8b3a3a',text:'#fecaca'},
     'nao paga':{bg:'#3b1717',border:'#8b3a3a',text:'#fecaca'}
   };
@@ -67,7 +68,7 @@
 })();
 
 (function(){
-  ['pwa.js','cloud-sync.js','profile.js','profile-topbar.js','notifications.js','modal-effects.js','shared-expenses-bootstrap.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','shared-debts-ui.js','shared-expense-deletion.js','shared-delete-link-guard.js','shared-delete-notifications.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','shared-income-ui.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
+  ['pwa.js','cloud-sync.js','profile.js','profile-topbar.js','notifications.js','modal-effects.js','shared-expenses-bootstrap.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','shared-debts-ui.js','shared-expense-deletion.js','shared-delete-link-guard.js','shared-delete-notifications.js','shared-status-link.js','shared-payment-confirmations.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','shared-income-ui.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
     if(document.querySelector(`script[src="${src}"]`))return;
     const script=document.createElement('script');script.src=src;document.body.appendChild(script);
   });
