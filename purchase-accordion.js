@@ -5,7 +5,7 @@
   let syncing=false;
   let focusTimer=null;
   const preClickState=new WeakMap();
-  const OPEN_TOP_GAP=24;
+  const OPEN_TOP_GAP=20;
 
   function reducedMotion(){
     return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
