@@ -1,6 +1,7 @@
 (function(){
   let applyingRemote=false;
   let writeQueued=false;
+  let localWritePending=false;
   let lastRefreshAt=0;
   let lastRemoteUpdatedAt=null;
 
@@ -94,8 +95,33 @@
       lastRemoteUpdatedAt=data.updatedAt||null;
       return lastRemoteUpdatedAt;
     },
+    async deleteCard(cardId){
+      if(!currentUser?.id)throw new Error('user_required');
+      if(!cardId)throw new Error('card_required');
+      while(remoteWriteInFlight){
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
+      remoteWriteInFlight=true;
+      localWritePending=true;
+      try{
+        const {data,error}=await sb.rpc('finance_delete_card',{p_card_id:String(cardId)});
+        if(error)throw error;
+        if(!data?.ok)throw rpcFailure(data,'finance_delete_card_failed');
+        lastRemoteUpdatedAt=data.updatedAt||lastRemoteUpdatedAt;
+        setSyncStatus('Sincronizado com banco relacional');
+        return data;
+      }finally{
+        remoteWriteInFlight=false;
+        if(writeQueued){
+          writeQueued=false;
+          scheduleCloudSave();
+        }else{
+          localWritePending=false;
+        }
+      }
+    },
     async refresh(){
-      if(!currentUser?.id)return null;
+      if(!currentUser?.id||remoteWriteInFlight||localWritePending)return null;
       const cloud=await this.load(currentUser.id);
       if(validFinanceState(cloud?.state)){
         await applyServerState(cloud.state,{render:true});
@@ -103,15 +129,21 @@
       }
       return cloud;
     },
-    get version(){return lastRemoteUpdatedAt}
+    get version(){return lastRemoteUpdatedAt},
+    get hasPendingLocalWrite(){return localWritePending||remoteWriteInFlight}
   };
 
-  save=function(){if(!applyingRemote)scheduleCloudSave()};
+  save=function(){
+    if(applyingRemote)return;
+    localWritePending=true;
+    scheduleCloudSave();
+  };
 
   pushStateToCloud=async function(){
     if(!currentUser||applyingRemote)return;
-    if(remoteWriteInFlight){writeQueued=true;return}
+    if(remoteWriteInFlight){writeQueued=true;localWritePending=true;return}
     remoteWriteInFlight=true;
+    localWritePending=true;
     const userId=currentUser.id,snapshot=cloneState(state);
     try{
       await window.financeCloud.save(userId,snapshot);
@@ -122,7 +154,12 @@
       else setSyncStatus('Falha ao salvar no servidor',true);
     }finally{
       remoteWriteInFlight=false;
-      if(writeQueued){writeQueued=false;scheduleCloudSave()}
+      if(writeQueued){
+        writeQueued=false;
+        scheduleCloudSave();
+      }else{
+        localWritePending=false;
+      }
     }
   };
 
@@ -155,7 +192,7 @@
   };
 
   async function refreshFromServer(){
-    if(!currentUser?.id||remoteWriteInFlight||Date.now()-lastRefreshAt<2000)return;
+    if(!currentUser?.id||remoteWriteInFlight||localWritePending||Date.now()-lastRefreshAt<2000)return;
     lastRefreshAt=Date.now();
     try{
       const cloud=await window.financeCloud.load(currentUser.id);
