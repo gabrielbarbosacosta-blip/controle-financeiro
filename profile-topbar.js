@@ -45,8 +45,8 @@
       .topbar #logoutBtn{display:none!important}
 
       @media(min-width:901px){
-        html,body{scrollbar-width:none;-ms-overflow-style:none}
-        html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0;display:none}
+        html,body,*{scrollbar-width:none!important;-ms-overflow-style:none!important}
+        html::-webkit-scrollbar,body::-webkit-scrollbar,*::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
       }
       @media(max-width:900px){.profile-brand-wrap{margin-bottom:20px;max-width:340px}.profile-dropdown{left:15px!important;right:15px!important;top:90px!important;width:auto;max-height:calc(100vh - 109px);transform-origin:top center}}
       @media(prefers-reduced-motion:reduce){.profile-dropdown,.profile-page-backdrop{transition:none!important}}
