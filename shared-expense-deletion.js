@@ -7,6 +7,8 @@
   let busy=new Set();
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c))}
+  function getSb(){try{return sb}catch(e){return window.sb||null}}
+  function getCurrentUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
 
   function injectStyles(){
     if(document.getElementById('shared-expense-deletion-style'))return;
@@ -18,20 +20,30 @@
       .shared-delete-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
       .shared-delete-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;border:1px solid #7c5c19;background:#2c210c;color:#fde68a;font-size:10px;font-weight:700;margin-top:7px}
       .shared-delete-btn{margin-left:auto}
+      .shared-delete-btn[disabled],[data-shared-delete-accept][disabled],[data-shared-delete-reject][disabled]{opacity:.55;cursor:wait}
     `;
     document.head.appendChild(s);
   }
 
   async function refreshData(){
-    if(loading||!window.sb||!window.currentUser?.id)return;
+    const client=getSb(),userId=getCurrentUserId();
+    if(loading||!client||!userId)return;
     loading=true;
     try{
-      const {data,error}=await sb.rpc('finance_list_shared_expenses');
+      const {data,error}=await client.rpc('finance_list_shared_expenses');
       if(error)throw error;
       items=data?.items||[];
       decorateAll();
     }catch(e){console.warn('Falha ao carregar estado de exclusão compartilhada.',e)}
     finally{loading=false}
+  }
+
+  async function syncEverywhere(){
+    try{if(window.financeCloud?.refresh)await window.financeCloud.refresh()}catch(e){console.warn('Falha ao atualizar estado financeiro após exclusão compartilhada.',e)}
+    try{if(typeof renderAll==='function')renderAll()}catch(e){}
+    await refreshData();
+    try{await window.financeNotificationsRefresh?.()}catch(e){}
+    try{window.financeSharedIncomeRefresh?.()}catch(e){}
   }
 
   function itemById(id){return items.find(x=>String(x.id)===String(id))||null}
@@ -40,6 +52,15 @@
     let host=card.querySelector('.shared-item-actions');
     if(!host){host=document.createElement('div');host.className='shared-item-actions';card.appendChild(host)}
     return host;
+  }
+
+  function setCardBusy(id,isBusy,label='Processando…'){
+    document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(card=>{
+      card.querySelectorAll('[data-shared-delete-request],[data-shared-delete-accept],[data-shared-delete-reject]').forEach(btn=>{
+        if(isBusy){if(!btn.dataset.originalText)btn.dataset.originalText=btn.textContent;btn.disabled=true;btn.textContent=label}
+        else{btn.disabled=false;if(btn.dataset.originalText){btn.textContent=btn.dataset.originalText;delete btn.dataset.originalText}}
+      });
+    });
   }
 
   function decorateCard(card){
@@ -77,9 +98,7 @@
     card.querySelectorAll('[data-shared-delete-reject]').forEach(btn=>btn.onclick=()=>respondDelete(btn.dataset.sharedDeleteReject,false));
   }
 
-  function decorateAll(){
-    document.querySelectorAll('.shared-item[data-shared-id]').forEach(decorateCard);
-  }
+  function decorateAll(){document.querySelectorAll('.shared-item[data-shared-id]').forEach(decorateCard)}
 
   function confirmDeleteTwice(item,acceptedOthers){
     const description=item?.description||'esta despesa';
@@ -87,7 +106,6 @@
       ?`Excluir “${description}”? Como ${acceptedOthers} participante${acceptedOthers===1?' já aceitou':'s já aceitaram'}, a exclusão ficará aguardando confirmação antes de remover os lançamentos.`
       :`Excluir “${description}”? Como ninguém além de você confirmou, a despesa poderá ser removida imediatamente após a segunda confirmação.`;
     if(!confirm(firstMessage))return false;
-
     const secondMessage=acceptedOthers
       ?`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente o pedido de exclusão de “${description}”? A solicitação será enviada aos demais participantes que precisam aprovar a remoção.`
       :`SEGUNDA CONFIRMAÇÃO\n\nConfirma definitivamente a exclusão de “${description}”? Esta ação removerá a despesa compartilhada e os lançamentos vinculados e não poderá ser desfeita.`;
@@ -96,36 +114,34 @@
 
   async function requestDelete(id){
     if(busy.has(id))return;
-    const item=itemById(id);if(!item)return;
-    const acceptedOthers=(item.participants||[]).filter(p=>p.userId!==currentUser.id&&p.status==='accepted').length;
+    const item=itemById(id),userId=getCurrentUserId(),client=getSb();
+    if(!item||!userId||!client)return;
+    const acceptedOthers=(item.participants||[]).filter(p=>p.userId!==userId&&p.status==='accepted').length;
     if(!confirmDeleteTwice(item,acceptedOthers))return;
-    busy.add(id);
+    busy.add(id);setCardBusy(id,true,'Excluindo…');
     try{
-      const {data,error}=await sb.rpc('finance_request_delete_shared_expense',{p_shared_id:id});
+      const {data,error}=await client.rpc('finance_request_delete_shared_expense',{p_shared_id:id});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'delete_request_failed');
       try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':'Exclusão aguardando confirmação')}catch(e){}
-      if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(id)}"]`).forEach(el=>el.remove());
-      await refreshData();
-      window.financeNotificationsRefresh?.();
-      window.dispatchEvent(new Event('focus'));
-    }catch(e){console.error('Falha ao solicitar exclusão.',e);alert('Não foi possível solicitar a exclusão desta despesa.')}
+      if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
+      await syncEverywhere();
+    }catch(e){console.error('Falha ao solicitar exclusão.',e);alert('Não foi possível solicitar a exclusão desta despesa.');setCardBusy(id,false)}
     finally{busy.delete(id)}
   }
 
   async function respondDelete(id,accept){
     if(busy.has(id))return;
+    const client=getSb();if(!client)return;
     const verb=accept?'confirmar a exclusão':'manter a despesa';
     if(!confirm(accept?'Confirmar a exclusão desta despesa? Seus lançamentos vinculados serão removidos quando todos confirmarem.':'Recusar a exclusão e manter esta despesa compartilhada?'))return;
-    busy.add(id);
+    busy.add(id);setCardBusy(id,true,accept?'Confirmando…':'Mantendo…');
     try{
-      const {data,error}=await sb.rpc('finance_respond_delete_shared_expense',{p_shared_id:id,p_accept:accept});
+      const {data,error}=await client.rpc('finance_respond_delete_shared_expense',{p_shared_id:id,p_accept:accept});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'delete_response_failed');
       try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='deleted'?'Despesa compartilhada excluída':data.status==='cancelled'?'Exclusão recusada':'Confirmação registrada')}catch(e){}
-      if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(id)}"]`).forEach(el=>el.remove());
-      await refreshData();
-      window.financeNotificationsRefresh?.();
-      window.dispatchEvent(new Event('focus'));
-    }catch(e){console.error(`Falha ao ${verb}.`,e);alert(`Não foi possível ${verb}.`)}
+      if(data.status==='deleted')document.querySelectorAll(`.shared-item[data-shared-id="${CSS.escape(String(id))}"]`).forEach(el=>el.remove());
+      await syncEverywhere();
+    }catch(e){console.error(`Falha ao ${verb}.`,e);alert(`Não foi possível ${verb}.`);setCardBusy(id,false)}
     finally{busy.delete(id)}
   }
 
@@ -134,10 +150,11 @@
     const observer=new MutationObserver(()=>decorateAll());
     observer.observe(document.documentElement,{childList:true,subtree:true});
     let tries=0;
-    const timer=setInterval(()=>{tries++;if(window.sb&&window.currentUser?.id){clearInterval(timer);refreshData()}else if(tries>600)clearInterval(timer)},100);
+    const timer=setInterval(()=>{tries++;if(getSb()&&getCurrentUserId()){clearInterval(timer);refreshData()}else if(tries>600)clearInterval(timer)},100);
     window.addEventListener('focus',refreshData);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshData()});
     setInterval(refreshData,60000);
+    window.financeSharedDeletionRefresh=refreshData;
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
