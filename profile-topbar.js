@@ -148,7 +148,14 @@
     const observer=new MutationObserver(sync);observer.observe(document.body,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),15000);
     window.addEventListener('resize',()=>{const wrap=currentWrap(),menu=currentMenu(),card=document.getElementById('profileSidebarCard');if(wrap?.classList.contains('open'))positionMenu(card,menu)});
     window.addEventListener('scroll',()=>{const wrap=currentWrap(),menu=currentMenu(),card=document.getElementById('profileSidebarCard');if(wrap?.classList.contains('open'))positionMenu(card,menu)},{passive:true});
-    document.addEventListener('click',e=>{const wrap=currentWrap(),menu=currentMenu();if(wrap?.classList.contains('open')&&!wrap.contains(e.target)&&!menu?.contains(e.target))closeMenu()});
+    document.addEventListener('click',e=>{
+      const wrap=currentWrap(),menu=currentMenu();
+      if(e.target?.closest?.('#profileSaveBtn')){
+        setTimeout(closeMenu,0);
+        return;
+      }
+      if(wrap?.classList.contains('open')&&!wrap.contains(e.target)&&!menu?.contains(e.target))closeMenu();
+    });
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
