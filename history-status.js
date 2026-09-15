@@ -67,7 +67,7 @@
 })();
 
 (function(){
-  ['cloud-sync.js','profile.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
+  ['cloud-sync.js','profile.js','shared-expenses-bootstrap.js','bank-branding.js','bank-branding-rounded.js','card-glass-tune.js','card-organizer.js','card-edit-control.js','debts.js','expense-materializer.js','expense-value-history.js','expense-simulator.js','incomes.js','income-open-ended.js','income-value-history.js','income-simulator.js','projection-controls.js','projected-closing.js','purchase-management.js','purchase-simulator.js','projection-period.js','chart-tooltips.js','invoice-ai-client.js','invoice-ai-importer-core-v2.js','invoice-ai-ui.js'].forEach(src=>{
     if(document.querySelector(`script[src="${src}"]`))return;
     const script=document.createElement('script');script.src=src;document.body.appendChild(script);
   });
@@ -79,8 +79,8 @@
     try{ready=!!(currentUser?.id&&window.financeCloud)}catch(e){}
     if(ready){
       clearInterval(sharingTimer);
-      if(!document.querySelector('script[src="shared-expenses.js"]')){
-        const script=document.createElement('script');script.src='shared-expenses.js';document.body.appendChild(script);
+      if(!window.__sharedExpensesLoaded&&!document.querySelector('script[data-shared-expenses-v2="1"]')){
+        const script=document.createElement('script');script.src='shared-expenses.js?v=20260915-series2';script.dataset.sharedExpensesV2='1';document.body.appendChild(script);
       }
     }else if(tries>600)clearInterval(sharingTimer);
   },100);
