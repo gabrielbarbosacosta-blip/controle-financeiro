@@ -8,18 +8,37 @@
   let lastSignature='';
   let internalRender=false;
   let refreshScheduled=false;
+  let lastSelectedMonth='';
 
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function getUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
+  function getSelectedMonth(){
+    try{
+      const value=state?.settings?.selectedMonth||window.state?.settings?.selectedMonth||'';
+      if(/^\d{4}-\d{2}$/.test(String(value)))return String(value);
+    }catch(e){}
+    const candidates=['#monthSelect','#selectedMonth','#projectionMonth','#historyMonth','input[type="month"]'];
+    for(const selector of candidates){
+      const el=document.querySelector(selector);const value=el?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value)))return String(value);
+    }
+    const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
   const money=v=>typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
   function dateLabel(v){try{return typeof fmtDate==='function'?fmtDate(v):String(v||'')}catch(e){return String(v||'')}}
+  function monthLabel(ym){
+    try{if(typeof fmtMonth==='function')return fmtMonth(ym)}catch(e){}
+    if(!/^\d{4}-\d{2}$/.test(String(ym)))return String(ym||'');
+    const [y,m]=String(ym).split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(y,m-1,1));
+  }
   function initials(name){const p=String(name||'P').trim().split(/\s+/).filter(Boolean);return ((p[0]?.[0]||'P')+(p[1]?.[0]||'')).toUpperCase()}
 
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
     const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
       #sharedBalances.shared-balances-detailed{display:grid;gap:12px}
+      .shared-month-context{padding:9px 12px;border:1px solid #243449;border-radius:11px;background:#0f172a;color:#94a3b8;font-size:11px;margin-bottom:10px}.shared-month-context strong{color:#e2e8f0}
       .shared-person-card{border:1px solid var(--line);border-radius:15px;background:#0b1424;overflow:hidden}
       .shared-person-card-head{display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid var(--line)}
       .shared-person-avatar{width:46px;height:46px;border-radius:14px;flex:0 0 46px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,#1e3a5f,#172033);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:800;color:#dbeafe}
@@ -46,6 +65,30 @@
   }
 
   function statusClass(status){const s=String(status||'').toLowerCase();if(s==='pago'||s==='recebido')return'paid';if(s.includes('aguardando'))return'waiting';return''}
+  function isSettled(status){const s=String(status||'').toLowerCase();return s==='pago'||s==='recebido'}
+  function entryMonth(entry){return String(entry?.date||'').slice(0,7)}
+
+  function contextualizeRows(rows,selectedMonth){
+    return (rows||[]).map(b=>{
+      const entries=(Array.isArray(b.entries)?b.entries:[]).filter(e=>entryMonth(e)===selectedMonth);
+      let toReceive=0,toPay=0;
+      entries.forEach(e=>{
+        if(isSettled(e.status))return;
+        const amount=Number(e.amount)||0;
+        if(e.direction==='receive')toReceive+=amount;else if(e.direction==='pay')toPay+=amount;
+      });
+      return {...b,entries,toReceive,toPay,net:toReceive-toPay};
+    }).filter(b=>b.entries.length>0);
+  }
+
+  function updateSummary(rows){
+    const receive=rows.reduce((s,b)=>s+(Number(b.toReceive)||0),0);
+    const pay=rows.reduce((s,b)=>s+(Number(b.toPay)||0),0);
+    const net=receive-pay;
+    const rec=document.getElementById('sharedToReceive');if(rec)rec.textContent=money(receive);
+    const payEl=document.getElementById('sharedToPay');if(payEl)payEl.textContent=money(pay);
+    const netEl=document.getElementById('sharedNet');if(netEl){netEl.textContent=money(net);netEl.className=`value ${net>=0?'positive':'negative'}`}
+  }
 
   function entryHtml(e){
     const dir=e.direction==='receive'?'receive':'pay';
@@ -60,24 +103,25 @@
     else if(net>0){label='Valor a receber';value=net;cls='positive'}
     const entries=Array.isArray(b.entries)?b.entries:[];
     const avatar=b.avatarUrl?`<img src="${esc(b.avatarUrl)}" alt="Foto de ${esc(b.name||'participante')}">`:`<span>${esc(initials(b.name))}</span>`;
-    return `<div class="shared-person-card"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatar}</div><div class="shared-person-card-title"><div class="shared-person-card-name">${esc(b.name||'Participante')}</div><div class="shared-person-card-sub">${entries.length} lançamento${entries.length===1?'':'s'} compartilhado${entries.length===1?'':'s'}</div></div></div><div class="shared-entry-list">${entries.length?entries.map(entryHtml).join(''):'<div class="empty">Nenhuma despesa ou reembolso.</div>'}</div><div class="shared-person-card-foot"><div><div class="shared-person-total-label">${label}</div><div class="shared-person-total ${cls}">${money(value)}</div></div><div style="text-align:right"><div class="shared-person-total-label">A pagar ${money(toPay)} · A receber ${money(toReceive)}</div></div></div></div>`;
+    return `<div class="shared-person-card"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatar}</div><div class="shared-person-card-title"><div class="shared-person-card-name">${esc(b.name||'Participante')}</div><div class="shared-person-card-sub">${entries.length} lançamento${entries.length===1?'':'s'} nesta competência</div></div></div><div class="shared-entry-list">${entries.length?entries.map(entryHtml).join(''):'<div class="empty">Nenhuma despesa ou reembolso.</div>'}</div><div class="shared-person-card-foot"><div><div class="shared-person-total-label">${label}</div><div class="shared-person-total ${cls}">${money(value)}</div></div><div style="text-align:right"><div class="shared-person-total-label">A pagar ${money(toPay)} · A receber ${money(toReceive)}</div></div></div></div>`;
   }
 
   async function refresh(force=false){
-    const client=getSb(),uid=getUserId(),host=document.getElementById('sharedBalances');
+    const client=getSb(),uid=getUserId(),host=document.getElementById('sharedBalances'),selectedMonth=getSelectedMonth();
     if(loading||!client||!uid||!host)return;
     loading=true;
     try{
       const {data,error}=await client.rpc('finance_shared_balances');if(error)throw error;
-      const rows=data?.items||[];
+      const rows=contextualizeRows(data?.items||[],selectedMonth);
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
-      const signature=JSON.stringify(rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,b.avatarUrl,(b.entries||[]).map(e=>[e.sharedId,e.status,e.amount,e.direction])]))
+      updateSummary(rows);
+      const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,b.avatarUrl,(b.entries||[]).map(e=>[e.sharedId,e.date,e.status,e.amount,e.direction])])]);
       const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-person-card'));
       if(!force&&signature===lastSignature&&alreadyDetailed)return;
-      lastSignature=signature;
+      lastSignature=signature;lastSelectedMonth=selectedMonth;
       internalRender=true;
       host.classList.add('shared-balances-detailed');
-      host.innerHTML=rows.length?rows.map(cardHtml).join(''):'<div class="empty">Nenhum acerto entre participantes.</div>';
+      host.innerHTML=`<div class="shared-month-context">Exibindo acertos de <strong>${esc(monthLabel(selectedMonth))}</strong></div>${rows.length?rows.map(cardHtml).join(''):'<div class="empty">Nenhum acerto nesta competência.</div>'}`;
       queueMicrotask(()=>{internalRender=false});
     }catch(e){console.warn('Falha ao detalhar acertos por pessoa.',e)}finally{loading=false}
   }
@@ -94,7 +138,7 @@
     const observer=new MutationObserver(()=>{
       if(internalRender)return;
       if(!isSharingOpen())return;
-      const hasDetailed=host.classList.contains('shared-balances-detailed')&&!!host.querySelector('.shared-person-card');
+      const hasDetailed=host.classList.contains('shared-balances-detailed')&&(!!host.querySelector('.shared-person-card')||!!host.querySelector('.shared-month-context'));
       if(!hasDetailed)scheduleRefresh();
     });
     observer.observe(host,{childList:true,subtree:true});
@@ -104,8 +148,17 @@
   function init(){
     injectStyles();
     document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(()=>{watchLegacyOverwrite();refresh(true)},450)},true);
+    document.addEventListener('change',e=>{
+      const value=e.target?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value))&&isSharingOpen())setTimeout(()=>refresh(true),40);
+    },true);
     window.addEventListener('focus',()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}});
-    setInterval(()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}},30000);
+    setInterval(()=>{
+      if(!isSharingOpen())return;
+      watchLegacyOverwrite();
+      const selected=getSelectedMonth();
+      if(selected!==lastSelectedMonth)refresh(true);else refresh();
+    },1000);
     let tries=0;const t=setInterval(()=>{tries++;if(document.getElementById('sharedBalances')){clearInterval(t);watchLegacyOverwrite();if(isSharingOpen())refresh(true)}else if(tries>300)clearInterval(t)},100);
     window.financeSharedBalancesDetailRefresh=()=>refresh(true);
   }
