@@ -3,10 +3,11 @@
   window.__financeNotificationQueueLoaded=true;
 
   let observer=null;
+  let panelObserver=null;
   let syncing=false;
   let currentIndex=0;
   let ordered=[];
-  let viewTimer=null;
+  let panelWasOpen=false;
   const consumingKeys=new Set();
 
   function host(){return document.getElementById('notificationsList')}
@@ -75,26 +76,17 @@
     const count=document.getElementById('notificationsCount');if(count)count.textContent=`${total} na fila`;
   }
 
-  function scheduleViewed(item){
-    clearTimeout(viewTimer);viewTimer=null;
-    if(!item||item.meta.mode!=='once'||!panel()?.classList.contains('open'))return;
+  async function consume(item){
+    if(!item||item.meta.mode!=='once')return false;
     const key=item.meta.key||item.el.dataset.notificationKey||'';
-    if(!key||consumingKeys.has(key))return;
-    viewTimer=setTimeout(async()=>{
-      const card=item.el;
-      if(!card.isConnected||!card.classList.contains('queue-active')||!panel()?.classList.contains('open'))return;
-      consumingKeys.add(key);
-      card.dataset.queueViewed='1';
-      let consumed=false;
-      try{
-        if(typeof window.financeMarkChargeNotificationViewed==='function')consumed=await window.financeMarkChargeNotificationViewed(key);
-        else if(typeof window.financeMarkVisibleChargeNotificationsViewed==='function'){await window.financeMarkVisibleChargeNotificationsViewed();consumed=true}
-      }catch(e){console.warn('Falha ao consumir notificação de visualização única.',e)}finally{consumingKeys.delete(key)}
-      if(consumed){
-        if(card.isConnected){card.style.display='none';card.classList.remove('queue-active');card.classList.add('queue-hidden')}
-        setTimeout(()=>{if(currentIndex>=ordered.length-1)currentIndex=Math.max(0,currentIndex-1);apply()},0);
-      }
-    },900);
+    if(!key||consumingKeys.has(key))return false;
+    consumingKeys.add(key);
+    try{
+      if(typeof window.financeMarkChargeNotificationViewed==='function')return !!(await window.financeMarkChargeNotificationViewed(key));
+      if(typeof window.financeMarkVisibleChargeNotificationsViewed==='function'){await window.financeMarkVisibleChargeNotificationsViewed();return true}
+      return false;
+    }catch(e){console.warn('Falha ao consumir notificação de visualização única.',e);return false}
+    finally{consumingKeys.delete(key)}
   }
 
   function apply(){
@@ -118,12 +110,21 @@
         controls.querySelector('[data-queue-prev]').disabled=currentIndex<=0;
         controls.querySelector('[data-queue-next]').disabled=currentIndex>=ordered.length-1;
       }
-      updateBadge();scheduleViewed(ordered[currentIndex]);
+      updateBadge();
     }finally{syncing=false}
   }
 
-  function move(delta){
-    clearTimeout(viewTimer);viewTimer=null;
+  async function move(delta){
+    const current=ordered[currentIndex];
+    if(current?.meta.mode==='once'){
+      const oldIndex=currentIndex;
+      await consume(current);
+      ordered=buildQueue();
+      if(!ordered.length){currentIndex=0;apply();return}
+      currentIndex=delta<0?Math.max(0,oldIndex-1):Math.min(ordered.length-1,oldIndex);
+      apply();
+      return;
+    }
     currentIndex=Math.max(0,Math.min(Math.max(0,ordered.length-1),currentIndex+delta));
     apply();
   }
@@ -134,17 +135,32 @@
     setTimeout(apply,80);
   }
 
+  async function onPanelClosed(){
+    const current=ordered[currentIndex];
+    if(current?.meta.mode==='once')await consume(current);
+  }
+
   function observe(){
     const h=host();if(!h||observer)return false;
     observer=new MutationObserver(()=>{if(!syncing)setTimeout(apply,0)});
     observer.observe(h,{childList:true,subtree:true,attributes:true,attributeFilter:['style','data-notification-key']});
+    const p=panel();
+    if(p&&!panelObserver){
+      panelWasOpen=p.classList.contains('open');
+      panelObserver=new MutationObserver(()=>{
+        const isOpen=p.classList.contains('open');
+        if(panelWasOpen&&!isOpen)onPanelClosed();
+        if(!panelWasOpen&&isOpen)onPanelOpen();
+        panelWasOpen=isOpen;
+      });
+      panelObserver.observe(p,{attributes:true,attributeFilter:['class']});
+    }
     return true;
   }
 
   function init(){
     injectStyles();
     let tries=0;const ready=setInterval(()=>{tries++;if(observe()){clearInterval(ready);apply()}else if(tries>300)clearInterval(ready)},100);
-    document.addEventListener('click',e=>{if(e.target?.closest?.('#profileNotificationBtn'))onPanelOpen()},true);
     window.financeNotificationQueueRefresh=apply;
     window.financeNotificationQueueNext=()=>move(1);
     window.financeNotificationQueuePrev=()=>move(-1);
