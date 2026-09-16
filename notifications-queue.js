@@ -7,16 +7,16 @@
   let currentIndex=0;
   let ordered=[];
   let viewTimer=null;
+  const consumingKeys=new Set();
 
   function host(){return document.getElementById('notificationsList')}
   function panel(){return document.getElementById('notificationsPanel')}
-  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c))}
 
   function classify(card,index){
     if(card.classList.contains('payment-confirmation'))return {mode:'persistent',kind:'payment',key:card.dataset.paymentConfirmation||`payment:${index}`,priority:10};
     if(card.classList.contains('deletion-request'))return {mode:'persistent',kind:'delete',key:card.dataset.deleteNotification||`delete:${index}`,priority:20};
     if(card.hasAttribute('data-notification-shared'))return {mode:'persistent',kind:'invite',key:card.dataset.notificationShared||`invite:${index}`,priority:30};
-    if(card.classList.contains('charge'))return {mode:'once',kind:'charge',key:card.dataset.notificationKey||`charge:${index}`,priority:40};
+    if(card.classList.contains('charge'))return {mode:'once',kind:'charge',key:card.dataset.notificationKey||'',priority:40};
     return {mode:'persistent',kind:'other',key:`other:${index}`,priority:50};
   }
 
@@ -53,13 +53,17 @@
   function buildQueue(){
     const h=host();if(!h)return[];
     let seq=1;
-    const cards=[...h.querySelectorAll('.notification-card')].filter(el=>el.style.display!=='none'||el.classList.contains('queue-active'));
+    const cards=[...h.querySelectorAll('.notification-card')].filter(el=>{
+      if(el.style.display==='none'&&!el.classList.contains('queue-active'))return false;
+      if(el.classList.contains('charge')&&!el.dataset.notificationKey)return false;
+      return true;
+    });
     return cards.map((el,domIndex)=>{
       if(!el.dataset.queueSeq)el.dataset.queueSeq=String(Date.now()*1000+(seq++));
       const meta=classify(el,domIndex);
       el.dataset.notificationMode=el.dataset.notificationMode||meta.mode;
       el.dataset.notificationKind=meta.kind;
-      el.dataset.notificationQueueKey=el.dataset.notificationQueueKey||meta.key;
+      if(meta.key)el.dataset.notificationQueueKey=meta.key;
       return {el,meta,domIndex};
     }).sort(cardSort);
   }
@@ -74,12 +78,23 @@
   function scheduleViewed(item){
     clearTimeout(viewTimer);viewTimer=null;
     if(!item||item.meta.mode!=='once'||!panel()?.classList.contains('open'))return;
-    viewTimer=setTimeout(()=>{
+    const key=item.meta.key||item.el.dataset.notificationKey||'';
+    if(!key||consumingKeys.has(key))return;
+    viewTimer=setTimeout(async()=>{
       const card=item.el;
-      if(!card.isConnected||!card.classList.contains('queue-active'))return;
+      if(!card.isConnected||!card.classList.contains('queue-active')||!panel()?.classList.contains('open'))return;
+      consumingKeys.add(key);
       card.dataset.queueViewed='1';
-      try{window.financeMarkVisibleChargeNotificationsViewed?.()}catch(e){}
-    },700);
+      let consumed=false;
+      try{
+        if(typeof window.financeMarkChargeNotificationViewed==='function')consumed=await window.financeMarkChargeNotificationViewed(key);
+        else if(typeof window.financeMarkVisibleChargeNotificationsViewed==='function'){await window.financeMarkVisibleChargeNotificationsViewed();consumed=true}
+      }catch(e){console.warn('Falha ao consumir notificação de visualização única.',e)}finally{consumingKeys.delete(key)}
+      if(consumed){
+        if(card.isConnected){card.style.display='none';card.classList.remove('queue-active');card.classList.add('queue-hidden')}
+        setTimeout(()=>{if(currentIndex>=ordered.length-1)currentIndex=Math.max(0,currentIndex-1);apply()},0);
+      }
+    },900);
   }
 
   function apply(){
@@ -108,17 +123,8 @@
   }
 
   function move(delta){
-    const current=ordered[currentIndex];
-    if(current?.meta.mode==='once'&&current.el.dataset.queueViewed==='1'){
-      current.el.style.display='none';
-      current.el.classList.remove('queue-active');
-      current.el.classList.add('queue-hidden');
-      ordered.splice(currentIndex,1);
-      if(delta<0)currentIndex=Math.max(0,currentIndex-1);
-      else if(currentIndex>=ordered.length)currentIndex=Math.max(0,ordered.length-1);
-    }else{
-      currentIndex=Math.max(0,Math.min(ordered.length-1,currentIndex+delta));
-    }
+    clearTimeout(viewTimer);viewTimer=null;
+    currentIndex=Math.max(0,Math.min(Math.max(0,ordered.length-1),currentIndex+delta));
     apply();
   }
 
