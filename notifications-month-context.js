@@ -5,7 +5,6 @@
   let running=false;
   let lastMonth='';
   let seenKeys=new Set();
-  const sessionVisibleKeys=new Set();
 
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function selectedMonth(){
@@ -58,11 +57,13 @@
         card.dataset.notificationKey=key;
         card.dataset.notificationMode='once';
         card.dataset.notificationKind='charge';
-        if(seenKeys.has(key)&&!sessionVisibleKeys.has(key)){
+        if(seenKeys.has(key)){
           card.style.display='none';
+          card.dataset.queueViewed='1';
           return;
         }
         card.style.display='';
+        card.removeAttribute('data-queue-viewed');
         const value=card.querySelector('.notification-value');if(value)value.textContent=money(amount);
         const meta=card.querySelector('.notification-meta');
         if(meta)meta.textContent=month?`Saldo pendente em ${monthLabel(month)}. Esta notificação sai da fila depois de visualizada.`:'Há um saldo a receber ainda não quitado nos compartilhamentos.';
@@ -72,21 +73,34 @@
     }catch(e){console.warn('Falha ao contextualizar notificações por mês.',e)}finally{running=false}
   }
 
-  async function markVisibleChargesViewed(){
+  async function markChargeViewed(key){
     const client=getSb(),host=document.getElementById('notificationsList');
-    if(!client||!host)return;
-    const cards=[...host.querySelectorAll('.notification-card.charge[data-notification-key]')]
-      .filter(card=>card.dataset.queueActive==='1'&&card.style.display!=='none');
-    const keys=[...new Set(cards.map(card=>card.dataset.notificationKey).filter(Boolean))];
-    if(!keys.length)return;
-    keys.forEach(key=>sessionVisibleKeys.add(key));
-    await Promise.all(keys.map(async key=>{
+    key=String(key||'');
+    if(!client||!host||!key)return false;
+    if(!seenKeys.has(key)){
       try{
         const {data,error}=await client.rpc('finance_mark_notification_viewed',{p_notification_key:key});
         if(error||data?.ok===false)throw error||new Error(data?.error||'mark_view_failed');
         seenKeys.add(key);
-      }catch(e){console.warn('Falha ao marcar notificação como visualizada.',e)}
-    }));
+      }catch(e){console.warn('Falha ao marcar notificação como visualizada.',e);return false}
+    }
+    host.querySelectorAll('.notification-card.charge[data-notification-key]').forEach(card=>{
+      if(card.dataset.notificationKey!==key)return;
+      card.dataset.queueViewed='1';
+      card.style.display='none';
+      card.classList.remove('queue-active');
+      card.classList.add('queue-hidden');
+    });
+    try{window.financeNotificationQueueRefresh?.()}catch(e){}
+    return true;
+  }
+
+  async function markVisibleChargesViewed(){
+    const host=document.getElementById('notificationsList');if(!host)return;
+    const keys=[...new Set([...host.querySelectorAll('.notification-card.charge[data-notification-key]')]
+      .filter(card=>card.dataset.queueActive==='1'&&card.style.display!=='none')
+      .map(card=>card.dataset.notificationKey).filter(Boolean))];
+    for(const key of keys)await markChargeViewed(key);
   }
 
   function schedule(){setTimeout(applyContext,120)}
@@ -105,7 +119,7 @@
     let tries=0;
     const ready=setInterval(()=>{tries++;if(wrapRefresh()){clearInterval(ready);schedule()}else if(tries>300)clearInterval(ready)},100);
     document.addEventListener('click',e=>{
-      if(e.target?.closest?.('#profileNotificationBtn')){sessionVisibleKeys.clear();setTimeout(applyContext,120);return}
+      if(e.target?.closest?.('#profileNotificationBtn')){setTimeout(applyContext,120);return}
       const value=e.target?.value||'';
       if(/^\d{4}-\d{2}$/.test(String(value))&&selectedMonth()!==lastMonth)schedule();
     },true);
@@ -114,6 +128,7 @@
       if(/^\d{4}-\d{2}$/.test(String(value))&&selectedMonth()!==lastMonth)schedule();
     },true);
     window.financeNotificationsMonthContextRefresh=applyContext;
+    window.financeMarkChargeNotificationViewed=markChargeViewed;
     window.financeMarkVisibleChargeNotificationsViewed=markVisibleChargesViewed;
   }
 
