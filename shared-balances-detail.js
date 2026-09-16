@@ -4,6 +4,8 @@
 
   const STYLE_ID='shared-balances-detail-style';
   const BUCKET='profile-photos';
+  const AVATAR_TTL_MS=50*60*1000;
+  const avatarCache=new Map();
   let loading=false;
   let lastSignature='';
   let internalRender=false;
@@ -24,7 +26,7 @@
     }
     const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   }
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c));
   const money=v=>typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
   function dateLabel(v){try{return typeof fmtDate==='function'?fmtDate(v):String(v||'')}catch(e){return String(v||'')}}
   function monthLabel(ym){
@@ -60,8 +62,16 @@
 
   async function signedAvatar(path){
     if(!path)return'';
-    const client=getSb();if(!client)return'';
-    try{const {data,error}=await client.storage.from(BUCKET).createSignedUrl(path,3600);if(error)throw error;return data?.signedUrl||''}catch(e){console.warn('Falha ao carregar foto do participante.',e);return''}
+    const now=Date.now(),cached=avatarCache.get(path);
+    if(cached&&cached.url&&cached.expiresAt>now)return cached.url;
+    const client=getSb();if(!client)return cached?.url||'';
+    try{
+      const {data,error}=await client.storage.from(BUCKET).createSignedUrl(path,3600);
+      if(error)throw error;
+      const url=data?.signedUrl||'';
+      if(url)avatarCache.set(path,{url,expiresAt:now+AVATAR_TTL_MS});
+      return url||cached?.url||'';
+    }catch(e){console.warn('Falha ao carregar foto do participante.',e);return cached?.url||''}
   }
 
   function statusClass(status){const s=String(status||'').toLowerCase();if(s==='pago'||s==='recebido')return'paid';if(s.includes('aguardando'))return'waiting';return''}
@@ -115,7 +125,7 @@
       const rows=contextualizeRows(data?.items||[],selectedMonth);
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
       updateSummary(rows);
-      const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,b.avatarUrl,(b.entries||[]).map(e=>[e.sharedId,e.date,e.status,e.amount,e.direction])])]);
+      const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,(b.entries||[]).map(e=>[e.sharedId,e.date,e.status,e.amount,e.direction])])]);
       const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-person-card'));
       if(!force&&signature===lastSignature&&alreadyDetailed)return;
       lastSignature=signature;lastSelectedMonth=selectedMonth;
@@ -155,10 +165,10 @@
     window.addEventListener('focus',()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}});
     setInterval(()=>{
       if(!isSharingOpen())return;
-      watchLegacyOverwrite();
       const selected=getSelectedMonth();
-      if(selected!==lastSelectedMonth)refresh(true);else refresh();
+      if(selected!==lastSelectedMonth)refresh(true);
     },1000);
+    setInterval(()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}},30000);
     let tries=0;const t=setInterval(()=>{tries++;if(document.getElementById('sharedBalances')){clearInterval(t);watchLegacyOverwrite();if(isSharingOpen())refresh(true)}else if(tries>300)clearInterval(t)},100);
     window.financeSharedBalancesDetailRefresh=()=>refresh(true);
   }
