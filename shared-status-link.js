@@ -10,21 +10,30 @@
     const match=code.match(/editTx\(['\"]([^'\"]+)['\"]\)/);
     return match?.[1]||null;
   }
+  function isSharedManagedTx(tx){
+    if(!tx)return false;
+    if(String(tx.id||'').startsWith('shared-'))return true;
+    if(tx.debtManaged===true&&String(tx.debtId||'').startsWith('shared-debt-'))return true;
+    return false;
+  }
   async function refreshAll(){
     try{if(window.financeCloud?.refresh)await window.financeCloud.refresh()}catch(e){console.warn('Falha ao atualizar estado compartilhado.',e)}
     try{if(typeof renderAll==='function')renderAll()}catch(e){}
     try{window.financeSharedIncomeRefresh?.()}catch(e){}
     try{window.financeSharedPaymentConfirmationsRefresh?.()}catch(e){}
+    try{window.financeSharedBalancesDetailRefresh?.()}catch(e){}
     try{window.financeNotificationsRefresh?.()}catch(e){}
   }
 
   document.addEventListener('change',async e=>{
     const select=e.target?.closest?.('.history-status-select');if(!select)return;
-    const row=select.closest('tr'),txId=transactionIdFromRow(row);if(!txId||!String(txId).startsWith('shared-'))return;
+    const row=select.closest('tr'),txId=transactionIdFromRow(row);if(!txId)return;
 
-    e.preventDefault();e.stopImmediatePropagation();
     const client=getSb(),st=getState();if(!client||!Array.isArray(st?.transactions))return;
     const tx=st.transactions.find(t=>String(t.id)===String(txId));
+    if(!isSharedManagedTx(tx))return;
+
+    e.preventDefault();e.stopImmediatePropagation();
     const previous=tx?.status||'';const next=select.value;
     select.disabled=true;
     try{
