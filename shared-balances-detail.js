@@ -40,7 +40,7 @@
   async function signedAvatar(path){
     if(!path)return'';
     const client=getSb();if(!client)return'';
-    try{const {data,error}=await client.storage.from(BUCKET).createSignedUrl(path,3600);if(error)throw error;return data?.signedUrl||''}catch(e){return''}
+    try{const {data,error}=await client.storage.from(BUCKET).createSignedUrl(path,3600);if(error)throw error;return data?.signedUrl||''}catch(e){console.warn('Falha ao carregar foto do participante.',e);return''}
   }
 
   function statusClass(status){const s=String(status||'').toLowerCase();if(s==='pago'||s==='recebido')return'paid';if(s.includes('aguardando'))return'waiting';return''}
@@ -69,7 +69,7 @@
       const {data,error}=await client.rpc('finance_shared_balances');if(error)throw error;
       const rows=data?.items||[];
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
-      const signature=JSON.stringify(rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,(b.entries||[]).map(e=>[e.sharedId,e.status,e.amount,e.direction])]))
+      const signature=JSON.stringify(rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,b.avatarUrl,(b.entries||[]).map(e=>[e.sharedId,e.status,e.amount,e.direction])]))
       if(signature===lastSignature&&host.classList.contains('shared-balances-detailed'))return;
       lastSignature=signature;host.classList.add('shared-balances-detailed');
       host.innerHTML=rows.length?rows.map(cardHtml).join(''):'<div class="empty">Nenhum acerto entre participantes.</div>';
