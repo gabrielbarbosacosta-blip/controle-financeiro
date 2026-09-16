@@ -9,6 +9,18 @@
   function money(v){return typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0)}
   function fmtDateSafe(d){try{return typeof fmtDate==='function'?fmtDate(d):d}catch(e){return d}}
   function monthLabelSafe(ym){try{return typeof fmtMonth==='function'?fmtMonth(ym):ym}catch(e){return ym}}
+  function getSelectedMonth(){
+    try{
+      const value=state?.settings?.selectedMonth||window.state?.settings?.selectedMonth||'';
+      if(/^\d{4}-\d{2}$/.test(String(value)))return String(value);
+    }catch(e){}
+    const candidates=['#monthSelect','#selectedMonth','#projectionMonth','#historyMonth','input[type="month"]'];
+    for(const selector of candidates){
+      const el=document.querySelector(selector),value=el?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value)))return String(value);
+    }
+    const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
 
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -29,8 +41,12 @@
     return id.startsWith('shared-')&&(desc.startsWith('Reembolso —')||notes.includes('Valor a receber referente à despesa compartilhada'));
   }
 
-  function sharedReceivables(){
-    try{return (Array.isArray(state?.transactions)?state.transactions:[]).filter(isSharedReceivable)}catch(e){return[]}
+  function sharedReceivables(month=getSelectedMonth()){
+    try{
+      return (Array.isArray(state?.transactions)?state.transactions:[])
+        .filter(isSharedReceivable)
+        .filter(t=>!month||String(t.date||'').slice(0,7)===month);
+    }catch(e){return[]}
   }
 
   function ensureCard(){
@@ -39,16 +55,19 @@
     let card=document.getElementById('sharedIncomeCard');
     if(card)return card;
     card=document.createElement('div');card.className='card';card.id='sharedIncomeCard';
-    card.innerHTML=`<div class="section-head"><div><h3>Receitas de compartilhamentos</h3><div class="muted">Reembolsos a receber de despesas compartilhadas que você pagou.</div></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Receita</th><th>Origem</th><th>Data</th><th>Status</th><th class="num">Valor</th></tr></thead><tbody id="sharedIncomeBody"></tbody></table></div>`;
+    card.innerHTML=`<div class="section-head"><div><h3>Receitas de compartilhamentos</h3><div class="muted" id="sharedIncomeSubtitle">Reembolsos a receber de despesas compartilhadas que você pagou.</div></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Receita</th><th>Origem</th><th>Data</th><th>Status</th><th class="num">Valor</th></tr></thead><tbody id="sharedIncomeBody"></tbody></table></div>`;
     page.appendChild(card);return card;
   }
 
   function renderCard(){
     const card=ensureCard();if(!card)return;
     const body=document.getElementById('sharedIncomeBody');if(!body)return;
-    const rows=sharedReceivables().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const month=getSelectedMonth();
+    const subtitle=document.getElementById('sharedIncomeSubtitle');
+    if(subtitle)subtitle.textContent=`Reembolsos da competência ${monthLabelSafe(month)}.`;
+    const rows=sharedReceivables(month).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     const html=!rows.length
-      ?'<tr><td colspan="5"><div class="shared-income-empty">Nenhum reembolso de despesa compartilhada a receber.</div></td></tr>'
+      ?`<tr><td colspan="5"><div class="shared-income-empty">Nenhum reembolso de despesa compartilhada em ${esc(monthLabelSafe(month))}.</div></td></tr>`
       :rows.map(t=>{
         const status=String(t.status||'Pendente');
         const received=status.toLowerCase()==='recebido';
@@ -58,7 +77,8 @@
   }
 
   function updateSummary(){
-    const rows=sharedReceivables();
+    const month=getSelectedMonth();
+    const rows=sharedReceivables(month);
     let plans=[],managed=[];
     try{plans=Array.isArray(state?.incomePlans)?state.incomePlans:[];managed=(Array.isArray(state?.transactions)?state.transactions:[]).filter(t=>t.incomeManaged===true)}catch(e){}
     const all=[...managed,...rows],pending=all.filter(t=>String(t.status||'').toLowerCase()==='pendente');
@@ -99,6 +119,10 @@
       if((hookIncomeRender()&&document.getElementById('page-incomes'))||tries>300)clearInterval(timer);
     },100);
     document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="incomes"]'))setTimeout(sync,0)});
+    document.addEventListener('change',e=>{
+      const value=String(e.target?.value||'');
+      if(/^\d{4}-\d{2}$/.test(value)&&document.getElementById('page-incomes')?.classList.contains('active'))setTimeout(sync,0);
+    },true);
     window.addEventListener('focus',()=>{if(document.getElementById('page-incomes')?.classList.contains('active'))sync()});
     window.financeSharedIncomeRefresh=sync;
   }
