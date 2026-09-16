@@ -33,21 +33,6 @@
     return `shared-charge:${month||'all'}:${counterpart}:${cents(amount)}`;
   }
 
-  function recomputeCounter(){
-    const host=document.getElementById('notificationsList');
-    if(!host)return;
-    const cards=[...host.querySelectorAll('.notification-card')].filter(el=>el.style.display!=='none');
-    const total=cards.length;
-    const count=document.getElementById('notificationsCount');
-    if(count)count.textContent=`${total} pendência${total===1?'':'s'}`;
-    const bell=document.getElementById('profileNotificationBtn');
-    if(bell){
-      bell.classList.toggle('has-notifications',total>0);
-      const badge=bell.querySelector('.notification-badge');
-      if(badge)badge.textContent=total>9?'9+':String(total);
-    }
-  }
-
   async function loadSeenKeys(client){
     const {data,error}=await client.rpc('finance_list_notification_views',{p_prefix:'shared-charge:'});
     if(error)throw error;
@@ -59,10 +44,7 @@
     if(running||!client||!host)return;
     running=true;
     try{
-      const [balanceRes]=await Promise.all([
-        client.rpc('finance_shared_balances'),
-        loadSeenKeys(client)
-      ]);
+      const [balanceRes]=await Promise.all([client.rpc('finance_shared_balances'),loadSeenKeys(client)]);
       if(balanceRes.error)throw balanceRes.error;
       const balances=balanceRes.data?.items||[];
       const aggregateCharges=balances.filter(b=>(Number(b.toReceive)||0)>0);
@@ -75,18 +57,18 @@
         const key=chargeKey(balance,month,amount);
         card.dataset.notificationKey=key;
         card.dataset.notificationMode='once';
+        card.dataset.notificationKind='charge';
         if(seenKeys.has(key)&&!sessionVisibleKeys.has(key)){
           card.style.display='none';
           return;
         }
         card.style.display='';
-        const value=card.querySelector('.notification-value');
-        if(value)value.textContent=money(amount);
+        const value=card.querySelector('.notification-value');if(value)value.textContent=money(amount);
         const meta=card.querySelector('.notification-meta');
-        if(meta)meta.textContent=month?`Saldo pendente em ${monthLabel(month)}. Esta notificação desaparece depois de visualizada.`:'Há um saldo a receber ainda não quitado nos compartilhamentos.';
+        if(meta)meta.textContent=month?`Saldo pendente em ${monthLabel(month)}. Esta notificação sai da fila depois de visualizada.`:'Há um saldo a receber ainda não quitado nos compartilhamentos.';
       });
       lastMonth=month;
-      recomputeCounter();
+      try{window.financeNotificationQueueRefresh?.()}catch(e){}
     }catch(e){console.warn('Falha ao contextualizar notificações por mês.',e)}finally{running=false}
   }
 
@@ -94,7 +76,7 @@
     const client=getSb(),host=document.getElementById('notificationsList');
     if(!client||!host)return;
     const cards=[...host.querySelectorAll('.notification-card.charge[data-notification-key]')]
-      .filter(card=>card.style.display!=='none');
+      .filter(card=>card.dataset.queueActive==='1'&&card.style.display!=='none');
     const keys=[...new Set(cards.map(card=>card.dataset.notificationKey).filter(Boolean))];
     if(!keys.length)return;
     keys.forEach(key=>sessionVisibleKeys.add(key));
@@ -105,7 +87,6 @@
         seenKeys.add(key);
       }catch(e){console.warn('Falha ao marcar notificação como visualizada.',e)}
     }));
-    recomputeCounter();
   }
 
   function schedule(){setTimeout(applyContext,120)}
@@ -124,12 +105,14 @@
     let tries=0;
     const ready=setInterval(()=>{tries++;if(wrapRefresh()){clearInterval(ready);schedule()}else if(tries>300)clearInterval(ready)},100);
     document.addEventListener('click',e=>{
-      if(!e.target?.closest?.('#profileNotificationBtn'))return;
-      sessionVisibleKeys.clear();
-      setTimeout(async()=>{await applyContext();setTimeout(markVisibleChargesViewed,350)},120);
+      if(e.target?.closest?.('#profileNotificationBtn')){sessionVisibleKeys.clear();setTimeout(applyContext,120);return}
+      const value=e.target?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value))&&selectedMonth()!==lastMonth)schedule();
     },true);
-    document.addEventListener('change',()=>{const month=selectedMonth();if(month!==lastMonth)schedule()},true);
-    setInterval(()=>{const month=selectedMonth();if(month!==lastMonth)applyContext()},1000);
+    document.addEventListener('change',e=>{
+      const value=e.target?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value))&&selectedMonth()!==lastMonth)schedule();
+    },true);
     window.financeNotificationsMonthContextRefresh=applyContext;
     window.financeMarkVisibleChargeNotificationsViewed=markVisibleChargesViewed;
   }
