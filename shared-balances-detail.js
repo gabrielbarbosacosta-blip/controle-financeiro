@@ -21,12 +21,12 @@
     }catch(e){}
     const candidates=['#monthSelect','#selectedMonth','#projectionMonth','#historyMonth','input[type="month"]'];
     for(const selector of candidates){
-      const el=document.querySelector(selector);const value=el?.value||'';
+      const el=document.querySelector(selector),value=el?.value||'';
       if(/^\d{4}-\d{2}$/.test(String(value)))return String(value);
     }
     const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   }
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c));
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
   const money=v=>typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
   function dateLabel(v){try{return typeof fmtDate==='function'?fmtDate(v):String(v||'')}catch(e){return String(v||'')}}
   function monthLabel(ym){
@@ -103,7 +103,7 @@
   function entryHtml(e){
     const dir=e.direction==='receive'?'receive':'pay';
     const status=String(e.status||'Pendente');
-    return `<div class="shared-entry-line"><div><div class="shared-entry-title">${esc(e.description||'Despesa compartilhada')}</div><div class="shared-entry-meta"><span class="shared-entry-kind ${dir}">${esc(e.kind|| (dir==='receive'?'Reembolso':'Despesa'))}</span><span class="shared-entry-status ${statusClass(status)}">${esc(status)}</span>${e.date?`<span>${esc(dateLabel(e.date))}</span>`:''}</div></div><div class="shared-entry-value">${money(e.amount)}</div></div>`;
+    return `<div class="shared-entry-line"><div><div class="shared-entry-title">${esc(e.description||'Despesa compartilhada')}</div><div class="shared-entry-meta"><span class="shared-entry-kind ${dir}">${esc(e.kind||(dir==='receive'?'Reembolso':'Despesa'))}</span><span class="shared-entry-status ${statusClass(status)}">${esc(status)}</span>${e.date?`<span>${esc(dateLabel(e.date))}</span>`:''}</div></div><div class="shared-entry-value">${money(e.amount)}</div></div>`;
   }
 
   function cardHtml(b){
@@ -116,9 +116,28 @@
     return `<div class="shared-person-card"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatar}</div><div class="shared-person-card-title"><div class="shared-person-card-name">${esc(b.name||'Participante')}</div><div class="shared-person-card-sub">${entries.length} lançamento${entries.length===1?'':'s'} nesta competência</div></div></div><div class="shared-entry-list">${entries.length?entries.map(entryHtml).join(''):'<div class="empty">Nenhuma despesa ou reembolso.</div>'}</div><div class="shared-person-card-foot"><div><div class="shared-person-total-label">${label}</div><div class="shared-person-total ${cls}">${money(value)}</div></div><div style="text-align:right"><div class="shared-person-total-label">A pagar ${money(toPay)} · A receber ${money(toReceive)}</div></div></div></div>`;
   }
 
+  function installHostGuard(host){
+    if(!host||host.dataset.detailGuard==='1')return;
+    const descriptor=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+    if(!descriptor?.get||!descriptor?.set)return;
+    Object.defineProperty(host,'innerHTML',{
+      configurable:true,
+      get(){return descriptor.get.call(this)},
+      set(value){
+        const html=String(value??'');
+        const detailMarkup=html.includes('shared-month-context')||html.includes('shared-person-card')||html.includes('Nenhum acerto nesta competência.');
+        if(internalRender||detailMarkup)return descriptor.set.call(this,value);
+        if(window.__sharedBalancesDetailLoaded)return;
+        return descriptor.set.call(this,value);
+      }
+    });
+    host.dataset.detailGuard='1';
+  }
+
   async function refresh(force=false){
     const client=getSb(),uid=getUserId(),host=document.getElementById('sharedBalances'),selectedMonth=getSelectedMonth();
     if(loading||!client||!uid||!host)return;
+    installHostGuard(host);
     loading=true;
     try{
       const {data,error}=await client.rpc('finance_shared_balances');if(error)throw error;
@@ -136,41 +155,40 @@
     }catch(e){console.warn('Falha ao detalhar acertos por pessoa.',e)}finally{loading=false}
   }
 
-  function scheduleRefresh(){
+  function scheduleRefresh(force=false){
     if(refreshScheduled)return;
     refreshScheduled=true;
-    setTimeout(()=>{refreshScheduled=false;refresh(true)},80);
-  }
-
-  function watchLegacyOverwrite(){
-    const host=document.getElementById('sharedBalances');if(!host||host.dataset.detailObserver==='1')return;
-    host.dataset.detailObserver='1';
-    const observer=new MutationObserver(()=>{
-      if(internalRender)return;
-      if(!isSharingOpen())return;
-      const hasDetailed=host.classList.contains('shared-balances-detailed')&&(!!host.querySelector('.shared-person-card')||!!host.querySelector('.shared-month-context'));
-      if(!hasDetailed)scheduleRefresh();
-    });
-    observer.observe(host,{childList:true,subtree:true});
+    setTimeout(()=>{refreshScheduled=false;refresh(force)},60);
   }
 
   function isSharingOpen(){return document.getElementById('page-sharing')?.classList.contains('active')||document.querySelector('[data-page="sharing"].active')}
+
   function init(){
     injectStyles();
-    document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(()=>{watchLegacyOverwrite();refresh(true)},450)},true);
-    document.addEventListener('change',e=>{
-      const value=e.target?.value||'';
-      if(/^\d{4}-\d{2}$/.test(String(value))&&isSharingOpen())setTimeout(()=>refresh(true),40);
+    document.addEventListener('click',e=>{
+      if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(()=>refresh(false),120);
     },true);
-    window.addEventListener('focus',()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}});
-    setInterval(()=>{
-      if(!isSharingOpen())return;
-      const selected=getSelectedMonth();
-      if(selected!==lastSelectedMonth)refresh(true);
-    },1000);
-    setInterval(()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}},30000);
-    let tries=0;const t=setInterval(()=>{tries++;if(document.getElementById('sharedBalances')){clearInterval(t);watchLegacyOverwrite();if(isSharingOpen())refresh(true)}else if(tries>300)clearInterval(t)},100);
-    window.financeSharedBalancesDetailRefresh=()=>refresh(true);
+    const monthEvent=e=>{
+      const value=e.target?.value||'';
+      if(/^\d{4}-\d{2}$/.test(String(value))&&isSharingOpen())setTimeout(()=>{
+        const selected=getSelectedMonth();
+        if(selected!==lastSelectedMonth)refresh(true);
+      },30);
+    };
+    document.addEventListener('change',monthEvent,true);
+    document.addEventListener('input',monthEvent,true);
+    window.addEventListener('focus',()=>{if(isSharingOpen())refresh(false)});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isSharingOpen())refresh(false)});
+    setInterval(()=>{if(isSharingOpen())refresh(false)},30000);
+    let tries=0;const t=setInterval(()=>{
+      tries++;
+      const host=document.getElementById('sharedBalances');
+      if(host){clearInterval(t);installHostGuard(host);if(isSharingOpen())refresh(true)}
+      else if(tries>300)clearInterval(t);
+    },100);
+    window.financeSharedBalancesDetailRefresh=()=>refresh(false);
+    window.financeSharedBalancesDetailForceRefresh=()=>refresh(true);
   }
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
