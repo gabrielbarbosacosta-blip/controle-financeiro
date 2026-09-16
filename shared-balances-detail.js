@@ -6,6 +6,8 @@
   const BUCKET='profile-photos';
   let loading=false;
   let lastSignature='';
+  let internalRender=false;
+  let refreshScheduled=false;
 
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function getUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
@@ -61,7 +63,7 @@
     return `<div class="shared-person-card"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatar}</div><div class="shared-person-card-title"><div class="shared-person-card-name">${esc(b.name||'Participante')}</div><div class="shared-person-card-sub">${entries.length} lançamento${entries.length===1?'':'s'} compartilhado${entries.length===1?'':'s'}</div></div></div><div class="shared-entry-list">${entries.length?entries.map(entryHtml).join(''):'<div class="empty">Nenhuma despesa ou reembolso.</div>'}</div><div class="shared-person-card-foot"><div><div class="shared-person-total-label">${label}</div><div class="shared-person-total ${cls}">${money(value)}</div></div><div style="text-align:right"><div class="shared-person-total-label">A pagar ${money(toPay)} · A receber ${money(toReceive)}</div></div></div></div>`;
   }
 
-  async function refresh(){
+  async function refresh(force=false){
     const client=getSb(),uid=getUserId(),host=document.getElementById('sharedBalances');
     if(loading||!client||!uid||!host)return;
     loading=true;
@@ -70,20 +72,42 @@
       const rows=data?.items||[];
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
       const signature=JSON.stringify(rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,b.avatarUrl,(b.entries||[]).map(e=>[e.sharedId,e.status,e.amount,e.direction])]))
-      if(signature===lastSignature&&host.classList.contains('shared-balances-detailed'))return;
-      lastSignature=signature;host.classList.add('shared-balances-detailed');
+      const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-person-card'));
+      if(!force&&signature===lastSignature&&alreadyDetailed)return;
+      lastSignature=signature;
+      internalRender=true;
+      host.classList.add('shared-balances-detailed');
       host.innerHTML=rows.length?rows.map(cardHtml).join(''):'<div class="empty">Nenhum acerto entre participantes.</div>';
+      queueMicrotask(()=>{internalRender=false});
     }catch(e){console.warn('Falha ao detalhar acertos por pessoa.',e)}finally{loading=false}
+  }
+
+  function scheduleRefresh(){
+    if(refreshScheduled)return;
+    refreshScheduled=true;
+    setTimeout(()=>{refreshScheduled=false;refresh(true)},80);
+  }
+
+  function watchLegacyOverwrite(){
+    const host=document.getElementById('sharedBalances');if(!host||host.dataset.detailObserver==='1')return;
+    host.dataset.detailObserver='1';
+    const observer=new MutationObserver(()=>{
+      if(internalRender)return;
+      if(!isSharingOpen())return;
+      const hasDetailed=host.classList.contains('shared-balances-detailed')&&!!host.querySelector('.shared-person-card');
+      if(!hasDetailed)scheduleRefresh();
+    });
+    observer.observe(host,{childList:true,subtree:true});
   }
 
   function isSharingOpen(){return document.getElementById('page-sharing')?.classList.contains('active')||document.querySelector('[data-page="sharing"].active')}
   function init(){
     injectStyles();
-    document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(refresh,350)},true);
-    window.addEventListener('focus',()=>{if(isSharingOpen())refresh()});
-    setInterval(()=>{if(isSharingOpen())refresh()},30000);
-    let tries=0;const t=setInterval(()=>{tries++;if(document.getElementById('sharedBalances')){clearInterval(t);if(isSharingOpen())refresh()}else if(tries>300)clearInterval(t)},100);
-    window.financeSharedBalancesDetailRefresh=refresh;
+    document.addEventListener('click',e=>{if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(()=>{watchLegacyOverwrite();refresh(true)},450)},true);
+    window.addEventListener('focus',()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}});
+    setInterval(()=>{if(isSharingOpen()){watchLegacyOverwrite();refresh()}},30000);
+    let tries=0;const t=setInterval(()=>{tries++;if(document.getElementById('sharedBalances')){clearInterval(t);watchLegacyOverwrite();if(isSharingOpen())refresh(true)}else if(tries>300)clearInterval(t)},100);
+    window.financeSharedBalancesDetailRefresh=()=>refresh(true);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
