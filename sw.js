@@ -1,4 +1,4 @@
-const CACHE='controle-financeiro-pwa-v1';
+const CACHE='controle-financeiro-pwa-v2-20260916';
 const SHELL=['/','/index.html','/app.css','/app.js','/history-status.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
@@ -14,6 +14,16 @@ self.addEventListener('activate',event=>{
   })());
 });
 
+async function networkFirst(req){
+  try{
+    const fresh=await fetch(req,{cache:'no-store'});
+    if(fresh&&fresh.ok){const cache=await caches.open(CACHE);cache.put(req,fresh.clone()).catch(()=>{})}
+    return fresh;
+  }catch(_e){
+    return (await caches.match(req))||new Response('',{status:504,statusText:'Offline'});
+  }
+}
+
 self.addEventListener('fetch',event=>{
   const req=event.request;
   if(req.method!=='GET')return;
@@ -23,7 +33,7 @@ self.addEventListener('fetch',event=>{
   if(req.mode==='navigate'){
     event.respondWith((async()=>{
       try{
-        const fresh=await fetch(req);
+        const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
         cache.put('/index.html',fresh.clone()).catch(()=>{});
         return fresh;
@@ -34,15 +44,16 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
+  const codeAsset=req.destination==='script'||req.destination==='style'||/\.(?:js|css|json|webmanifest)$/i.test(url.pathname);
+  if(codeAsset){event.respondWith(networkFirst(req));return}
+
   event.respondWith((async()=>{
     const cached=await caches.match(req);
-    const network=fetch(req).then(async response=>{
-      if(response&&response.ok){
-        const cache=await caches.open(CACHE);
-        cache.put(req,response.clone()).catch(()=>{});
-      }
-      return response;
-    }).catch(()=>null);
-    return cached||await network||new Response('',{status:504,statusText:'Offline'});
+    if(cached)return cached;
+    try{
+      const fresh=await fetch(req);
+      if(fresh&&fresh.ok){const cache=await caches.open(CACHE);cache.put(req,fresh.clone()).catch(()=>{})}
+      return fresh;
+    }catch(_e){return new Response('',{status:504,statusText:'Offline'})}
   })());
 });
