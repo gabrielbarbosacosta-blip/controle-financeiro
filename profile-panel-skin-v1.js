@@ -67,7 +67,7 @@
         height:92px!important;
         border-radius:50%!important;
         margin:0 auto 14px!important;
-        border:2px solid var(--profile-accent)!important;
+        border:0!important;
         background:linear-gradient(135deg,#17375a,#0f1d31)!important;
         box-shadow:0 12px 30px rgba(0,0,0,.28)!important;
       }
