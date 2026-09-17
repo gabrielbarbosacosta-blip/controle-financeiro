@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260916-1';
+  const THEME_VERSION='20260916-2';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -16,158 +16,97 @@
   };
 
   function injectTheme(){
-    if(document.getElementById('caderno-figma-theme'))return;
-    const link=document.createElement('link');
-    link.id='caderno-figma-theme';
-    link.rel='stylesheet';
-    link.href=`figma-caderno-theme-v1.css?v=${THEME_VERSION}`;
-    document.head.appendChild(link);
+    if(!document.getElementById('caderno-figma-theme')){
+      const link=document.createElement('link');
+      link.id='caderno-figma-theme';
+      link.rel='stylesheet';
+      link.href=`figma-caderno-theme-v1.css?v=${THEME_VERSION}`;
+      document.head.appendChild(link);
+    }
     document.documentElement.classList.add('caderno-theme');
-    document.title='caderno · finanças';
+    if(document.title!=='caderno · finanças')document.title='caderno · finanças';
   }
 
-  function safeUser(){
-    try{return typeof currentUser!=='undefined'?currentUser:null}catch(e){return null}
-  }
+  function safeUser(){try{return typeof currentUser!=='undefined'?currentUser:null}catch(e){return null}}
   function userDisplay(){
-    const user=safeUser();
-    const meta=user?.user_metadata||{};
-    const full=String(meta.full_name||meta.name||meta.nome||'').trim();
-    const email=String(user?.email||'').trim();
+    const user=safeUser(),meta=user?.user_metadata||{},full=String(meta.full_name||meta.name||meta.nome||'').trim(),email=String(user?.email||'').trim();
     const name=full||email.split('@')[0].replace(/[._-]+/g,' ')||'Gabriel';
     return {name:name.replace(/\b\w/g,m=>m.toUpperCase()),email:email||'Conta pessoal'};
   }
   function firstName(){return userDisplay().name.split(/\s+/)[0]||'Gabriel'}
   function initials(name){return String(name||'G').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'G'}
+  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
   function decorateBrand(){
-    const brand=document.querySelector('.sidebar>.brand');
-    if(!brand)return;
-    const h=brand.querySelector('h1');
-    if(h)h.textContent='caderno';
-    const logo=brand.querySelector('.logo');
-    if(logo)logo.textContent='';
+    const brand=document.querySelector('.sidebar>.brand');if(!brand)return;
+    const h=brand.querySelector('h1');if(h&&h.textContent!=='caderno')h.textContent='caderno';
+    const logo=brand.querySelector('.logo');if(logo&&logo.textContent)logo.textContent='';
   }
 
   function ensureProfile(){
-    const sidebar=document.querySelector('.sidebar');
-    const brand=sidebar?.querySelector(':scope > .brand');
-    if(!sidebar||!brand)return;
-    const info=userDisplay();
-    let profile=sidebar.querySelector('.caderno-profile');
-    if(!profile){
-      profile=document.createElement('button');
-      profile.type='button';profile.className='caderno-profile';profile.setAttribute('aria-label','Conta pessoal');
-      brand.insertAdjacentElement('afterend',profile);
-    }
-    profile.innerHTML=`<span class="caderno-avatar">${initials(info.name)}</span><span class="caderno-profile-copy"><b>${escapeHtml(info.name)}</b><small>${escapeHtml(info.email||'Conta pessoal')}</small></span><span class="caderno-profile-chevron">›</span>`;
-    const originalLogout=document.getElementById('logoutBtn');
-    let logout=sidebar.querySelector('.caderno-sidebar-logout');
+    const sidebar=document.querySelector('.sidebar'),brand=sidebar?.querySelector(':scope > .brand');if(!sidebar||!brand)return;
+    const info=userDisplay();let profile=sidebar.querySelector('.caderno-profile');
+    if(!profile){profile=document.createElement('div');profile.className='caderno-profile';profile.setAttribute('aria-label','Conta pessoal');brand.insertAdjacentElement('afterend',profile)}
+    const wanted=`<span class="caderno-avatar">${initials(info.name)}</span><span class="caderno-profile-copy"><b>${escapeHtml(info.name)}</b><small>${escapeHtml(info.email||'Conta pessoal')}</small></span><span class="caderno-profile-chevron">›</span>`;
+    if(profile.innerHTML!==wanted)profile.innerHTML=wanted;
+    const originalLogout=document.getElementById('logoutBtn');let logout=sidebar.querySelector('.caderno-sidebar-logout');
     if(!logout){logout=document.createElement('button');logout.type='button';logout.className='caderno-sidebar-logout';logout.textContent='Sair da conta';sidebar.appendChild(logout)}
-    logout.onclick=()=>originalLogout?.click();
-    profile.onclick=()=>logout.click();
+    if(!logout.dataset.bound){logout.dataset.bound='1';logout.addEventListener('click',()=>originalLogout?.click())}
   }
 
-  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-
-  function iconFor(page){
-    const path=ICONS[page]||ICONS.settings;
-    return `<span class="caderno-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></span>`;
-  }
-
+  function iconFor(page){const path=ICONS[page]||ICONS.settings;return `<span class="caderno-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></span>`}
   function decorateNav(){
-    const nav=document.querySelector('.nav');
-    if(!nav)return;
+    const nav=document.querySelector('.nav');if(!nav)return;
     nav.querySelectorAll('button[data-page]').forEach(btn=>{
-      const page=btn.dataset.page||'';
-      const label=LABELS[page]||btn.dataset.cadernoLabel||btn.textContent.trim();
-      btn.dataset.cadernoLabel=label;
-      if(!btn.querySelector('.caderno-nav-icon')){
-        const old=btn.textContent.trim();
-        btn.innerHTML=`${iconFor(page)}<span class="caderno-nav-label">${escapeHtml(LABELS[page]||old)}</span>`;
-      }else{
-        const text=btn.querySelector('.caderno-nav-label');if(text&&LABELS[page])text.textContent=LABELS[page];
-      }
+      const page=btn.dataset.page||'',label=LABELS[page]||btn.dataset.cadernoLabel||btn.textContent.trim();btn.dataset.cadernoLabel=label;
+      if(!btn.querySelector('.caderno-nav-icon')){const old=btn.textContent.trim();btn.innerHTML=`${iconFor(page)}<span class="caderno-nav-label">${escapeHtml(LABELS[page]||old)}</span>`}
+      else{const text=btn.querySelector('.caderno-nav-label'),wanted=LABELS[page]||label;if(text&&text.textContent!==wanted)text.textContent=wanted}
     });
   }
 
   function ensureMonthSwitcher(){
-    const select=document.getElementById('monthSelect');
-    if(!select||select.closest('.caderno-month-switcher'))return;
+    const select=document.getElementById('monthSelect');if(!select||select.closest('.caderno-month-switcher'))return;
     const wrap=document.createElement('div');wrap.className='caderno-month-switcher';
     const prev=document.createElement('button');prev.type='button';prev.setAttribute('aria-label','Mês anterior');prev.textContent='‹';
     const next=document.createElement('button');next.type='button';next.setAttribute('aria-label','Próximo mês');next.textContent='›';
     select.parentNode.insertBefore(wrap,select);wrap.append(prev,select,next);
     const move=delta=>{const ni=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(ni===select.selectedIndex)return;select.selectedIndex=ni;select.dispatchEvent(new Event('change',{bubbles:true}))};
-    prev.onclick=()=>move(-1);next.onclick=()=>move(1);
+    prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
   }
 
-  function decorateQuickAdd(){
-    const btn=document.getElementById('quickAdd');if(!btn)return;
-    btn.textContent='Novo lançamento';
-    btn.setAttribute('aria-label','Novo lançamento');
-  }
-
+  function decorateQuickAdd(){const btn=document.getElementById('quickAdd');if(!btn)return;if(btn.textContent.trim()!=='Novo lançamento')btn.textContent='Novo lançamento';btn.setAttribute('aria-label','Novo lançamento')}
   function activePage(){return document.querySelector('.nav button.active')?.dataset.page||''}
   function refreshHeading(){
     if(activePage()!=='dashboard')return;
-    const title=document.getElementById('pageTitle'),sub=document.getElementById('pageSubtitle');
-    const hour=new Date().getHours();
-    const greet=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
-    if(title)title.textContent=`${greet}, ${firstName()}.`;
-    if(sub)sub.textContent='Aqui está a leitura do seu mês.';
+    const title=document.getElementById('pageTitle'),sub=document.getElementById('pageSubtitle'),hour=new Date().getHours(),greet=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite',wanted=`${greet}, ${firstName()}.`;
+    if(title&&title.textContent!==wanted)title.textContent=wanted;if(sub&&sub.textContent!=='Aqui está a leitura do seu mês.')sub.textContent='Aqui está a leitura do seu mês.';
   }
-
+  function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
   function tuneDashboardCopy(){
     const dash=document.getElementById('page-dashboard');if(!dash)return;
-    const kpis=dash.querySelectorAll('.grid-kpi .kpi');
-    const labels=['Saldo inicial','Entradas','Saídas','Faturas pagas','Saldo final'];
-    const hints=['Base do mês','Receitas recebidas','Inclui faturas pagas','Um valor por fatura','Resultado do período'];
-    kpis.forEach((card,i)=>{const l=card.querySelector('.label'),h=card.querySelector('.hint');if(l&&labels[i])l.textContent=labels[i];if(h&&hints[i]&&h.id!=='kpiResultHint')h.textContent=hints[i]});
-    const chartTitle=dash.querySelector('.dashboard-grid>.card:first-child h3');
-    if(chartTitle)chartTitle.textContent='Saldo projetado';
-    const catTitle=dash.querySelector('.dashboard-grid>.card:nth-child(2) h3');
-    if(catTitle)catTitle.textContent='Gastos por categoria';
+    const kpis=dash.querySelectorAll('.grid-kpi .kpi'),labels=['Saldo inicial','Entradas','Saídas','Faturas pagas','Saldo final'],hints=['Base do mês','Receitas recebidas','Inclui faturas pagas','Um valor por fatura','Resultado do período'];
+    kpis.forEach((card,i)=>{setText(card.querySelector('.label'),labels[i]||'');const h=card.querySelector('.hint');if(h&&h.id!=='kpiResultHint'&&hints[i])setText(h,hints[i])});
+    setText(dash.querySelector('.dashboard-grid>.card:first-child h3'),'Saldo projetado');setText(dash.querySelector('.dashboard-grid>.card:nth-child(2) h3'),'Gastos por categoria');
   }
 
   function drawCadernoChart(id,data){
-    const canvas=document.getElementById(id);if(!canvas)return;
-    const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
-    const cssW=Math.max(300,rect.width||700),cssH=Math.max(210,rect.height||280);
-    canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);
-    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
-    const W=cssW,H=cssH,p={l:55,r:16,t:18,b:38},vals=data.map(d=>Number(d.value)||0);
-    let min=Math.min(0,...vals),max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.08;max+=pad;min-=pad;
-    const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
-    const y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
-    ctx.clearRect(0,0,W,H);ctx.lineWidth=1;ctx.font="10px 'DM Mono', monospace";ctx.textBaseline='middle';
-    for(let i=0;i<=3;i++){
-      const val=min+(max-min)*i/3,yy=y(val);ctx.strokeStyle='#e4e3de';ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.fillStyle='#8b9491';ctx.textAlign='right';ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),p.l-8,yy);
-    }
+    const canvas=document.getElementById(id);if(!canvas)return;const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,cssW=Math.max(300,rect.width||700),cssH=Math.max(210,rect.height||280);
+    canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=cssW,H=cssH,p={l:55,r:16,t:18,b:38},vals=data.map(d=>Number(d.value)||0);let min=Math.min(0,...vals),max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.08;max+=pad;min-=pad;
+    const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1)),y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));ctx.clearRect(0,0,W,H);ctx.lineWidth=1;ctx.font="10px 'DM Mono', monospace";ctx.textBaseline='middle';
+    for(let i=0;i<=3;i++){const val=min+(max-min)*i/3,yy=y(val);ctx.strokeStyle='#e4e3de';ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.fillStyle='#8b9491';ctx.textAlign='right';ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),p.l-8,yy)}
     if(min<0&&max>0){ctx.strokeStyle='#adb6b1';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
     ctx.strokeStyle='#4a829e';ctx.lineWidth=2.3;ctx.beginPath();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
-    data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=Number(d.value)<0?'#d66e68':'#4a829e';ctx.beginPath();ctx.arc(xx,yy,3.5,0,Math.PI*2);ctx.fill();if(data.length<=12||i%2===0){ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.28);ctx.fillStyle='#8b9491';ctx.font="9px 'DM Mono', monospace";ctx.textAlign='center';ctx.fillText(d.label,0,0);ctx.restore()}});
+    data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=Number(d.value)<0?'#d66e68':'#4a829e';ctx.beginPath();ctx.arc(xx,yy,3.5,0,Math.PI*2);ctx.fill();if(data.length<=12||i%2===0){ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.28);ctx.fillStyle='#8b9491';ctx.font="9px 'DM Mono', monospace";ctx.textAlign='center';ctx.fillText(d.label,0,0);ctx.restore()}})
   }
-
-  function patchCharts(){
-    try{window.drawLineChart=drawCadernoChart;drawLineChart=drawCadernoChart}catch(e){window.drawLineChart=drawCadernoChart}
-    try{if(typeof renderDashboard==='function')renderDashboard();if(typeof renderProjection==='function')renderProjection()}catch(e){}
-  }
-
-  function decorate(){
-    injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy();
-  }
-
+  function patchCharts(){try{window.drawLineChart=drawCadernoChart;drawLineChart=drawCadernoChart}catch(e){window.drawLineChart=drawCadernoChart}try{if(typeof renderDashboard==='function')renderDashboard();if(typeof renderProjection==='function')renderProjection()}catch(e){}}
+  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
   function observe(){
-    let scheduled=false;
-    const run=()=>{scheduled=false;decorate()};
-    const queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
+    let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
     document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav()},0)});
-    document.getElementById('monthSelect')?.addEventListener('change',()=>setTimeout(patchCharts,20));
-    window.addEventListener('resize',()=>setTimeout(patchCharts,80));
+    document.getElementById('monthSelect')?.addEventListener('change',()=>setTimeout(patchCharts,20));window.addEventListener('resize',()=>setTimeout(patchCharts,80));
   }
-
   function boot(){decorate();observe();setTimeout(decorate,150);setTimeout(decorate,700);setTimeout(patchCharts,250);setTimeout(patchCharts,1200)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
