@@ -23,15 +23,15 @@
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      .goal-card.goal-has-participant-avatars .goal-head{position:relative;padding-right:112px}
-      .goal-participant-stack{position:absolute;top:12px;right:13px;display:flex;align-items:center;justify-content:flex-end;min-height:32px;z-index:2}
-      .goal-participant-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 30px;margin-left:-8px;border:2px solid #0d1929;background:#19263a;color:#ddeaac;font-size:9px;font-weight:850;letter-spacing:.02em;box-shadow:0 2px 8px rgba(0,0,0,.24)}
+      .goal-card.goal-has-participant-avatars .goal-head{position:relative;padding-right:138px}
+      .goal-participant-stack{position:absolute;top:11px;right:13px;display:flex;align-items:center;justify-content:flex-end;min-height:42px;z-index:2}
+      .goal-participant-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 40px;margin-left:-10px;border:2px solid #0d1929;background:#19263a;color:#ddeaac;font-size:11px;font-weight:850;letter-spacing:.02em;box-shadow:0 3px 10px rgba(0,0,0,.28)}
       .goal-participant-avatar:first-child{margin-left:0}
       .goal-participant-avatar img{width:100%;height:100%;object-fit:cover;display:block}
       .goal-participant-more{background:#101d2e;color:#aab7c8;border-color:#23334a}
-      .goal-participant-stack:hover .goal-participant-avatar{margin-left:-4px;transition:margin-left .16s ease}
+      .goal-participant-stack:hover .goal-participant-avatar{margin-left:-5px;transition:margin-left .16s ease}
       .goal-participant-stack:hover .goal-participant-avatar:first-child{margin-left:0}
-      @media(max-width:620px){.goal-card.goal-has-participant-avatars .goal-head{padding-right:94px}.goal-participant-avatar{width:27px;height:27px;flex-basis:27px}.goal-participant-stack{top:13px;right:11px}}
+      @media(max-width:620px){.goal-card.goal-has-participant-avatars .goal-head{padding-right:116px}.goal-participant-avatar{width:34px;height:34px;flex-basis:34px}.goal-participant-stack{top:12px;right:11px;min-height:36px}}
     `;
     document.head.appendChild(style);
   }
