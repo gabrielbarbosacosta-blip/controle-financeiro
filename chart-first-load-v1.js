@@ -4,6 +4,11 @@
 
   const TARGET_ID='projectionChart';
   const STEP_MS=120;
+  const SPEED_KEYS=[
+    [0,.22],[.10,1.05],[.22,1.55],[.38,1.50],[.52,1.12],
+    [.68,.62],[.84,.28],[.94,.14],[1,.18]
+  ];
+  const EASE_SAMPLES=240;
   let played=false;
   let active=false;
   let raf=0;
@@ -15,6 +20,43 @@
 
   function splashActive(){
     return !!document.body&&!document.body.classList.contains('caderno-splash-done');
+  }
+
+  function smoothstep(t){return t*t*(3-2*t)}
+
+  function speedAt(t){
+    const p=Math.max(0,Math.min(1,t));
+    for(let i=0;i<SPEED_KEYS.length-1;i++){
+      const a=SPEED_KEYS[i],b=SPEED_KEYS[i+1];
+      if(p<=b[0]){
+        const span=Math.max(.0001,b[0]-a[0]);
+        const local=smoothstep((p-a[0])/span);
+        return a[1]+(b[1]-a[1])*local;
+      }
+    }
+    return SPEED_KEYS[SPEED_KEYS.length-1][1];
+  }
+
+  const easeTable=(()=>{
+    const table=new Float64Array(EASE_SAMPLES+1);
+    let total=0,prev=speedAt(0);
+    for(let i=1;i<=EASE_SAMPLES;i++){
+      const now=speedAt(i/EASE_SAMPLES);
+      total+=(prev+now)/(2*EASE_SAMPLES);
+      table[i]=total;
+      prev=now;
+    }
+    if(total>0)for(let i=1;i<=EASE_SAMPLES;i++)table[i]/=total;
+    table[EASE_SAMPLES]=1;
+    return table;
+  })();
+
+  function velocityProgress(t){
+    const clamped=Math.max(0,Math.min(1,t));
+    if(clamped===1)return 1;
+    const pos=clamped*EASE_SAMPLES,index=Math.floor(pos),fraction=pos-index;
+    const a=easeTable[index],b=easeTable[Math.min(EASE_SAMPLES,index+1)];
+    return a+(b-a)*fraction;
   }
 
   function geometry(canvas,data){
@@ -98,9 +140,10 @@
     const started=performance.now();
     const tick=now=>{
       if(!active)return;
-      const progress=Math.min(1,(now-started)/duration);
+      const linear=Math.min(1,(now-started)/duration);
+      const progress=velocityProgress(linear);
       drawLineProgress(canvas,latestData,progress);
-      if(progress<1)raf=requestAnimationFrame(tick);
+      if(linear<1)raf=requestAnimationFrame(tick);
       else finish();
     };
     raf=requestAnimationFrame(tick);
