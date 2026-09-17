@@ -11,11 +11,6 @@
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function selectedMonth(){try{return String(state?.settings?.selectedMonth||document.getElementById('monthSelect')?.value||'').slice(0,7)}catch(e){return''}}
   function isExtraId(id){return /^goal-contrib-[0-9a-f]{32}$/i.test(String(id||''))}
-  function contributionId(txId){
-    const hex=String(txId||'').replace(/^goal-contrib-/i,'');
-    if(!/^[0-9a-f]{32}$/i.test(hex))return'';
-    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
-  }
   function isGoalTx(tx){return !!tx&&(String(tx.id||'').startsWith('goal-plan-')||String(tx.id||'').startsWith('goal-contrib-')||(String(tx.nature||'').toLowerCase()==='objetivo'&&String(tx.category||'').toLowerCase()==='objetivos'))}
 
   async function waitCloudIdle(){
@@ -35,12 +30,11 @@
 
   async function removeExtra(txId,button){
     if(deleting||!isExtraId(txId))return;
-    const id=contributionId(txId);if(!id)return;
     if(!confirm('Excluir este aporte extra? O lançamento será removido e o valor reservado do objetivo será recalculado.'))return;
     deleting=true;if(button)button.disabled=true;
     try{
       const client=getSb();if(!client)throw new Error('client_unavailable');
-      const {data,error}=await client.rpc('finance_delete_goal_contribution',{p_contribution_id:id});
+      const {data,error}=await client.rpc('finance_delete_goal_extra_transaction',{p_transaction_id:txId});
       if(error)throw error;
       if(!data?.ok)throw new Error(data?.error||'delete_failed');
       await refreshAll();
