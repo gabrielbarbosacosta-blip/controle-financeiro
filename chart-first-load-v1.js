@@ -3,7 +3,7 @@
   window.__chartFirstLoadV1Loaded=true;
 
   const TARGET_ID='projectionChart';
-  const STEP_MS=120;
+  const STEP_MS=78;
   const SPEED_KEYS=[
     [0,.22],[.10,1.05],[.22,1.55],[.38,1.50],[.52,1.12],
     [.68,.62],[.84,.28],[.94,.14],[1,.18]
