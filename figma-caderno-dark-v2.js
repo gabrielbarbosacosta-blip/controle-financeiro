@@ -36,9 +36,15 @@
     ctx.strokeStyle='#65aaff';ctx.lineWidth=2.3;ctx.beginPath();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();
     data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=Number(d.value)<0?'#ed7773':'#65aaff';ctx.beginPath();ctx.arc(xx,yy,3.5,0,Math.PI*2);ctx.fill();if(data.length<=12||i%2===0){ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.28);ctx.fillStyle='#718197';ctx.font="9px 'DM Mono', monospace";ctx.textAlign='center';ctx.fillText(d.label,0,0);ctx.restore()}});
   }
+  window.__cadernoDarkChartRenderer=drawDarkChart;
 
   function patchCharts(){
-    try{window.drawLineChart=drawDarkChart;drawLineChart=drawDarkChart}catch(e){window.drawLineChart=drawDarkChart}
+    const current=window.drawLineChart;
+    const protectedWrapper=!!(current?.__lineOnlyFirstLoad||current?.__cadernoTooltipOnly);
+    if(!protectedWrapper){
+      try{window.drawLineChart=drawDarkChart;drawLineChart=drawDarkChart}catch(e){window.drawLineChart=drawDarkChart}
+    }
+    if(window.__financeChartLineIntroActive===true)return;
     try{if(typeof renderDashboard==='function')renderDashboard();if(typeof renderProjection==='function')renderProjection()}catch(e){}
   }
 
@@ -56,6 +62,7 @@
 
   function boot(){
     inject();
+    patchCharts();
     setTimeout(patchCharts,120);setTimeout(patchCharts,900);
     restyleStatusSelects();
     new MutationObserver(()=>restyleStatusSelects()).observe(document.body,{childList:true,subtree:true});
