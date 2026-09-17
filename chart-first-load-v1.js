@@ -3,113 +3,142 @@
   window.__chartFirstLoadV1Loaded=true;
 
   const TARGET_ID='projectionChart';
-  const MONTHS=12;
   const STEP_MS=120;
-  const MAX_WAIT_MS=12000;
   let played=false;
-  let timer=null;
+  let active=false;
+  let raf=0;
+  let latestData=[];
 
   function reducedMotion(){
     try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}
   }
 
-  function showImmediately(canvas){
-    if(!canvas)return;
-    canvas.style.clipPath='';
-    canvas.style.webkitClipPath='';
-    canvas.style.transition='';
-    canvas.classList.remove('chart-first-load-drawing');
-    canvas.dataset.firstLoadChartDone='1';
-  }
-
-  function boundaryFor(canvas,index){
+  function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect();
-    const width=Math.max(300,rect.width||300);
-    const left=62;
-    const right=18;
-    const plot=Math.max(1,width-left-right);
-    const x=left+plot*(MONTHS<=1?.5:index/(MONTHS-1));
-    return Math.min(width,Math.max(left,x+7));
+    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:18,t:20,b:42};
+    const vals=(data||[]).map(d=>Number(d.value)||0);
+    const rawMin=vals.length?Math.min(...vals):0,rawMax=vals.length?Math.max(...vals):1;
+    let min,max;
+    if(rawMin>=0){min=0;max=rawMax||1;max+=Math.max(1,(max-min)*.1)}
+    else if(rawMax<=0){max=0;min=rawMin||-1;min-=Math.max(1,(max-min)*.1)}
+    else{min=Math.min(0,...vals);max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.1;max+=pad;min-=pad}
+    const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
+    const y=v=>p.t+(H-p.t-p.b)*(1-((Number(v)||0)-min)/(max-min));
+    return{W,H,p,min,max,x,y};
   }
 
-  function reveal(canvas,index){
-    const rect=canvas.getBoundingClientRect();
-    const width=Math.max(300,rect.width||300);
-    const boundary=boundaryFor(canvas,index);
-    const hiddenRight=Math.max(0,width-boundary);
-    const clip=`inset(0 ${hiddenRight}px 0 0)`;
-    canvas.style.clipPath=clip;
-    canvas.style.webkitClipPath=clip;
+  function prepare(canvas,data){
+    const dpr=window.devicePixelRatio||1;
+    const g=geometry(canvas,data);
+    canvas.width=g.W*dpr;canvas.height=g.H*dpr;
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    return{ctx,...g};
   }
 
-  function animate(canvas){
-    if(played||!canvas)return;
-    played=true;
-    if(reducedMotion()){
-      showImmediately(canvas);
-      return;
+  function drawStatic(canvas,data){
+    const {ctx,W,H,p,min,max,x,y}=prepare(canvas,data);
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const val=min+(max-min)*i/4,yy=y(val);
+      ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();
+      ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4);
     }
-
-    canvas.classList.add('chart-first-load-drawing');
-    canvas.style.transition=`clip-path ${Math.max(70,STEP_MS-30)}ms linear`;
-    reveal(canvas,0);
-
-    let month=0;
-    const next=()=>{
-      month+=1;
-      if(month>=MONTHS){
-        reveal(canvas,MONTHS-1);
-        setTimeout(()=>showImmediately(canvas),STEP_MS+20);
-        return;
+    if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
+    data.forEach((d,i)=>{
+      if(data.length<=12||i%2===0){
+        ctx.save();ctx.translate(x(i),H-13);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
       }
-      reveal(canvas,month);
-      timer=setTimeout(next,STEP_MS);
+    });
+    return{ctx,W,H,p,min,max,x,y};
+  }
+
+  function drawLineProgress(canvas,data,progress){
+    const {ctx,x,y}=drawStatic(canvas,data);
+    if(!data.length)return;
+    const segments=Math.max(1,data.length-1);
+    const position=Math.max(0,Math.min(segments,progress*segments));
+    const complete=Math.min(data.length-1,Math.floor(position));
+    const fraction=Math.min(1,position-complete);
+
+    ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
+    ctx.moveTo(x(0),y(data[0].value));
+    for(let i=1;i<=complete;i++)ctx.lineTo(x(i),y(data[i].value));
+    if(complete<data.length-1&&fraction>0){
+      const x1=x(complete),y1=y(data[complete].value),x2=x(complete+1),y2=y(data[complete+1].value);
+      ctx.lineTo(x1+(x2-x1)*fraction,y1+(y2-y1)*fraction);
+    }
+    ctx.stroke();
+
+    for(let i=0;i<=complete;i++){
+      const value=Number(data[i].value)||0;
+      ctx.fillStyle=value<0?'#ef4444':'#3b82f6';ctx.beginPath();ctx.arc(x(i),y(value),4,0,Math.PI*2);ctx.fill();
+    }
+  }
+
+  function finish(){
+    active=false;window.__financeChartLineIntroActive=false;
+    const data=latestData.slice();
+    const current=window.drawLineChart;
+    if(typeof current==='function'&&current!==wrapped){current(TARGET_ID,data)}
+    else if(typeof originalDraw==='function')originalDraw(TARGET_ID,data);
+  }
+
+  function start(canvas,data){
+    if(played||active||!canvas||!Array.isArray(data)||!data.length)return false;
+    played=true;latestData=data.slice();
+    if(reducedMotion()){return false}
+    active=true;window.__financeChartLineIntroActive=true;
+    drawLineProgress(canvas,latestData,0);
+    const duration=Math.max(STEP_MS,STEP_MS*Math.max(1,latestData.length-1));
+    const started=performance.now();
+    const tick=now=>{
+      if(!active)return;
+      const progress=Math.min(1,(now-started)/duration);
+      drawLineProgress(canvas,latestData,progress);
+      if(progress<1)raf=requestAnimationFrame(tick);
+      else finish();
     };
-    timer=setTimeout(next,STEP_MS);
+    raf=requestAnimationFrame(tick);
+    return true;
   }
 
-  function chartReady(canvas){
-    if(!canvas)return false;
-    const app=document.getElementById('appRoot');
-    if(app?.classList.contains('auth-hidden'))return false;
-    const rect=canvas.getBoundingClientRect();
-    if(rect.width<40||rect.height<40)return false;
-    // O canvas padrão nasce em 300x150. O gráfico real redefine a altura para >=220px.
-    return Number(canvas.height)>160;
+  const originalDraw=window.drawLineChart;
+  const wrapped=function(id,data){
+    if(id!==TARGET_ID||!Array.isArray(data)||!data.length||reducedMotion()||played&&!active)return originalDraw.apply(this,arguments);
+    const canvas=document.getElementById(id);
+    latestData=data.slice();
+    if(active){return}
+    if(start(canvas,data))return;
+    return originalDraw.apply(this,arguments);
+  };
+  wrapped.__lineOnlyFirstLoad=true;
+  if(typeof originalDraw==='function'){
+    window.drawLineChart=wrapped;
+    try{drawLineChart=wrapped}catch(e){}
   }
 
-  function waitForFirstChart(startedAt){
-    const canvas=document.getElementById(TARGET_ID);
-    if(chartReady(canvas)){
-      requestAnimationFrame(()=>animate(canvas));
-      return;
-    }
-    if(Date.now()-startedAt>=MAX_WAIT_MS){
-      showImmediately(canvas);
-      return;
-    }
-    setTimeout(()=>waitForFirstChart(startedAt),45);
+  function currentData(){
+    try{
+      const ym=state?.settings?.selectedMonth;
+      if(!ym||typeof projectionFrom!=='function')return[];
+      return projectionFrom(ym).map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing}));
+    }catch(e){return[]}
   }
 
   function boot(){
-    const canvas=document.getElementById(TARGET_ID);
-    if(canvas&&!reducedMotion()){
-      // Evita que um gráfico já desenhado pisque inteiro antes do início da revelação.
-      canvas.style.clipPath='inset(0 100% 0 0)';
-      canvas.style.webkitClipPath='inset(0 100% 0 0)';
-    }
-    waitForFirstChart(Date.now());
+    if(reducedMotion())return;
+    const canvas=document.getElementById(TARGET_ID),data=currentData();
+    const app=document.getElementById('appRoot');
+    if(canvas&&data.length&&!app?.classList.contains('auth-hidden')&&canvas.getBoundingClientRect().width>40){start(canvas,data)}
   }
 
   window.financeReplayFirstLoadChart=function(){
-    const canvas=document.getElementById(TARGET_ID);
-    if(timer)clearTimeout(timer);
-    played=false;
-    if(canvas){
-      delete canvas.dataset.firstLoadChartDone;
-      requestAnimationFrame(()=>animate(canvas));
-    }
+    if(raf)cancelAnimationFrame(raf);
+    active=false;played=false;window.__financeChartLineIntroActive=false;
+    const canvas=document.getElementById(TARGET_ID),data=currentData();
+    if(canvas&&data.length)start(canvas,data);
   };
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
