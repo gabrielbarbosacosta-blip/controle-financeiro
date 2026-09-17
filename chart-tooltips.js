@@ -97,8 +97,9 @@
   if(typeof originalDraw==='function'&&!originalDraw.__zeroAnchoredDashboard){
     const wrapped=function(id,data){
       const result=originalDraw.apply(this,arguments),canvas=document.getElementById(id);
-      if(canvas&&id==='projectionChart'&&Array.isArray(data)&&data.length){redrawDashboard(canvas,data);alignEventMarkers(canvas,data)}
-      if(canvas&&Array.isArray(data)&&data.length){
+      const lineIntroActive=id==='projectionChart'&&window.__financeChartLineIntroActive===true;
+      if(canvas&&id==='projectionChart'&&Array.isArray(data)&&data.length&&!lineIntroActive){redrawDashboard(canvas,data);alignEventMarkers(canvas,data)}
+      if(canvas&&Array.isArray(data)&&data.length&&!lineIntroActive){
         const series=id==='cardProjectionChart'?'Fatura projetada':id==='projectionChart'||id==='projectionChartLarge'?'Saldo projetado':'Valor';
         requestAnimationFrame(()=>{if(id==='projectionChart'){alignEventMarkers(canvas,data)}bind(canvas,pointsFor(canvas,data,series))});
       }
