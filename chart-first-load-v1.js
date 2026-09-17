@@ -13,6 +13,10 @@
     try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}
   }
 
+  function splashActive(){
+    return !!document.body&&!document.body.classList.contains('caderno-splash-done');
+  }
+
   function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect();
     const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:18,t:20,b:42};
@@ -105,11 +109,12 @@
 
   const originalDraw=window.drawLineChart;
   const wrapped=function(id,data){
-    if(id!==TARGET_ID||!Array.isArray(data)||!data.length||reducedMotion()||played&&!active)return originalDraw.apply(this,arguments);
+    if(id!==TARGET_ID||!Array.isArray(data)||!data.length||reducedMotion())return originalDraw.apply(this,arguments);
     const canvas=document.getElementById(id);
     latestData=data.slice();
-    if(active){return}
-    if(start(canvas,data))return;
+    if(active)return;
+    if(!played&&splashActive())return originalDraw.apply(this,arguments);
+    if(!played&&start(canvas,data))return;
     return originalDraw.apply(this,arguments);
   };
   wrapped.__lineOnlyFirstLoad=true;
@@ -126,18 +131,26 @@
     }catch(e){return[]}
   }
 
-  function boot(){
-    if(reducedMotion())return;
+  function triggerIntro(){
+    if(reducedMotion()||played||active)return false;
     const canvas=document.getElementById(TARGET_ID),data=currentData();
     const app=document.getElementById('appRoot');
-    if(canvas&&data.length&&!app?.classList.contains('auth-hidden')&&canvas.getBoundingClientRect().width>40){start(canvas,data)}
+    if(canvas&&data.length&&!app?.classList.contains('auth-hidden')&&canvas.getBoundingClientRect().width>40)return start(canvas,data);
+    return false;
   }
+
+  function boot(){
+    if(reducedMotion()||splashActive())return;
+    triggerIntro();
+  }
+
+  window.financeStartFirstLoadChart=triggerIntro;
+  window.addEventListener('caderno:chart-intro-start',triggerIntro);
 
   window.financeReplayFirstLoadChart=function(){
     if(raf)cancelAnimationFrame(raf);
     active=false;played=false;window.__financeChartLineIntroActive=false;
-    const canvas=document.getElementById(TARGET_ID),data=currentData();
-    if(canvas&&data.length)start(canvas,data);
+    return triggerIntro();
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
