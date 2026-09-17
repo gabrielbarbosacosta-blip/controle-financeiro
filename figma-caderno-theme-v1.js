@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260916-2';
+  const THEME_VERSION='20260916-3';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -10,7 +10,7 @@
     cards:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
     incomes:'<path d="M19 5v6h-6M5 19v-6h6"/><path d="m19 11-7-7-7 7M5 13l7 7 7-7"/>',
     debts:'<path d="M19 5v6h-6M5 19v-6h6"/><path d="m19 11-7-7-7 7M5 13l7 7 7-7"/>',
-    projection:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+    projection:'<path d="M4 19h16"/><path d="M6 15l4-4 3 3 5-6"/><circle cx="6" cy="15" r="1.1"/><circle cx="10" cy="11" r="1.1"/><circle cx="13" cy="14" r="1.1"/><circle cx="18" cy="8" r="1.1"/>',
     goals:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
     settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.08 2.08-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55v.08h-3v-.08A1.7 1.7 0 0 0 10.72 18.6a1.7 1.7 0 0 0-1.88.34l-.06.06L6.7 16.92l.06-.06A1.7 1.7 0 0 0 7.1 15a1.7 1.7 0 0 0-1.55-1.03h-.08v-3h.08A1.7 1.7 0 0 0 7.1 9.94a1.7 1.7 0 0 0-.34-1.88L6.7 8 8.78 5.92l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.55v-.08h3v.08a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.08v3h-.08A1.7 1.7 0 0 0 19.4 15Z"/>'
   };
@@ -59,8 +59,12 @@
     const nav=document.querySelector('.nav');if(!nav)return;
     nav.querySelectorAll('button[data-page]').forEach(btn=>{
       const page=btn.dataset.page||'',label=LABELS[page]||btn.dataset.cadernoLabel||btn.textContent.trim();btn.dataset.cadernoLabel=label;
-      if(!btn.querySelector('.caderno-nav-icon')){const old=btn.textContent.trim();btn.innerHTML=`${iconFor(page)}<span class="caderno-nav-label">${escapeHtml(LABELS[page]||old)}</span>`}
-      else{const text=btn.querySelector('.caderno-nav-label'),wanted=LABELS[page]||label;if(text&&text.textContent!==wanted)text.textContent=wanted}
+      const icon=btn.querySelector('.caderno-nav-icon');
+      if(!icon){const old=btn.textContent.trim();btn.innerHTML=`${iconFor(page)}<span class="caderno-nav-label">${escapeHtml(LABELS[page]||old)}</span>`}
+      else if(page==='projection'&&icon.dataset.iconVersion!=='chart-v1'){
+        icon.outerHTML=iconFor(page).replace('class="caderno-nav-icon"','class="caderno-nav-icon" data-icon-version="chart-v1"');
+      }
+      const text=btn.querySelector('.caderno-nav-label'),wanted=LABELS[page]||label;if(text&&text.textContent!==wanted)text.textContent=wanted;
     });
   }
 
