@@ -126,8 +126,11 @@
   function currentData(){
     try{
       const ym=state?.settings?.selectedMonth;
-      if(!ym||typeof projectionFrom!=='function')return[];
-      return projectionFrom(ym).map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing}));
+      if(!ym)return[];
+      let rows=[];
+      if(typeof window.getDashboardProjectionRows==='function')rows=window.getDashboardProjectionRows(ym);
+      else if(typeof projectionFrom==='function')rows=projectionFrom(ym);
+      return (rows||[]).map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing}));
     }catch(e){return[]}
   }
 
