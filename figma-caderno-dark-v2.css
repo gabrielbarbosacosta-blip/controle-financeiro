@@ -141,7 +141,7 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
 body:not(.caderno-splash-done){overflow:hidden!important;background:#07101d!important}
 body:not(.caderno-splash-done)>*:not(script):not(style){visibility:hidden!important}
 body:not(.caderno-splash-done)::before{
-  content:'caderno';
+  content:'prumo';
   position:fixed;
   left:50%;top:50%;
   transform:translate(-50%,-58%);
