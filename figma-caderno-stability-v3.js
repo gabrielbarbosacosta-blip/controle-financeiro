@@ -1,7 +1,7 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260916-stability14';
+  const VERSION='20260916-stability15';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
   const FEATURE_SCRIPTS=['goal-participant-avatars-v7.js?v=20260916-goalavatars2','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2'];
   let moving=false;
@@ -76,12 +76,52 @@
     refreshGreeting();
   }
 
+  function startSplashRelease(){
+    const started=performance.now();
+    const MIN_VISIBLE=650;
+    let finished=false;
+    let settleTimer=0;
+    let pollTimer=0;
+
+    const finish=()=>{
+      if(finished)return;
+      finished=true;
+      clearInterval(pollTimer);
+      clearTimeout(settleTimer);
+      const wait=Math.max(0,MIN_VISIBLE-(performance.now()-started));
+      setTimeout(()=>document.body?.classList.add('caderno-splash-done'),wait);
+    };
+
+    const dashboardReady=()=>{
+      const app=document.getElementById('appRoot');
+      const month=document.getElementById('monthSelect');
+      const opening=String(document.getElementById('kpiOpening')?.textContent||'').trim();
+      return !!app&&!app.classList.contains('auth-hidden')&&(month?.options?.length||0)>0&&opening&&opening!=='—';
+    };
+
+    pollTimer=setInterval(()=>{
+      if(!dashboardReady())return;
+      clearInterval(pollTimer);
+      settleTimer=setTimeout(finish,520);
+    },50);
+
+    try{
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      client?.auth?.getSession?.().then(({data})=>{
+        if(!data?.session)finish();
+      }).catch(()=>{});
+    }catch(e){}
+
+    setTimeout(finish,5000);
+  }
+
   function boot(){
     ensureThemeLink();
     normalizeUi();
     keepThemeLast();
     ensureProfileSkins();
     ensureFeatureScripts();
+    startSplashRelease();
 
     let queued=false;
     const schedule=()=>{
