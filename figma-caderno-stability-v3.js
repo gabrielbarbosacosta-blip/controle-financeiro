@@ -1,9 +1,9 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260916-stability7';
+  const VERSION='20260916-stability8';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
-  const FEATURE_SCRIPTS=['goal-participant-avatars-v7.js?v=20260916-goalavatars1'];
+  const FEATURE_SCRIPTS=['goal-participant-avatars-v7.js?v=20260916-goalavatars1','goal-recurring-terminology-v1.js?v=20260916-goalterms1'];
   let moving=false;
 
   function ensureThemeLink(){
