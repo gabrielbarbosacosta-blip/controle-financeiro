@@ -1,5 +1,5 @@
-const CACHE='caderno-pwa-v10-20260917-chart-no-flicker';
-const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
+const CACHE='caderno-pwa-v11-20260917-kpi-countup';
+const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/kpi-countup-v1.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>null));
