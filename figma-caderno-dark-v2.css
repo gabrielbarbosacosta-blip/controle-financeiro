@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg:#07101d;
+  --panel:#0d1929;
+  --panel2:#111f31;
+  --line:#23334a;
+  --text:#e7edf5;
+  --muted:#9baabd;
+  --accent:#ddeaac;
+  --accent2:#65aaff;
+  --green:#91d6b9;
+  --red:#ef8a81;
+  --yellow:#d8ba70;
+  --chip:#111f31;
+  --input:#0b1625;
+  --shadow:none;
+  --caderno-sidebar:#091321;
+  --caderno-active:#19263a;
+  --caderno-active-text:#ffffff;
+  --caderno-lime:#ddeaac;
+  --caderno-coral:#ed7773;
+  --caderno-blue:#65aaff;
+}
+
+html{color-scheme:dark;background:var(--bg)!important}
+body,.app{background:var(--bg)!important;color:var(--text)!important}
+.sidebar{background:#091321!important;border-color:#1b2a3d!important}
+.sidebar>.brand{color:#e7edf5!important}
+.sidebar>.brand .logo{background:#e6f0c6!important;color:#111d28!important}
+.caderno-profile{background:#101c2e!important;color:#e9eff7!important;border-color:#27374e!important}
+.caderno-profile-copy small,.side-note{color:#8492a7!important}
+.caderno-profile-chevron{color:#8ea0b4!important}
+.caderno-sidebar-logout{color:#aab7c8!important}
+.caderno-sidebar-logout:hover{background:#101d2e!important;color:#edf2f9!important}
+
+.nav button{color:#aab7c8!important}
+.nav button:hover{color:#edf2f9!important;background:#101d2e!important}
+.nav button.active{background:#19263a!important;color:#fff!important}
+.nav button .caderno-nav-icon{color:#7790ac!important}
+.nav button.active .caderno-nav-icon{color:#ddeaac!important}
+
+.topbar>div:first-child::before{color:#8291a6!important}
+.topbar h2,.section-head h3,.card h3{color:#eef3f9!important}
+.topbar p,.muted{color:#9caabd!important}
+.sync-pill{color:#93a3b6!important;background:#111f31!important;border:1px solid #26374e!important}
+
+.caderno-month-switcher{background:#101d2e!important;border-color:#26374e!important}
+.caderno-month-switcher button{color:#a8b7c8!important}
+.caderno-month-switcher select{color:#dbe5f1!important}
+.btn{background:#101d2e!important;border-color:#26374e!important;color:#dbe5f1!important}
+.btn:hover{background:#142338!important;border-color:#34485f!important}
+.btn.primary{background:#ddeaac!important;border-color:#ddeaac!important;color:#092035!important}
+.btn.primary:hover{background:#e6f2b5!important;border-color:#e6f2b5!important}
+.btn.danger{background:#2a171d!important;border-color:#5f2b32!important;color:#f5a39d!important}
+.btn.ghost{background:transparent!important;border-color:transparent!important}
+
+.card,.mini{background:#0d1929!important;border-color:#23334a!important;color:#e7edf5!important;box-shadow:none!important}
+.kpi{background:#0d1929!important;border-color:#23334a!important}
+.kpi::after{border-color:rgba(152,173,198,.12)!important}
+.kpi:hover{background:#101f32!important;border-color:#3b5472!important;box-shadow:none!important}
+.kpi .label{color:#9baabd!important}
+.kpi .value{color:#f5f6f1!important}
+.kpi .value.positive,.positive{color:#91d6b9!important}
+.kpi .value.negative,.negative{color:#ef8a81!important}
+.kpi .hint{color:#7e90a6!important}
+.grid-kpi .kpi:nth-child(2)::before{background:#75cfa9!important}
+.grid-kpi .kpi:nth-child(3)::before{background:#ef817a!important}
+.grid-kpi .kpi:last-child{background:#132333!important;border-color:#405b6b!important}
+.grid-kpi .kpi:last-child .value{color:#e1eca9!important}
+.grid-kpi .kpi:last-child::before{background:#ddeaac!important}
+
+.dashboard-grid>.card:first-child h3::before,.dashboard-grid>.card:nth-child(2) h3::before{color:#8291a6!important}
+.cat-row{color:#d8e1eb!important}
+.cat-row strong{color:#f1f2ed!important}
+.bar{background:#203047!important}
+.bar>span{background:#70adf5!important}
+.empty{color:#8291a6!important}
+
+.notice{background:#112233!important;border-color:#2b425b!important;color:#b9d0e7!important}
+.warning{background:#2a2213!important;border-color:#5d4a22!important;color:#ecd998!important}
+.mini .t{color:#8ea0b4!important}
+.mini .v{color:#eef3f8!important}
+
+.data-table th,.data-table td{border-color:#1e2d42!important;color:#d2dce8!important}
+.data-table th{background:#0b1625!important;color:#8192a8!important}
+.data-table tr:hover td{background:#101d2e!important}
+.badge{background:#111f31!important;color:#aab8c8!important;border-color:#2b3c52!important}
+.badge.receita,.badge.paga{color:#a5e2c8!important;background:#102a20!important;border-color:#28513e!important}
+.badge.despesa{color:#f2a29c!important;background:#2b171b!important;border-color:#623039!important}
+.badge.beneficio,.badge.aberta{color:#abd5f3!important;background:#10243a!important;border-color:#275073!important}
+.badge.fechada,.badge.pendente{color:#ead38f!important;background:#2a2213!important;border-color:#5a4824!important}
+
+.field label{color:#96a6ba!important}
+.field input,.field select,.field textarea,.invoice-tools select,.toolbar select{background:#0b1625!important;color:#e8edf4!important;border-color:#2a3b52!important}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#6488a7!important;box-shadow:0 0 0 3px rgba(101,170,255,.10)!important}
+.toggle{color:#aab7c8!important}
+.divider{background:#213149!important}
+
+.credit-card{background:linear-gradient(135deg,#132943,#0c1b2c)!important;border-color:#315173!important;color:#f4f7fb!important}
+.credit-card.active{outline-color:#65aaff!important}
+.credit-card:after{background:rgba(101,170,255,.08)!important}
+.credit-card .account,.credit-card .meta{color:#9eb3c9!important}
+.detail-line{border-color:#213149!important}
+.progress,.debt-progress,.income-progress,.goal-progress{background:#17263b!important;border-color:#2b3d55!important}
+.progress span,.debt-progress span,.income-progress span{background:#65aaff!important}
+
+.modal-backdrop{background:rgba(2,7,14,.78)!important}
+.modal{background:#0d1929!important;border-color:#2b3d55!important;box-shadow:0 30px 90px rgba(0,0,0,.52)!important}
+.modal-head,.modal-foot{background:#0d1929!important;border-color:#213149!important}
+.modal-head h3{color:#eef3f9!important}
+
+.auth-screen{background:linear-gradient(180deg,#07101d,#091321)!important}
+.auth-box{background:#0d1929!important;border-color:#23334a!important;box-shadow:0 26px 80px rgba(0,0,0,.38)!important}
+.auth-box h2,.auth-box .brand h1{color:#eef3f9!important}
+.auth-box p,.auth-msg{color:#9baabd!important}
+
+/* dynamic modules */
+#page-goals .goal-card,.goals-empty{background:#0d1929!important;border-color:#23334a!important;color:#e7edf5!important}
+.goal-icon{background:#111f31!important;border-color:#2c4058!important}
+.goal-title{color:#eef3f9!important}
+.goal-sub,.goal-target,.goal-progress-meta,.goal-metric .k,.goal-contrib-row .note{color:#8ea0b4!important}
+.goal-pill{background:#111f31!important;border-color:#2c4058!important;color:#cbd7e4!important}
+.goal-pill.active{background:#102a20!important;border-color:#28513e!important;color:#a5e2c8!important}
+.goal-pill.paused{background:#2a2213!important;border-color:#5a4824!important;color:#ead38f!important}
+.goal-pill.completed{background:#10243a!important;border-color:#275073!important;color:#abd5f3!important}
+.goal-saved{color:#f2f5f8!important}
+.goal-progress>span{background:linear-gradient(90deg,#65aaff,#89c2ff)!important}
+.goal-metric,.goal-health,.goal-contrib-row{background:#0b1625!important;border-color:#213149!important;color:#d3deea!important}
+.goal-health strong{color:#fff!important}
+.goal-actions{background:#0b1625!important;border-color:#213149!important}
+.goal-contrib-value{color:#91d6b9!important}
+.goal-modal-note{background:#10243a!important;border-color:#275073!important;color:#abd5f3!important}
+
+.debt-name,.income-name{color:#eef3f9!important}
+.debt-sub,.income-sub{color:#8ea0b4!important}
+
+.history-status-select{background:#111f31!important;color:#dbe5f1!important;border-color:#2c4058!important}
+
+@media(max-width:760px){.sidebar{border-color:#1b2a3d!important}}
