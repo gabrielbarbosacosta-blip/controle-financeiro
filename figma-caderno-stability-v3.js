@@ -1,7 +1,8 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260916-stability4';
+  const VERSION='20260916-stability5';
+  const PROFILE_SKIN_SRC='profile-panel-skin-v1.js?v=20260916-profile2';
   let moving=false;
 
   function ensureThemeLink(){
@@ -14,6 +15,14 @@
       document.head.appendChild(link);
     }
     return link;
+  }
+
+  function ensureProfileSkin(){
+    if([...document.scripts].some(s=>String(s.getAttribute('src')||'').split('?')[0].endsWith('profile-panel-skin-v1.js')))return;
+    const script=document.createElement('script');
+    script.src=PROFILE_SKIN_SRC;
+    script.async=false;
+    document.body.appendChild(script);
   }
 
   function keepThemeLast(){
@@ -64,6 +73,7 @@
     ensureThemeLink();
     normalizeUi();
     keepThemeLast();
+    ensureProfileSkin();
 
     let queued=false;
     const schedule=()=>{
@@ -73,6 +83,7 @@
         queued=false;
         normalizeUi();
         keepThemeLast();
+        ensureProfileSkin();
       });
     };
 
