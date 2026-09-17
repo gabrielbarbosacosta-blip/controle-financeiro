@@ -1,7 +1,7 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260916-stability15';
+  const VERSION='20260916-stability16';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
   const FEATURE_SCRIPTS=['goal-participant-avatars-v7.js?v=20260916-goalavatars2','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2'];
   let moving=false;
@@ -79,17 +79,41 @@
   function startSplashRelease(){
     const started=performance.now();
     const MIN_VISIBLE=650;
+    const SETTLE_AFTER_READY=520;
+    const CHART_LEAD=420;
     let finished=false;
-    let settleTimer=0;
+    let chartTriggered=false;
     let pollTimer=0;
+    let chartTimer=0;
+    let releaseTimer=0;
 
-    const finish=()=>{
+    const release=()=>{
       if(finished)return;
       finished=true;
       clearInterval(pollTimer);
-      clearTimeout(settleTimer);
-      const wait=Math.max(0,MIN_VISIBLE-(performance.now()-started));
-      setTimeout(()=>document.body?.classList.add('caderno-splash-done'),wait);
+      clearTimeout(chartTimer);
+      clearTimeout(releaseTimer);
+      document.body?.classList.add('caderno-splash-done');
+    };
+
+    const triggerChart=()=>{
+      if(chartTriggered||finished)return;
+      chartTriggered=true;
+      try{window.dispatchEvent(new CustomEvent('caderno:chart-intro-start'))}catch(e){}
+      try{window.financeStartFirstLoadChart?.()}catch(e){}
+    };
+
+    const scheduleRelease=(baseDelay,withChart)=>{
+      if(finished)return;
+      clearInterval(pollTimer);
+      clearTimeout(chartTimer);
+      clearTimeout(releaseTimer);
+      const minRemaining=Math.max(0,MIN_VISIBLE-(performance.now()-started));
+      const delay=Math.max(Number(baseDelay)||0,minRemaining);
+      if(withChart&&!chartTriggered){
+        chartTimer=setTimeout(triggerChart,Math.max(0,delay-CHART_LEAD));
+      }
+      releaseTimer=setTimeout(release,delay);
     };
 
     const dashboardReady=()=>{
@@ -101,18 +125,23 @@
 
     pollTimer=setInterval(()=>{
       if(!dashboardReady())return;
-      clearInterval(pollTimer);
-      settleTimer=setTimeout(finish,520);
+      scheduleRelease(SETTLE_AFTER_READY,true);
     },50);
 
     try{
       const client=typeof sb!=='undefined'?sb:window.sb;
       client?.auth?.getSession?.().then(({data})=>{
-        if(!data?.session)finish();
+        if(!data?.session)scheduleRelease(0,false);
       }).catch(()=>{});
     }catch(e){}
 
-    setTimeout(finish,5000);
+    setTimeout(()=>{
+      if(finished)return;
+      if(dashboardReady()){
+        triggerChart();
+        setTimeout(release,CHART_LEAD);
+      }else release();
+    },5000);
   }
 
   function boot(){
