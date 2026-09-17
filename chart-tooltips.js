@@ -71,21 +71,37 @@
     });
   }
 
-  const originalDraw=window.drawLineChart;
-  if(typeof originalDraw==='function'&&!originalDraw.__cadernoTooltipOnly){
+  function install(){
+    const current=window.drawLineChart;
+    const canonical=window.__cadernoDarkChartRenderer;
+    const base=typeof canonical==='function'?canonical:(typeof current==='function'?(current.__cadernoBaseRenderer||current):null);
+    if(typeof base!=='function')return false;
+    if(current?.__cadernoTooltipOnly&&current.__cadernoBaseRenderer===base)return true;
+
     const wrapped=function(id,data){
-      const result=originalDraw.apply(this,arguments);
-      const lineIntroActive=id==='projectionChart'&&window.__financeChartLineIntroActive===true;
-      if(!lineIntroActive)attach(id,data);
+      if(id==='projectionChart'&&window.__financeChartLineIntroActive===true)return;
+      const result=base.apply(this,arguments);
+      attach(id,data);
       return result;
     };
     wrapped.__cadernoTooltipOnly=true;
-    wrapped.__cadernoBaseRenderer=originalDraw;
+    wrapped.__cadernoBaseRenderer=base;
     window.drawLineChart=wrapped;try{drawLineChart=wrapped}catch(e){}
+    return true;
   }
+
+  install();
+  setTimeout(install,1350);
+  setTimeout(()=>{
+    install();
+    if(window.__financeChartLineIntroActive!==true){
+      try{if(typeof renderDashboard==='function')renderDashboard()}catch(e){}
+    }
+  },1750);
 
   window.financeRefreshChartTooltips=function(){
     try{
+      install();
       const ym=state?.settings?.selectedMonth;
       if(!ym||typeof projectionFrom!=='function')return;
       const data=projectionFrom(ym).map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing}));
