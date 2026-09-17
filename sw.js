@@ -1,4 +1,4 @@
-const CACHE='caderno-pwa-v4-20260916-splash';
+const CACHE='caderno-pwa-v5-20260916-splash-chart-sync';
 const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
