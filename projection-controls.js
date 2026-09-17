@@ -15,6 +15,51 @@
     return config;
   }
 
+  function projectionMonths(){
+    try{
+      if(typeof window.getProjectionMonths==='function')return window.getProjectionMonths();
+      return Number(state?.settings?.projectionMonths)===24?24:12;
+    }catch(e){return 12}
+  }
+
+  function localRows(selectedYm,months,cfg){
+    if(typeof actualForMonth!=='function'||typeof ymAdd!=='function')return[];
+    const actual=actualForMonth(selectedYm),rows=[];
+    let opening=Number(actual.closing)||0;
+    for(let i=1;i<=months;i++){
+      const ym=ymAdd(selectedYm,i);let income=0,otherExpense=0,benefits=0;
+      for(const tx of state?.transactions||[]){
+        if(typeof isProjectedTxInMonth==='function'&&!isProjectedTxInMonth(tx,ym))continue;
+        const isDebt=tx.debtManaged===true,isIncome=tx.incomeManaged===true;
+        if(isDebt&&!cfg.debts)continue;
+        if(isIncome&&!cfg.incomes)continue;
+        if(!isDebt&&!isIncome&&!cfg.transactions)continue;
+        if(tx.type==='Receita')income+=Number(tx.amount)||0;
+        else if(tx.type==='Despesa')otherExpense+=Number(tx.amount)||0;
+        else if(tx.type==='Benefício')benefits+=Number(tx.amount)||0;
+      }
+      const invoices=cfg.cards?(state?.cards||[]).filter(c=>c.active!==false).reduce((s,c)=>s+(typeof cardForecast==='function'?(Number(cardForecast(c,ym).total)||0):0),0):0;
+      const expense=otherExpense+invoices,result=income-expense;
+      const closing=typeof round2==='function'?round2(opening+result):Math.round((opening+result)*100)/100;
+      rows.push({ym,opening,income,otherExpense,invoices,expense,benefits,result,closing});opening=closing;
+    }
+    return rows;
+  }
+
+  function rows(selectedYm,months=projectionMonths()){
+    const cfg=ensureConfig();
+    if(window.financeProjection?.rowsFrom){
+      try{return window.financeProjection.rowsFrom(selectedYm,months,cfg)||[]}catch(e){}
+    }
+    return localRows(selectedYm,months,cfg);
+  }
+
+  window.getDashboardProjectionRows=function(selectedYm,count){
+    const ym=selectedYm||state?.settings?.selectedMonth;
+    if(!ym)return[];
+    return rows(ym,count==null?projectionMonths():count);
+  };
+
   function injectStyles(){
     if(document.getElementById(STYLE_ID))return;
     const style=document.createElement('style');style.id=STYLE_ID;
@@ -33,25 +78,18 @@
     document.head.appendChild(style);
   }
 
-  function rows(selectedYm,months){
-    const cfg=ensureConfig();
-    if(window.financeProjection?.rowsFrom)return window.financeProjection.rowsFrom(selectedYm,months,cfg);
-    if(typeof projectionFrom==='function')return projectionFrom(selectedYm,months);
-    return[];
-  }
-
-  function updateSummary(){
+  function updateSummary(count=projectionMonths()){
     const chart=document.getElementById('projectionChart'),card=chart?.closest('.card'),subtitle=card?.querySelector('.section-head .muted');
     if(!subtitle)return;
     const config=ensureConfig(),active=Object.keys(SOURCE_META).filter(key=>config[key]).map(key=>SOURCE_META[key].short);
-    subtitle.textContent=`Próximos 12 meses • ${active.length?active.join(' + '):'sem impactos futuros'}`;
+    subtitle.textContent=`Próximos ${count} meses • ${active.length?active.join(' + '):'sem impactos futuros'}`;
   }
 
   function redraw(){
     if(typeof state==='undefined'||!state?.settings?.selectedMonth)return;
-    const data=rows(state.settings.selectedMonth,12);
+    const count=projectionMonths(),data=rows(state.settings.selectedMonth,count);
     if(typeof drawLineChart==='function')drawLineChart('projectionChart',data.map(r=>({label:typeof fmtMonth==='function'?fmtMonth(r.ym):r.ym,value:r.closing})));
-    updateSummary();syncControls();
+    updateSummary(count);syncControls();
   }
   window.redrawFilteredProjection=redraw;
 
