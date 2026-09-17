@@ -1,6 +1,6 @@
 {
-  "name": "caderno · finanças",
-  "short_name": "caderno",
+  "name": "prumo",
+  "short_name": "prumo",
   "description": "Finanças pessoais, despesas, receitas, cartões, projeções, objetivos e compartilhamentos.",
   "id": "/",
   "start_url": "/?source=pwa",
