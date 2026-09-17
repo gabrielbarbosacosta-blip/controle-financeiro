@@ -9,6 +9,9 @@
   let played=false;
   let pollTimer=0;
   let splashObserver=null;
+  let valueObserver=null;
+  let prepared=false;
+  const targets=new Map();
 
   function reducedMotion(){
     try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}
@@ -55,31 +58,67 @@
     },delay);
   }
 
-  function snapshot(){
+  function elementsReady(){
     if(!appVisible())return null;
-    const items=[];
-    for(const id of IDS){
-      const el=document.getElementById(id);
-      if(!el)return null;
-      const finalText=String(el.textContent||'').trim();
-      const value=parseMoney(finalText);
-      if(value===null)return null;
-      items.push({el,value,finalText});
+    const list=IDS.map(id=>document.getElementById(id));
+    return list.every(Boolean)?list:null;
+  }
+
+  function captureAndZero(){
+    if(reducedMotion()||played)return false;
+    const elements=elementsReady();
+    if(!elements)return false;
+
+    let captured=0;
+    for(const el of elements){
+      const text=String(el.textContent||'').trim();
+      const value=parseMoney(text);
+      if(value===null)continue;
+
+      const existing=targets.get(el.id);
+      const zeroText=formatMoney(0);
+      const looksLikeOurZero=prepared&&value===0&&text===zeroText;
+      if(!looksLikeOurZero){
+        targets.set(el.id,{value,finalText:text});
+        captured++;
+      }else if(!existing){
+        targets.set(el.id,{value:0,finalText:text});
+      }
     }
-    return items;
+
+    if(targets.size!==IDS.length)return captured>0;
+
+    prepared=true;
+    for(const el of elements){
+      const zeroText=formatMoney(0);
+      if(el.textContent!==zeroText)el.textContent=zeroText;
+    }
+    return true;
+  }
+
+  function keepPreparedDuringSplash(){
+    const body=document.body;
+    if(!body||body.classList.contains('caderno-splash-done')||played||reducedMotion())return;
+    captureAndZero();
   }
 
   function run(){
     if(played||reducedMotion())return false;
-    const items=snapshot();
-    if(!items)return false;
+    const elements=elementsReady();
+    if(!elements)return false;
+
+    if(targets.size!==IDS.length)captureAndZero();
+    if(targets.size!==IDS.length)return false;
+
     played=true;
     clearInterval(pollTimer);
     splashObserver?.disconnect();
+    valueObserver?.disconnect();
 
-    items.forEach(({el})=>{el.textContent=formatMoney(0)});
-    items.forEach(({el,value,finalText},index)=>{
-      animateValue(el,value,finalText,START_DELAY+index*STAGGER_MS);
+    elements.forEach(el=>{el.textContent=formatMoney(0)});
+    elements.forEach((el,index)=>{
+      const target=targets.get(el.id);
+      animateValue(el,target.value,target.finalText,START_DELAY+index*STAGGER_MS);
     });
     return true;
   }
@@ -88,6 +127,16 @@
     if(reducedMotion()||played)return;
     const body=document.body;
     if(!body)return;
+
+    const grid=document.querySelector('#page-dashboard .grid-kpi');
+    if(grid&&!valueObserver){
+      valueObserver=new MutationObserver(()=>{
+        if(!body.classList.contains('caderno-splash-done'))keepPreparedDuringSplash();
+      });
+      valueObserver.observe(grid,{childList:true,subtree:true,characterData:true});
+    }
+
+    keepPreparedDuringSplash();
 
     const tryRun=()=>{
       if(!body.classList.contains('caderno-splash-done'))return false;
@@ -98,21 +147,23 @@
 
     splashObserver=new MutationObserver(()=>{
       if(body.classList.contains('caderno-splash-done')){
-        setTimeout(()=>{
-          if(run())splashObserver?.disconnect();
-        },40);
-      }
+        if(run())splashObserver?.disconnect();
+      }else keepPreparedDuringSplash();
     });
     splashObserver.observe(body,{attributes:true,attributeFilter:['class']});
 
     pollTimer=setInterval(()=>{
       if(body.classList.contains('caderno-splash-done'))run();
-    },80);
+      else keepPreparedDuringSplash();
+    },50);
     setTimeout(()=>clearInterval(pollTimer),6000);
   }
 
   window.financeReplayKpiCountup=function(){
     played=false;
+    prepared=false;
+    targets.clear();
+    valueObserver?.disconnect();valueObserver=null;
     arm();
   };
 
