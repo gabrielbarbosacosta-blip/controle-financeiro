@@ -19,13 +19,11 @@
 
   function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect();
-    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:18,t:20,b:42};
+    const W=Math.max(300,rect.width||700),H=Math.max(210,rect.height||280),p={l:55,r:16,t:18,b:38};
     const vals=(data||[]).map(d=>Number(d.value)||0);
-    const rawMin=vals.length?Math.min(...vals):0,rawMax=vals.length?Math.max(...vals):1;
-    let min,max;
-    if(rawMin>=0){min=0;max=rawMax||1;max+=Math.max(1,(max-min)*.1)}
-    else if(rawMax<=0){max=0;min=rawMin||-1;min-=Math.max(1,(max-min)*.1)}
-    else{min=Math.min(0,...vals);max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.1;max+=pad;min-=pad}
+    let min=Math.min(0,...vals),max=Math.max(0,...vals);
+    if(max===min){max+=1;min-=1}
+    const pad=(max-min)*.08;max+=pad;min-=pad;
     const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
     const y=v=>p.t+(H-p.t-p.b)*(1-((Number(v)||0)-min)/(max-min));
     return{W,H,p,min,max,x,y};
@@ -34,7 +32,7 @@
   function prepare(canvas,data){
     const dpr=window.devicePixelRatio||1;
     const g=geometry(canvas,data);
-    canvas.width=g.W*dpr;canvas.height=g.H*dpr;
+    canvas.width=Math.round(g.W*dpr);canvas.height=Math.round(g.H*dpr);
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     return{ctx,...g};
   }
@@ -42,16 +40,16 @@
   function drawStatic(canvas,data){
     const {ctx,W,H,p,min,max,x,y}=prepare(canvas,data);
     ctx.clearRect(0,0,W,H);
-    ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;
-    for(let i=0;i<=4;i++){
-      const val=min+(max-min)*i/4,yy=y(val);
-      ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();
-      ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4);
+    ctx.lineWidth=1;ctx.font="10px 'DM Mono', monospace";ctx.textBaseline='middle';
+    for(let i=0;i<=3;i++){
+      const val=min+(max-min)*i/3,yy=y(val);
+      ctx.strokeStyle='#23344b';ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();
+      ctx.fillStyle='#718197';ctx.textAlign='right';ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),p.l-8,yy);
     }
-    if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
+    if(min<0&&max>0){ctx.strokeStyle='#647790';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}
     data.forEach((d,i)=>{
       if(data.length<=12||i%2===0){
-        ctx.save();ctx.translate(x(i),H-13);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
+        ctx.save();ctx.translate(x(i),H-13);ctx.rotate(-.28);ctx.fillStyle='#718197';ctx.font="9px 'DM Mono', monospace";ctx.textAlign='center';ctx.fillText(d.label,0,0);ctx.restore();
       }
     });
     return{ctx,W,H,p,min,max,x,y};
@@ -65,7 +63,7 @@
     const complete=Math.min(data.length-1,Math.floor(position));
     const fraction=Math.min(1,position-complete);
 
-    ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
+    ctx.strokeStyle='#65aaff';ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
     ctx.moveTo(x(0),y(data[0].value));
     for(let i=1;i<=complete;i++)ctx.lineTo(x(i),y(data[i].value));
     if(complete<data.length-1&&fraction>0){
@@ -76,22 +74,24 @@
 
     for(let i=0;i<=complete;i++){
       const value=Number(data[i].value)||0;
-      ctx.fillStyle=value<0?'#ef4444':'#3b82f6';ctx.beginPath();ctx.arc(x(i),y(value),4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=value<0?'#ed7773':'#65aaff';ctx.beginPath();ctx.arc(x(i),y(value),3.5,0,Math.PI*2);ctx.fill();
     }
   }
 
   function finish(){
+    drawLineProgress(document.getElementById(TARGET_ID),latestData,1);
     active=false;window.__financeChartLineIntroActive=false;
     const data=latestData.slice();
     const current=window.drawLineChart;
-    if(typeof current==='function'&&current!==wrapped){current(TARGET_ID,data)}
+    if(typeof current==='function'&&current!==wrapped)current(TARGET_ID,data);
     else if(typeof originalDraw==='function')originalDraw(TARGET_ID,data);
+    try{window.financeRefreshChartTooltips?.()}catch(e){}
   }
 
   function start(canvas,data){
     if(played||active||!canvas||!Array.isArray(data)||!data.length)return false;
     played=true;latestData=data.slice();
-    if(reducedMotion()){return false}
+    if(reducedMotion())return false;
     active=true;window.__financeChartLineIntroActive=true;
     drawLineProgress(canvas,latestData,0);
     const duration=Math.max(STEP_MS,STEP_MS*Math.max(1,latestData.length-1));
