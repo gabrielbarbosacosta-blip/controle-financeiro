@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260917-4';
+  const THEME_VERSION='20260917-5';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -24,7 +24,7 @@
       document.head.appendChild(link);
     }
     document.documentElement.classList.add('caderno-theme');
-    if(document.title!=='caderno · finanças')document.title='caderno · finanças';
+    if(document.title!=='prumo')document.title='prumo';
   }
 
   function safeUser(){try{return typeof currentUser!=='undefined'?currentUser:null}catch(e){return null}}
@@ -35,11 +35,11 @@
   }
   function firstName(){return userDisplay().name.split(/\s+/)[0]||'Gabriel'}
   function initials(name){return String(name||'G').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'G'}
-  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
 
   function decorateBrand(){
+    document.querySelectorAll('.brand h1').forEach(h=>{if(h.textContent!=='prumo')h.textContent='prumo'});
     const brand=document.querySelector('.sidebar>.brand');if(!brand)return;
-    const h=brand.querySelector('h1');if(h&&h.textContent!=='caderno')h.textContent='caderno';
     const logo=brand.querySelector('.logo');if(logo&&logo.textContent)logo.textContent='';
   }
 
