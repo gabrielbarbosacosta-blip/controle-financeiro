@@ -1,4 +1,4 @@
-const CACHE='caderno-pwa-v9-20260917-chart-faster';
+const CACHE='caderno-pwa-v10-20260917-chart-no-flicker';
 const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
