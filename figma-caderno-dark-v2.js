@@ -1,7 +1,7 @@
 (function(){
   if(window.__cadernoDarkV2Loaded)return;
   window.__cadernoDarkV2Loaded=true;
-  const VERSION='20260916-dark2';
+  const VERSION='20260916-dark3';
 
   function inject(){
     if(!document.getElementById('caderno-figma-dark-v2')){
@@ -10,6 +10,12 @@
       link.rel='stylesheet';
       link.href=`figma-caderno-dark-v2.css?v=${VERSION}`;
       document.head.appendChild(link);
+    }
+    if(!document.getElementById('caderno-remove-duplicate-profile')){
+      const style=document.createElement('style');
+      style.id='caderno-remove-duplicate-profile';
+      style.textContent='.caderno-profile{display:none!important}';
+      document.head.appendChild(style);
     }
     document.documentElement.classList.add('caderno-dark');
   }
