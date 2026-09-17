@@ -1,37 +1,39 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="caderno-theme caderno-dark caderno-stable">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Controle Financeiro</title>
-<link rel="stylesheet" href="app.css">
+<title>caderno · finanças</title>
+<link id="caderno-figma-theme" rel="stylesheet" href="figma-caderno-theme-v1.css?v=20260916-native1">
+<link id="caderno-figma-dark-v2" rel="stylesheet" href="figma-caderno-dark-v2.css?v=20260916-native1">
+<link id="caderno-stability-v3" rel="stylesheet" href="figma-caderno-stability-v3.css?v=20260916-native1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo">CF</div><div><h1>Controle Financeiro</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
+<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo"></div><div><h1>caderno</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
 <div class="app auth-hidden" id="appRoot">
 <aside class="sidebar">
-  <div class="brand"><div class="logo">CF</div><div><h1>Controle Financeiro</h1><small>Online • sincronizado</small></div></div>
+  <div class="brand"><div class="logo"></div><div><h1>caderno</h1><small>Online • sincronizado</small></div></div>
   <nav class="nav">
-    <button class="active" data-page="dashboard">Dashboard</button>
+    <button class="active" data-page="dashboard">Visão geral</button>
     <button data-page="history">Lançamentos</button>
     <button data-page="cards">Cartões</button>
-    <button data-page="projection">Projeção geral</button>
+    <button data-page="projection">Projeções</button>
     <button data-page="settings">Configurações</button>
   </nav>
   <div class="side-note">Dados financeiros carregados e salvos somente na nuvem.</div>
 </aside>
 <main class="main">
   <div class="topbar">
-    <div><h2 id="pageTitle">Dashboard</h2><p id="pageSubtitle">Caixa, gastos e projeções</p></div>
-    <div class="actions"><select id="monthSelect" class="btn"></select><span class="sync-pill" id="syncStatus" aria-label="Status de sincronização" title="Status de sincronização"></span><button class="btn" id="logoutBtn">Sair</button><button class="btn primary" id="quickAdd">+ Novo lançamento</button></div>
+    <div><h2 id="pageTitle">Visão geral</h2><p id="pageSubtitle">Aqui está a leitura do seu mês.</p></div>
+    <div class="actions"><select id="monthSelect" class="btn"></select><span class="sync-pill" id="syncStatus" aria-label="Status de sincronização" title="Status de sincronização"></span><button class="btn" id="logoutBtn">Sair</button><button class="btn primary" id="quickAdd">Novo lançamento</button></div>
   </div>
 
   <section class="page active" id="page-dashboard">
     <div class="grid-kpi">
-      <div class="card kpi"><div class="label">Saldo inicial</div><div class="value" id="kpiOpening">—</div><div class="hint">Início do mês</div></div>
-      <div class="card kpi"><div class="label">Receitas de caixa</div><div class="value positive" id="kpiIncome">—</div><div class="hint">Receitas recebidas</div></div>
-      <div class="card kpi"><div class="label">Saídas de caixa</div><div class="value negative" id="kpiExpense">—</div><div class="hint">Inclui faturas pagas</div></div>
+      <div class="card kpi"><div class="label">Saldo inicial</div><div class="value" id="kpiOpening">—</div><div class="hint">Base do mês</div></div>
+      <div class="card kpi"><div class="label">Entradas</div><div class="value positive" id="kpiIncome">—</div><div class="hint">Receitas recebidas</div></div>
+      <div class="card kpi"><div class="label">Saídas</div><div class="value negative" id="kpiExpense">—</div><div class="hint">Inclui faturas pagas</div></div>
       <div class="card kpi"><div class="label">Faturas pagas</div><div class="value" id="kpiInvoices">—</div><div class="hint">Um valor por fatura</div></div>
       <div class="card kpi"><div class="label">Saldo final</div><div class="value" id="kpiClosing">—</div><div class="hint" id="kpiResultHint">Resultado: —</div></div>
     </div>
@@ -145,6 +147,6 @@
 <script src="projected-closing.js"></script>
 <script src="purchase-management.js"></script>
 <script src="purchase-simulator.js"></script>
-<script src="history-status.js"></script>
+<script src="history-status.js?v=20260916-native1"></script>
 </body>
 </html>
