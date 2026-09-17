@@ -1,8 +1,9 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260916-stability6';
+  const VERSION='20260916-stability7';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
+  const FEATURE_SCRIPTS=['goal-participant-avatars-v7.js?v=20260916-goalavatars1'];
   let moving=false;
 
   function ensureThemeLink(){
@@ -17,8 +18,8 @@
     return link;
   }
 
-  function ensureProfileSkins(){
-    PROFILE_SKINS.forEach(src=>{
+  function ensureScripts(list){
+    list.forEach(src=>{
       const file=String(src).split('?')[0];
       if([...document.scripts].some(s=>String(s.getAttribute('src')||'').split('?')[0].endsWith(file)))return;
       const script=document.createElement('script');
@@ -27,6 +28,9 @@
       document.body.appendChild(script);
     });
   }
+
+  function ensureProfileSkins(){ensureScripts(PROFILE_SKINS)}
+  function ensureFeatureScripts(){ensureScripts(FEATURE_SCRIPTS)}
 
   function keepThemeLast(){
     if(moving)return;
@@ -77,6 +81,7 @@
     normalizeUi();
     keepThemeLast();
     ensureProfileSkins();
+    ensureFeatureScripts();
 
     let queued=false;
     const schedule=()=>{
@@ -87,6 +92,7 @@
         normalizeUi();
         keepThemeLast();
         ensureProfileSkins();
+        ensureFeatureScripts();
       });
     };
 
