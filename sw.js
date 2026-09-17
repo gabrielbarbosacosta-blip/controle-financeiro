@@ -1,4 +1,4 @@
-const CACHE='caderno-pwa-v7-20260917-projection-canonical-filter';
+const CACHE='caderno-pwa-v8-20260917-chart-velocity-profile';
 const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
