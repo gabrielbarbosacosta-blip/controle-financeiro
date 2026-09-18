@@ -32,7 +32,22 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo"></div><div><h1>prumo</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
+<div class="auth-screen hidden" id="authScreen">
+  <div class="prumo-login-story" aria-hidden="true">
+    <span class="prumo-login-word prumo-login-word-1">prumo</span>
+    <span class="prumo-login-word prumo-login-word-2">sem planilha</span>
+    <span class="prumo-login-word prumo-login-word-3">sem estresse</span>
+  </div>
+  <div class="auth-box">
+    <div class="brand"><div class="logo"></div><div><h1>prumo</h1><small>acesso seguro</small></div></div>
+    <h2>Entrar</h2>
+    <p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p>
+    <div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div>
+    <div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div>
+    <div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
 <div class="app auth-hidden" id="appRoot">
 <aside class="sidebar">
   <div class="brand"><div class="logo"></div><div><h1>prumo</h1><small>Online • sincronizado</small></div></div>
