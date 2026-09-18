@@ -179,8 +179,7 @@ body:not(.caderno-splash-done)::after{
   72%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
   75%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
   81%{content:'sem stresse';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}
-  87%,95%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
-  100%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
+  87%,100%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
 }
 @keyframes cadernoSplashProgress{
   0%{background-position:-80% 0;opacity:.4}
