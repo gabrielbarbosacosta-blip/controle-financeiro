@@ -17,12 +17,12 @@ body:not(.caderno-splash-done){overflow:hidden}
 body:not(.caderno-splash-done)>*:not(script):not(style){visibility:hidden!important}
 body:not(.caderno-splash-done)::before{content:'prumo';position:fixed;left:50%;top:50%;transform:translate(-50%,-58%);z-index:2147483646;visibility:visible!important;color:#f3f7fb;font:800 34px Arial,sans-serif;letter-spacing:-.055em;text-shadow:0 8px 28px rgba(0,0,0,.28);animation:prumoSplashWords 2.6s cubic-bezier(.22,1,.36,1) both}
 body:not(.caderno-splash-done)::after{content:'';position:fixed;left:50%;top:calc(50% + 30px);width:132px;height:3px;transform:translateX(-50%);z-index:2147483647;visibility:visible!important;border-radius:999px;background:linear-gradient(90deg,transparent 0%,#ddeaac 48%,transparent 100%);background-size:55% 100%;background-repeat:no-repeat;animation:prumoCriticalProgress 1.05s ease-in-out infinite}
-@keyframes prumoSplashWords{0%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}8%,24%{content:'prumo';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}31%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}32%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}40%,56%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}63%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}64%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}73%,92%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}100%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}}
+@keyframes prumoSplashWords{0%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}6%{content:'prumo';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}12%,24%{content:'prumo';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}30%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}33%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}39%{content:'sem planilha';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}45%,57%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}63%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}66%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}72%{content:'sem stresse';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}78%,92%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}100%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}}
 @keyframes prumoCriticalProgress{0%{background-position:-80% 0;opacity:.4}50%{opacity:1}100%{background-position:180% 0;opacity:.4}}
 @media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::before{animation:none;content:'prumo'}body:not(.caderno-splash-done)::after{animation:none;background-position:center}}
 </style>
 <link id="caderno-figma-theme" rel="stylesheet" href="figma-caderno-theme-v1.css?v=20260918-firstpaint1">
-<link id="caderno-figma-dark-v2" rel="stylesheet" href="figma-caderno-dark-v2.css?v=20260918-splash3">
+<link id="caderno-figma-dark-v2" rel="stylesheet" href="figma-caderno-dark-v2.css?v=20260918-splash4">
 <link id="caderno-stability-v3" rel="stylesheet" href="figma-caderno-stability-v3.css?v=20260918-splash2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -164,7 +164,7 @@ body:not(.caderno-splash-done)::after{content:'';position:fixed;left:50%;top:cal
 <script src="projected-closing.js"></script>
 <script src="purchase-management.js"></script>
 <script src="purchase-simulator.js"></script>
-<script src="history-status.js?v=20260918-splash3"></script>
+<script src="history-status.js?v=20260918-splash4"></script>
 <script src="financial-entity-panel-runtime-v2.js?v=20260918-financialpanel1"></script>
 </body>
 </html>
