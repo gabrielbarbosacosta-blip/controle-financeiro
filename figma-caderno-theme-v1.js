@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260918-11';
+  const THEME_VERSION='20260918-12';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -15,6 +15,7 @@
     settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.08 2.08-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.55v.08h-3v-.08A1.7 1.7 0 0 0 10.72 18.6a1.7 1.7 0 0 0-1.88.34l-.06.06L6.7 16.92l.06-.06A1.7 1.7 0 0 0 7.1 15a1.7 1.7 0 0 0-1.55-1.03h-.08v-3h.08A1.7 1.7 0 0 0 7.1 9.94a1.7 1.7 0 0 0-.34-1.88L6.7 8 8.78 5.92l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.55v-.08h3v.08a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1.03h.08v3h-.08A1.7 1.7 0 0 0 19.4 15Z"/>'
   };
   let greetingAnimated=false;
+  let authWasVisible=false;
 
   function ensureGreetingFadeStyle(){
     if(document.getElementById('prumo-greeting-fade-style'))return;
@@ -121,6 +122,17 @@
     animatePageTitle();
   }
 
+  function animateAuthIfVisible(){
+    const auth=document.getElementById('authScreen');
+    if(!auth||!document.body?.classList.contains('caderno-splash-done'))return;
+    const visible=!auth.classList.contains('hidden');
+    if(!visible){authWasVisible=false;return}
+    if(authWasVisible)return;
+    authWasVisible=true;
+    animateTitle(auth.querySelector('.brand h1'));
+    animateTitle(auth.querySelector('h2'),90);
+  }
+
   function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
   function tuneDashboardCopy(){
     const dash=document.getElementById('page-dashboard');if(!dash)return;
@@ -129,7 +141,7 @@
     setText(dash.querySelector('.dashboard-grid>.card:first-child h3'),'Saldo projetado');setText(dash.querySelector('.dashboard-grid>.card:nth-child(2) h3'),'Gastos por categoria');
   }
 
-  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
+  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy();animateAuthIfVisible()}
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
@@ -137,8 +149,8 @@
   }
   function boot(){
     decorate();observe();setTimeout(decorate,150);setTimeout(decorate,700);
-    window.addEventListener('caderno:splash-done',()=>setTimeout(animateGreeting,55),{once:true});
-    if(document.body?.classList.contains('caderno-splash-done'))setTimeout(animateGreeting,55);
+    window.addEventListener('caderno:splash-done',()=>setTimeout(()=>{animateGreeting();animateAuthIfVisible()},55),{once:true});
+    if(document.body?.classList.contains('caderno-splash-done'))setTimeout(()=>{animateGreeting();animateAuthIfVisible()},55);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
