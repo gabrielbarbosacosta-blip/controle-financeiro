@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260918-8';
+  const THEME_VERSION='20260918-9';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -106,8 +106,25 @@
     },delay);
   }
 
-  function animatePageTitle(){
-    animateTitle(document.getElementById('pageTitle'));
+  function titleFadeKey(page){
+    return `prumo:title-fade:${page||'unknown'}`;
+  }
+
+  function pageTitleAlreadyAnimated(page){
+    if(!page)return false;
+    try{return sessionStorage.getItem(titleFadeKey(page))==='1'}catch(e){return false}
+  }
+
+  function markPageTitleAnimated(page){
+    if(!page)return;
+    try{sessionStorage.setItem(titleFadeKey(page),'1')}catch(e){}
+  }
+
+  function animatePageTitle(page=activePage()){
+    const title=document.getElementById('pageTitle');
+    if(!title||!title.textContent.trim()||!page||pageTitleAlreadyAnimated(page))return;
+    markPageTitleAnimated(page);
+    animateTitle(title);
   }
 
   function animateGreeting(){
@@ -128,7 +145,7 @@
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-    document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav();animatePageTitle()},45)});
+    document.addEventListener('click',e=>{const navButton=e.target.closest('.nav button[data-page]');if(navButton){const page=navButton.dataset.page;setTimeout(()=>{refreshHeading();decorateNav();animatePageTitle(page)},45)}});
   }
   function boot(){
     decorate();observe();setTimeout(decorate,150);setTimeout(decorate,700);
