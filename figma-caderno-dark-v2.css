@@ -144,7 +144,9 @@ body:not(.caderno-splash-done)::before{
   content:'prumo';
   position:fixed;
   left:50%;top:50%;
-  transform:translate(-50%,-58%);
+  transform:translate(-50%,calc(-58% + 7px));
+  opacity:0;
+  filter:blur(5px);
   z-index:2147483646;
   visibility:visible!important;
   color:#f3f7fb;
