@@ -159,6 +159,60 @@
     setTimeout(()=>clearInterval(pollTimer),6000);
   }
 
+  const GOAL_IDS=['goalKpiSaved','goalKpiTarget','goalKpiRemaining','goalKpiMonthly'];
+  let goalAnimationTimer=0;
+  let goalAnimating=false;
+  let goalLastSignature='';
+
+  function goalElementsReady(){
+    const page=document.getElementById('page-goals');
+    if(!page||!page.classList.contains('active'))return null;
+    const list=GOAL_IDS.map(id=>document.getElementById(id));
+    return list.every(Boolean)?list:null;
+  }
+
+  function animateGoalKpis(){
+    if(reducedMotion()||goalAnimating)return false;
+    const elements=goalElementsReady();
+    if(!elements)return false;
+
+    const values=elements.map(el=>{
+      const text=String(el.textContent||'').trim();
+      return{text,value:parseMoney(text)};
+    });
+    if(values.some(item=>item.value===null))return false;
+
+    const signature=values.map(item=>item.text).join('|');
+    if(signature===goalLastSignature)return false;
+
+    goalAnimating=true;
+    goalLastSignature=signature;
+    elements.forEach(el=>{el.textContent=formatMoney(0)});
+    elements.forEach((el,index)=>{
+      const target=values[index];
+      animateValue(el,target.value,target.text,START_DELAY+index*STAGGER_MS);
+    });
+
+    clearTimeout(goalAnimationTimer);
+    goalAnimationTimer=setTimeout(()=>{goalAnimating=false},START_DELAY+(elements.length-1)*STAGGER_MS+DURATION_MS+80);
+    return true;
+  }
+
+  function scheduleGoalKpis(){
+    clearTimeout(goalAnimationTimer);
+    goalAnimationTimer=setTimeout(()=>{
+      goalAnimating=false;
+      animateGoalKpis();
+    },0);
+  }
+
+  window.financeAnimateGoalKpis=scheduleGoalKpis;
+  window.addEventListener('finance:goals-kpis-rendered',scheduleGoalKpis);
+  document.addEventListener('click',e=>{
+    if(!e.target?.closest?.('[data-page="goals"]'))return;
+    setTimeout(scheduleGoalKpis,120);
+  },true);
+
   window.financeReplayKpiCountup=function(){
     played=false;
     prepared=false;
