@@ -189,7 +189,7 @@ body.caderno-splash-exit:not(.caderno-splash-done)>*:not(script):not(style){
 body.caderno-splash-exit:not(.caderno-splash-done)::before{
   content:'sem estresse';
   z-index:2147483647;
-  animation:prumoSplashStandardOut .48s cubic-bezier(.22,1,.36,1) forwards!important;
+  animation:prumoSplashStandardOut .65s cubic-bezier(.22,1,.36,1) forwards!important;
 }
 body.caderno-splash-exit:not(.caderno-splash-done)::after{
   content:'';
@@ -204,7 +204,7 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{
   box-shadow:none;
   backdrop-filter:blur(0);
   -webkit-backdrop-filter:blur(0);
-  animation:prumoSplashBackdropOut .48s cubic-bezier(.22,1,.36,1) forwards!important;
+  animation:prumoSplashBackdropOut .65s cubic-bezier(.22,1,.36,1) forwards!important;
 }
 @keyframes prumoSplashStandardOut{
   0%{content:'sem estresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
