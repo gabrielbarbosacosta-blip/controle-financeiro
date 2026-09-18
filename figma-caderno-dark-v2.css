@@ -121,48 +121,41 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
 }
 .prumo-login-story{
   position:relative;
-  min-height:160px;
+  min-height:220px;
   display:flex;
-  align-items:center;
+  flex-direction:column;
+  align-items:flex-start;
   justify-content:center;
+  gap:10px;
+  padding-left:clamp(10px,3vw,42px);
 }
 .prumo-login-word{
-  position:absolute;
+  position:relative;
+  display:block;
   margin:0;
   color:#f3f7fb;
   font:800 clamp(38px,5vw,68px) Manrope,Arial,sans-serif;
   letter-spacing:-.055em;
-  line-height:.95;
+  line-height:.98;
   white-space:nowrap;
   opacity:0;
   transform:translateY(7px);
   filter:blur(5px);
   will-change:opacity,transform,filter;
 }
+.prumo-login-word-1{color:#ddeaac}
 .auth-screen.prumo-login-intro .prumo-login-word-1{
-  animation:prumoLoginFirst 1.34s cubic-bezier(.22,1,.36,1) both;
+  animation:prumoLoginStackIn .72s cubic-bezier(.22,1,.36,1) .10s both;
 }
 .auth-screen.prumo-login-intro .prumo-login-word-2{
-  animation:prumoLoginMiddle 1.18s cubic-bezier(.22,1,.36,1) 1.12s both;
+  animation:prumoLoginStackIn .72s cubic-bezier(.22,1,.36,1) .95s both;
 }
 .auth-screen.prumo-login-intro .prumo-login-word-3{
-  animation:prumoLoginFinal .72s cubic-bezier(.22,1,.36,1) 2.16s both;
+  animation:prumoLoginStackIn .72s cubic-bezier(.22,1,.36,1) 1.80s both;
 }
-@keyframes prumoLoginFirst{
+@keyframes prumoLoginStackIn{
   0%{opacity:0;transform:translateY(7px);filter:blur(5px)}
-  18%{opacity:.66;transform:translateY(3px);filter:blur(1.8px)}
-  42%,72%{opacity:1;transform:translateY(0);filter:blur(0)}
-  100%{opacity:0;transform:translateY(-4px);filter:blur(3px)}
-}
-@keyframes prumoLoginMiddle{
-  0%{opacity:0;transform:translateY(7px);filter:blur(5px)}
-  20%{opacity:.66;transform:translateY(3px);filter:blur(1.8px)}
-  45%,70%{opacity:1;transform:translateY(0);filter:blur(0)}
-  100%{opacity:0;transform:translateY(-4px);filter:blur(3px)}
-}
-@keyframes prumoLoginFinal{
-  0%{opacity:0;transform:translateY(7px);filter:blur(5px)}
-  42%{opacity:.66;transform:translateY(3px);filter:blur(1.8px)}
+  42%{opacity:.66;filter:blur(1.8px)}
   100%{opacity:1;transform:translateY(0);filter:blur(0)}
 }
 .auth-screen.prumo-login-intro .auth-box{
@@ -170,7 +163,7 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
   transform:translateY(12px);
   filter:blur(8px);
   pointer-events:none;
-  animation:prumoLoginCardIn .72s cubic-bezier(.22,1,.36,1) 2.92s both;
+  animation:prumoLoginCardIn .72s cubic-bezier(.22,1,.36,1) 2.68s both;
 }
 @keyframes prumoLoginCardIn{
   0%{opacity:0;transform:translateY(12px);filter:blur(8px)}
@@ -187,7 +180,7 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
     align-content:center;
     padding:28px 18px;
   }
-  .prumo-login-story{min-height:110px}
+  .prumo-login-story{min-height:150px;align-items:center;padding-left:0;text-align:center}
   .prumo-login-word{font-size:clamp(34px,11vw,54px)}
   .auth-screen.prumo-login-intro .auth-box{width:min(430px,100%);justify-self:center}
 }
