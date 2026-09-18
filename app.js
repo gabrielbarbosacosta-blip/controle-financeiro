@@ -75,7 +75,31 @@ function save(){
 function setSyncStatus(text,bad=false){const el=document.getElementById('syncStatus');if(!el)return;el.textContent=text;el.style.color=bad?'#fecaca':'#bfdbfe'}
 function scheduleCloudSave(){if(!currentUser)return;clearTimeout(syncTimer);setSyncStatus('Salvando…');syncTimer=setTimeout(pushStateToCloud,700)}
 async function pushStateToCloud(){if(!currentUser||remoteWriteInFlight)return;remoteWriteInFlight=true;try{const {data,error}=await sb.auth.updateUser({data:{finance_state:state,finance_updated_at:new Date().toISOString()}});if(error)throw error;currentUser=data.user||currentUser;setSyncStatus('Sincronizado')}catch(e){console.error(e);setSyncStatus('Falha ao sincronizar',true)}finally{remoteWriteInFlight=false}}
-async function handleSession(session){currentUser=session?.user||null;if(!currentUser){document.getElementById('authScreen').classList.remove('hidden');document.getElementById('appRoot').classList.add('auth-hidden');return}const remote=currentUser.user_metadata?.finance_state;if(remote&&remote.settings&&Array.isArray(remote.transactions)){state=remote}else{await pushStateToCloud()}selectedCardId=state.cards[0]?.id||null;selectedInvoiceYm=state.settings.selectedMonth;document.getElementById('authScreen').classList.add('hidden');document.getElementById('appRoot').classList.remove('auth-hidden');renderAll();setSyncStatus('Sincronizado')}
+async function handleSession(session){
+  currentUser=session?.user||null;
+  const auth=document.getElementById('authScreen');
+  const app=document.getElementById('appRoot');
+  if(!currentUser){
+    document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
+    document.body?.classList.add('caderno-splash-done','prumo-login-mode');
+    auth?.classList.remove('hidden','prumo-login-intro');
+    if(auth){void auth.offsetWidth;auth.classList.add('prumo-login-intro')}
+    app?.classList.add('auth-hidden');
+    try{window.dispatchEvent(new CustomEvent('prumo:login-intro-start'))}catch(e){}
+    return;
+  }
+  document.body?.classList.remove('prumo-login-mode');
+  if(!document.body?.classList.contains('caderno-splash-done'))document.body?.classList.add('prumo-app-splash');
+  auth?.classList.remove('prumo-login-intro');
+  const remote=currentUser.user_metadata?.finance_state;
+  if(remote&&remote.settings&&Array.isArray(remote.transactions)){state=remote}else{await pushStateToCloud()}
+  selectedCardId=state.cards[0]?.id||null;
+  selectedInvoiceYm=state.settings.selectedMonth;
+  auth?.classList.add('hidden');
+  app?.classList.remove('auth-hidden');
+  renderAll();
+  setSyncStatus('Sincronizado');
+}
 async function initApp(){const {data}=await sb.auth.getSession();await handleSession(data.session);sb.auth.onAuthStateChange(async(_event,session)=>{await handleSession(session)})}
 
 function getCard(id){return state.cards.find(c=>c.id===id)}
