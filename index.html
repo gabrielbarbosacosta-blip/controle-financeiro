@@ -3,17 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>caderno · finanças</title>
+<meta name="theme-color" content="#07101d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="prumo">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/pwa-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/pwa-icon.svg">
+<title>prumo</title>
+<style id="prumo-critical-prepaint">
+html,body{background:#07101d;color:#e7edf5}
+body:not(.caderno-splash-done){overflow:hidden}
+body:not(.caderno-splash-done)>*:not(script):not(style){visibility:hidden!important}
+body:not(.caderno-splash-done)::before{content:'prumo';position:fixed;left:50%;top:50%;transform:translate(-50%,-58%);z-index:2147483646;visibility:visible!important;color:#f3f7fb;font:800 34px Arial,sans-serif;letter-spacing:-.055em;text-shadow:0 8px 28px rgba(0,0,0,.28)}
+body:not(.caderno-splash-done)::after{content:'';position:fixed;left:50%;top:calc(50% + 30px);width:132px;height:3px;transform:translateX(-50%);z-index:2147483647;visibility:visible!important;border-radius:999px;background:linear-gradient(90deg,transparent 0%,#ddeaac 48%,transparent 100%);background-size:55% 100%;background-repeat:no-repeat;animation:prumoCriticalProgress 1.05s ease-in-out infinite}
+@keyframes prumoCriticalProgress{0%{background-position:-80% 0;opacity:.4}50%{opacity:1}100%{background-position:180% 0;opacity:.4}}
+@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::after{animation:none;background-position:center}}
+</style>
 <link id="caderno-figma-theme" rel="stylesheet" href="figma-caderno-theme-v1.css?v=20260916-native1">
 <link id="caderno-figma-dark-v2" rel="stylesheet" href="figma-caderno-dark-v2.css?v=20260916-native1">
 <link id="caderno-stability-v3" rel="stylesheet" href="figma-caderno-stability-v3.css?v=20260916-native1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo"></div><div><h1>caderno</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
+<div class="auth-screen" id="authScreen"><div class="auth-box"><div class="brand"><div class="logo"></div><div><h1>prumo</h1><small>acesso seguro</small></div></div><h2>Entrar</h2><p>Use seu e-mail e senha. Seus dados serão sincronizados entre computador e celular.</p><div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email"></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="authPassword" type="password" autocomplete="current-password"></div><div class="auth-actions"><button class="btn primary" id="authLogin">Entrar</button><button class="btn" id="authSignup">Criar conta</button></div><div class="auth-msg" id="authMsg"></div></div></div>
 <div class="app auth-hidden" id="appRoot">
 <aside class="sidebar">
-  <div class="brand"><div class="logo"></div><div><h1>caderno</h1><small>Online • sincronizado</small></div></div>
+  <div class="brand"><div class="logo"></div><div><h1>prumo</h1><small>Online • sincronizado</small></div></div>
   <nav class="nav">
     <button class="active" data-page="dashboard">Visão geral</button>
     <button data-page="history">Lançamentos</button>
