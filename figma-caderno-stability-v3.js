@@ -1,7 +1,7 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260918-stability25-wait-until-ready';
+  const VERSION='20260918-stability26-exact-title-splash';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
   const FEATURE_SCRIPTS=['profile-avatar-performance-v1.js?v=20260917-avatarperf1','goal-participant-avatars-v7.js?v=20260916-goalavatars2','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2','kpi-countup-v1.js?v=20260918-kpicount3'];
   let moving=false;
@@ -78,7 +78,7 @@
 
   function startSplashRelease(){
     const started=performance.now();
-    const MIN_VISIBLE=3100;
+    const MIN_VISIBLE=3450;
     const SETTLE_AFTER_READY=520;
     const CHART_LEAD=420;
     let finished=false;
