@@ -73,6 +73,7 @@
   }
 
   function routeFrom(trigger){
+    if(trigger.dataset?.pfpKind&&trigger.dataset?.pfpId)return{kind:trigger.dataset.pfpKind,id:trigger.dataset.pfpId};
     if(trigger.matches('[data-pfp-link]'))return{kind:'transaction',id:trigger.dataset.pfpLink};
     const debt=trigger.closest('#debtTableBody tr');if(debt){const id=parseInline(debt.querySelector('button[onclick*="editDebtPlan("]'),'editDebtPlan');if(id)return{kind:'expense',id}}
     const income=trigger.closest('#incomeTableBody tr');if(income){const id=parseInline(income.querySelector('button[onclick*="editIncomePlan("]'),'editIncomePlan');if(id)return{kind:'income',id}}
@@ -190,8 +191,8 @@
   function close(){document.getElementById(BACKDROP_ID)?.classList.remove('open');document.getElementById(PANEL_ID)?.classList.remove('open');document.body.classList.remove('prumo-financial-panel-open');current=null}
 
   function decorate(){
-    document.querySelectorAll('#debtTableBody .debt-actions').forEach(actions=>{if(actions.querySelector('.pfp-panel-btn'))return;const id=parseInline(actions.querySelector('button[onclick*="editDebtPlan("]'),'editDebtPlan');if(!id)return;const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';actions.prepend(b)});
-    document.querySelectorAll('#incomeTableBody .income-actions').forEach(actions=>{if(actions.querySelector('.pfp-panel-btn'))return;const id=parseInline(actions.querySelector('button[onclick*="editIncomePlan("]'),'editIncomePlan');if(!id)return;const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';actions.prepend(b)});
+    document.querySelectorAll('#debtTableBody .debt-actions').forEach(actions=>{const current=actions.querySelector('.pfp-panel-btn'),editBtn=actions.querySelector('button[onclick*="editDebtPlan("]'),id=current?.dataset.pfpId||parseInline(editBtn,'editDebtPlan');if(!id)return;if(!current){const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';b.dataset.pfpKind='expense';b.dataset.pfpId=id;actions.prepend(b)}editBtn?.remove()});
+    document.querySelectorAll('#incomeTableBody .income-actions').forEach(actions=>{const current=actions.querySelector('.pfp-panel-btn'),editBtn=actions.querySelector('button[onclick*="editIncomePlan("]'),id=current?.dataset.pfpId||parseInline(editBtn,'editIncomePlan');if(!id)return;if(!current){const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';b.dataset.pfpKind='income';b.dataset.pfpId=id;actions.prepend(b)}editBtn?.remove()});
     document.querySelectorAll('#historyBody tr').forEach(row=>{if(row.querySelector('.pfp-panel-btn'))return;const id=parseInline(row.querySelector('button[onclick*="editTx("]'),'editTx');if(!id)return;const cells=row.querySelectorAll('td'),cell=cells[cells.length-1];if(!cell)return;const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';b.style.marginLeft='6px';cell.appendChild(b)});
     const rec=transactions().filter(sharedReceivable).filter(t=>ymOf(t.date)===selectedMonth());document.querySelectorAll('#sharedIncomeBody tr').forEach(row=>{if(row.querySelector('.pfp-panel-btn'))return;const name=row.querySelector('td strong')?.textContent?.trim(),tx=rec.find(t=>String(t.description||'').trim()===name);if(!tx)return;const b=document.createElement('button');b.type='button';b.className='btn small pfp-panel-btn';b.textContent='Painel';b.style.marginTop='7px';row.querySelector('td')?.appendChild(document.createElement('br'));row.querySelector('td')?.appendChild(b)});
   }
