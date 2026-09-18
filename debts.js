@@ -32,7 +32,7 @@
     style.id=DEBT_STYLE_ID;
     style.textContent=`
       .debt-progress{height:7px;background:#172033;border-radius:999px;overflow:hidden;margin-top:7px}.debt-progress span{display:block;height:100%;background:#60a5fa;border-radius:999px}
-      .debt-name{font-weight:750}.debt-sub{font-size:12px;color:#94a3b8;margin-top:3px}.debt-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+      .debt-name{font-weight:750}.pfp-name-button{appearance:none;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.pfp-name-button:hover,.pfp-name-button:focus-visible{color:#8fc2ff;text-decoration:underline;text-underline-offset:3px;outline:none}.debt-sub{font-size:12px;color:#94a3b8;margin-top:3px}.debt-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-debts .summary-strip{margin-bottom:14px}
     `;
     document.head.appendChild(style);
@@ -267,13 +267,13 @@
       const progress=d.openEnded?'':`<div class="debt-progress"><span style="width:${pct}%"></span></div>`;
       const nextLabel=next?`${monthLabel(String(next.date).slice(0,7))}<div class="debt-sub">parcela ${next.debtInstallmentNumber}/${d.openEnded?'∞':d.totalInstallments}</div>`:(d.openEnded?'—':'Quitada');
       return `<tr>
-        <td><div class="debt-name">${esc(d.name)}</div><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}</div>${progress}</td>
+        <td><button type="button" class="debt-name pfp-name-button pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">${esc(d.name)}</button><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}</div>${progress}</td>
         <td>${parcelInfo}</td>
         <td>${monthLabel(d.firstMonth)}</td>
         <td>${nextLabel}</td>
         <td class="num">${money(d.installmentAmount)}</td>
         <td class="num"><strong>${money(remaining)}</strong>${d.openEnded?`<div class="debt-sub">janela de ${OPEN_HORIZON} meses</div>`:''}</td>
-        <td><div class="debt-actions"><button class="btn small" onclick="editDebtPlan('${d.id}')">Editar</button><button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button></div></td>
+        <td><div class="debt-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">Painel</button><button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button></div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma despesa cadastrada.</td></tr>';
   }
