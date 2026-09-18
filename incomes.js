@@ -76,7 +76,7 @@
     style.id=STYLE_ID;
     style.textContent=`
       .income-progress{height:7px;background:#172033;border-radius:999px;overflow:hidden;margin-top:7px}.income-progress span{display:block;height:100%;background:#22c55e;border-radius:999px}
-      .income-name{font-weight:750}.income-sub{font-size:12px;color:#94a3b8;margin-top:3px}.income-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+      .income-name{font-weight:750}.pfp-name-button{appearance:none;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.pfp-name-button:hover,.pfp-name-button:focus-visible{color:#8fc2ff;text-decoration:underline;text-underline-offset:3px;outline:none}.income-sub{font-size:12px;color:#94a3b8;margin-top:3px}.income-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-incomes .summary-strip{margin-bottom:14px}
       #incomeValueChangeBox{grid-column:1/-1}
     `;
@@ -291,13 +291,13 @@
       const period=p.mode==='mensal'?(p.openEnded?`${monthLabel(p.firstMonth)} → Sem fim`:`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`):monthLabel(p.firstMonth);
       const progress=p.openEnded?'':`<div class="income-progress"><span style="width:${pct}%"></span></div>`;
       return `<tr>
-        <td><div class="income-name">${esc(p.name)}</div><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}</div>${progress}</td>
+        <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}</div>${progress}</td>
         <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pend.length} pendente(s)</div></td>
         <td>${period}</td>
         <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
         <td class="num">${money(currentValue)}${hasVersions?'<div class="income-sub">valor vigente</div>':''}</td>
         <td class="num"><strong>${p.openEnded?'Recorrente':money(remaining)}</strong></td>
-        <td><div class="income-actions"><button class="btn small" onclick="editIncomePlan('${p.id}')">Editar</button><button class="btn small danger" onclick="deleteIncomePlan('${p.id}')">Excluir</button></div></td>
+        <td><div class="income-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">Painel</button><button class="btn small danger" onclick="deleteIncomePlan('${p.id}')">Excluir</button></div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma receita cadastrada.</td></tr>';
   }
