@@ -11,7 +11,7 @@
     if(!document.querySelector('meta[name="theme-color"]')){const meta=document.createElement('meta');meta.name='theme-color';meta.content='#07101d';document.head.appendChild(meta)}
     if(!document.querySelector('meta[name="apple-mobile-web-app-capable"]')){const meta=document.createElement('meta');meta.name='apple-mobile-web-app-capable';meta.content='yes';document.head.appendChild(meta)}
     if(!document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')){const meta=document.createElement('meta');meta.name='apple-mobile-web-app-status-bar-style';meta.content='black-translucent';document.head.appendChild(meta)}
-    if(!document.querySelector('meta[name="apple-mobile-web-app-title"]')){const meta=document.createElement('meta');meta.name='apple-mobile-web-app-title';meta.content='caderno';document.head.appendChild(meta)}
+    if(!document.querySelector('meta[name="apple-mobile-web-app-title"]')){const meta=document.createElement('meta');meta.name='apple-mobile-web-app-title';meta.content='prumo';document.head.appendChild(meta)}
     if(!document.querySelector('link[rel="icon"]')){const icon=document.createElement('link');icon.rel='icon';icon.href='/pwa-icon.svg';icon.type='image/svg+xml';document.head.appendChild(icon)}
     if(!document.querySelector('link[rel="apple-touch-icon"]')){const icon=document.createElement('link');icon.rel='apple-touch-icon';icon.href='/pwa-icon.svg';document.head.appendChild(icon)}
   }
@@ -30,7 +30,7 @@
     const card=document.createElement('div');card.id='pwaInstallCard';card.className='pwa-install-card';
     if(standalone)card.innerHTML='<div class="pwa-install-title">Aplicativo instalado</div><div class="pwa-installed-badge">✓ Modo aplicativo</div>';
     else if(isIos)card.innerHTML='<div class="pwa-install-title">Instalar no iPhone</div><div class="pwa-install-copy">No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</div>';
-    else card.innerHTML='<div class="pwa-install-title">Instalar aplicativo</div><div class="pwa-install-copy">Adicione o caderno à tela inicial para abrir como aplicativo.</div><button class="btn small" type="button" id="pwaInstallBtn" disabled>Instalar app</button>';
+    else card.innerHTML='<div class="pwa-install-title">Instalar aplicativo</div><div class="pwa-install-copy">Adicione o prumo à tela inicial para abrir como aplicativo.</div><button class="btn small" type="button" id="pwaInstallBtn" disabled>Instalar app</button>';
     sidebar.appendChild(card);const button=document.getElementById('pwaInstallBtn');if(button){button.disabled=!deferredPrompt;button.onclick=async()=>{if(!deferredPrompt)return;button.disabled=true;deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(_e){}deferredPrompt=null;card.innerHTML='<div class="pwa-install-title">Aplicativo</div><div class="pwa-install-copy">A instalação foi processada pelo navegador.</div>'}}
   }
 
