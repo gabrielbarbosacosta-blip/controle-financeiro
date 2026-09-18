@@ -183,11 +183,27 @@ body:not(.caderno-splash-done)::after{
   79.894%{content:'sem estresse';opacity:.66;filter:blur(1.8px)}
   92.176%,100%{content:'sem estresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
 }
+body.caderno-splash-exit:not(.caderno-splash-done)::before{
+  content:'sem estresse';
+  animation:prumoSplashDisperse .48s cubic-bezier(.22,1,.36,1) forwards!important;
+}
+body.caderno-splash-exit:not(.caderno-splash-done)::after{
+  animation:prumoSplashLineOut .34s ease forwards!important;
+}
+@keyframes prumoSplashDisperse{
+  0%{content:'sem estresse';opacity:1;transform:translate(-50%,-58%) scale(1);filter:blur(0);letter-spacing:-.055em}
+  38%{opacity:.86;transform:translate(-50%,calc(-58% - 2px)) scale(1.025);filter:blur(1.6px);letter-spacing:.015em}
+  100%{content:'sem estresse';opacity:0;transform:translate(-50%,calc(-58% - 7px)) scale(1.09);filter:blur(10px);letter-spacing:.18em}
+}
+@keyframes prumoSplashLineOut{
+  0%{opacity:1;filter:blur(0);transform:translateX(-50%) scaleX(1)}
+  100%{opacity:0;filter:blur(6px);transform:translateX(-50%) scaleX(1.35)}
+}
 @keyframes cadernoSplashProgress{
   0%{background-position:-80% 0;opacity:.4}
   50%{opacity:1}
   100%{background-position:180% 0;opacity:.4}
 }
-@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::before{animation:none;content:'prumo'}body:not(.caderno-splash-done)::after{animation:none;background-position:center}}
+@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::before{animation:none;content:'sem estresse';opacity:1;filter:none;transform:translate(-50%,-58%)}body:not(.caderno-splash-done)::after{animation:none;background-position:center}body.caderno-splash-exit:not(.caderno-splash-done)::before,body.caderno-splash-exit:not(.caderno-splash-done)::after{animation:none!important}}
 
 @media(max-width:760px){.sidebar{border-color:#1b2a3d!important}}
