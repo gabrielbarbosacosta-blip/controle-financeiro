@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260917-6';
+  const THEME_VERSION='20260918-7';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -20,7 +20,7 @@
     if(document.getElementById('prumo-greeting-fade-style'))return;
     const style=document.createElement('style');
     style.id='prumo-greeting-fade-style';
-    style.textContent=`#pageTitle.prumo-greeting-fade{animation:prumoGreetingFade .72s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform,filter}@keyframes prumoGreetingFade{0%{opacity:0;transform:translateY(7px);filter:blur(5px)}42%{opacity:.66;filter:blur(1.8px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}@media(prefers-reduced-motion:reduce){#pageTitle.prumo-greeting-fade{animation:none!important}}`;
+    style.textContent=`.prumo-title-fade{animation:prumoGreetingFade .72s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform,filter}@keyframes prumoGreetingFade{0%{opacity:0;transform:translateY(7px);filter:blur(5px)}42%{opacity:.66;filter:blur(1.8px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}@media(prefers-reduced-motion:reduce){.prumo-title-fade{animation:none!important}}`;
     document.head.appendChild(style);
   }
 
@@ -94,16 +94,34 @@
     if(title&&title.textContent!==wanted)title.textContent=wanted;if(sub&&sub.textContent!=='Aqui está a leitura do seu mês.')sub.textContent='Aqui está a leitura do seu mês.';
   }
 
+  function animateTitle(el,delay=0){
+    if(!el||!el.textContent.trim())return;
+    try{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch(e){}
+    setTimeout(()=>{
+      if(!el.isConnected)return;
+      el.classList.remove('prumo-title-fade');
+      void el.offsetWidth;
+      el.classList.add('prumo-title-fade');
+      el.addEventListener('animationend',()=>el.classList.remove('prumo-title-fade'),{once:true});
+    },delay);
+  }
+
+  function largeTitles(){
+    const out=[],title=document.getElementById('pageTitle'),page=document.querySelector('.page.active');
+    if(title)out.push(title);
+    if(page)page.querySelectorAll('h3').forEach(h=>out.push(h));
+    document.querySelectorAll('#prumoFinancialPanelV2.open .pfp-title').forEach(h=>out.push(h));
+    return [...new Set(out)];
+  }
+
+  function animateLargeTitles(){
+    largeTitles().forEach((el,index)=>animateTitle(el,index*55));
+  }
+
   function animateGreeting(){
     if(greetingAnimated||activePage()!=='dashboard')return;
-    const title=document.getElementById('pageTitle');
-    if(!title||!title.textContent.trim())return;
     greetingAnimated=true;
-    try{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch(e){}
-    title.classList.remove('prumo-greeting-fade');
-    void title.offsetWidth;
-    title.classList.add('prumo-greeting-fade');
-    title.addEventListener('animationend',()=>title.classList.remove('prumo-greeting-fade'),{once:true});
+    animateLargeTitles();
   }
 
   function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
@@ -118,7 +136,7 @@
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-    document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav()},0)});
+    document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav();animateLargeTitles()},45);if(e.target.closest('.pfp-panel-btn,[data-pfp-link]'))setTimeout(animateLargeTitles,55)});
   }
   function boot(){
     decorate();observe();setTimeout(decorate,150);setTimeout(decorate,700);
