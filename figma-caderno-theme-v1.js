@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260918-9';
+  const THEME_VERSION='20260918-10';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -106,24 +106,12 @@
     },delay);
   }
 
-  function titleFadeKey(page){
-    return `prumo:title-fade:${page||'unknown'}`;
-  }
-
-  function pageTitleAlreadyAnimated(page){
-    if(!page)return false;
-    try{return sessionStorage.getItem(titleFadeKey(page))==='1'}catch(e){return false}
-  }
-
-  function markPageTitleAnimated(page){
-    if(!page)return;
-    try{sessionStorage.setItem(titleFadeKey(page),'1')}catch(e){}
-  }
+  const animatedPageTitles=new Set();
 
   function animatePageTitle(page=activePage()){
     const title=document.getElementById('pageTitle');
-    if(!title||!title.textContent.trim()||!page||pageTitleAlreadyAnimated(page))return;
-    markPageTitleAnimated(page);
+    if(!title||!title.textContent.trim()||!page||animatedPageTitles.has(page))return;
+    animatedPageTitles.add(page);
     animateTitle(title);
   }
 
