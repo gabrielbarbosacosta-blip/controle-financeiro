@@ -34,7 +34,7 @@ button{cursor:pointer}
 .sidebar{border-right:1px solid #d8d8d1;padding:28px 16px 20px;background:var(--caderno-sidebar);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:8}
 .sidebar>.brand{display:flex;align-items:center;gap:9px;padding:0 12px 22px;margin:0;color:#253443}
 .sidebar>.brand .logo{width:23px;height:23px;border-radius:7px 7px 7px 2px;background:#263a4d;color:#edf3c9;box-shadow:none;font:700 0/1 Georgia,serif;display:grid;place-items:center}
-.sidebar>.brand .logo::after{content:'c';font-size:21px;line-height:1}
+.sidebar>.brand .logo::after{content:'p';font-size:20px;line-height:1;font-family:Manrope,Arial,sans-serif;font-weight:800}
 .sidebar>.brand h1{font-size:18px;line-height:1;font-weight:800;letter-spacing:-.05em;margin:0}
 .sidebar>.brand small{display:none}
 
@@ -206,7 +206,7 @@ button{cursor:pointer}
 .auth-screen.hidden{display:none}
 .auth-box{width:min(430px,100%);background:#fbfaf6;border:1px solid #deded8;border-radius:14px;padding:28px;box-shadow:0 24px 70px rgba(35,48,53,.1)}
 .auth-box .brand{margin-bottom:25px}
-.auth-box .logo{background:#263a4d;color:#edf3c9;box-shadow:none}
+.auth-box .logo{background:#263a4d;color:#edf3c9;box-shadow:none}.auth-box .logo::after{content:'p';font-size:20px;line-height:1;font-family:Manrope,Arial,sans-serif;font-weight:800}
 .auth-box h2{margin:0 0 6px;letter-spacing:-.035em;color:#24323e}
 .auth-box p{color:#758083;margin:0 0 20px;line-height:1.5;font-size:13px}
 .auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
