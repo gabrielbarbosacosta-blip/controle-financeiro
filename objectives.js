@@ -155,6 +155,7 @@
     if(byId('goalKpiRemaining'))byId('goalKpiRemaining').textContent=money(remaining);
     if(byId('goalKpiMonthly'))byId('goalKpiMonthly').textContent=money(monthly);
     if(byId('goalKpiCount'))byId('goalKpiCount').textContent=`${goals.length} objetivo${goals.length===1?'':'s'} · ${active.length} ativo${active.length===1?'':'s'}`;
+    try{window.dispatchEvent(new CustomEvent('finance:goals-kpis-rendered'))}catch(_e){}
     const grid=byId('goalGrid');if(!grid)return;
     grid.innerHTML=goals.length?goals.map(cardHtml).join(''):`<div class="goals-empty" style="grid-column:1/-1"><strong>Nenhum objetivo cadastrado</strong>Crie sua primeira meta para acompanhar capital reservado, prazo e aporte necessário.<div style="margin-top:14px"><button type="button" class="btn primary" id="goalEmptyAdd">+ Criar objetivo</button></div></div>`;
     document.getElementById('goalEmptyAdd')?.addEventListener('click',()=>openGoalModal());
