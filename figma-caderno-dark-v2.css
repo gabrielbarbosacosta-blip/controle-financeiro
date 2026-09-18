@@ -151,6 +151,7 @@ body:not(.caderno-splash-done)::before{
   font:800 34px Manrope,Arial,sans-serif;
   letter-spacing:-.055em;
   text-shadow:0 8px 28px rgba(0,0,0,.28);
+  animation:prumoSplashWords 2.6s cubic-bezier(.22,1,.36,1) both;
 }
 body:not(.caderno-splash-done)::after{
   content:'';
@@ -167,11 +168,22 @@ body:not(.caderno-splash-done)::after{
   animation:cadernoSplashProgress 1.05s ease-in-out infinite;
   box-shadow:0 0 18px rgba(221,234,172,.16);
 }
+@keyframes prumoSplashWords{
+  0%{content:'prumo';opacity:0;transform:translate(-50%,-52%)}
+  7%,24%{content:'prumo';opacity:1;transform:translate(-50%,-58%)}
+  31%{content:'prumo';opacity:0;transform:translate(-50%,-62%)}
+  32%{content:'sem planilha';opacity:0;transform:translate(-50%,-52%)}
+  39%,56%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%)}
+  63%{content:'sem planilha';opacity:0;transform:translate(-50%,-62%)}
+  64%{content:'sem stresse';opacity:0;transform:translate(-50%,-52%)}
+  72%,92%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%)}
+  100%{content:'sem stresse';opacity:0;transform:translate(-50%,-62%)}
+}
 @keyframes cadernoSplashProgress{
   0%{background-position:-80% 0;opacity:.4}
   50%{opacity:1}
   100%{background-position:180% 0;opacity:.4}
 }
-@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::after{animation:none;background-position:center}}
+@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::before{animation:none;content:'prumo'}body:not(.caderno-splash-done)::after{animation:none;background-position:center}}
 
 @media(max-width:760px){.sidebar{border-color:#1b2a3d!important}}
