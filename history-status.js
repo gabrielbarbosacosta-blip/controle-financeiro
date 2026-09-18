@@ -26,6 +26,8 @@
     document.body.appendChild(script);
   });
   for(const src of scripts)await loadScript(src);
+  window.__prumoInitialModulesReady=true;
+  try{window.dispatchEvent(new CustomEvent('prumo:initial-modules-ready'))}catch(_e){}
 
   let tries=0;const sharingTimer=setInterval(()=>{
     tries++;let ready=false;try{ready=!!(currentUser?.id&&window.financeCloud)}catch(e){}
