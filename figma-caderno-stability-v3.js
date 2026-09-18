@@ -1,7 +1,7 @@
 (function(){
   if(window.__cadernoStabilityV3Loaded)return;
   window.__cadernoStabilityV3Loaded=true;
-  const VERSION='20260918-stability26-exact-title-splash';
+  const VERSION='20260918-stability27-splash-dispersion';
   const PROFILE_SKINS=['profile-panel-skin-v1.js?v=20260916-profile2','profile-panel-skin-v2.js?v=20260916-profilepalette2'];
   const FEATURE_SCRIPTS=['profile-avatar-performance-v1.js?v=20260917-avatarperf1','goal-participant-avatars-v7.js?v=20260916-goalavatars2','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2','kpi-countup-v1.js?v=20260918-kpicount3'];
   let moving=false;
@@ -87,14 +87,23 @@
     let chartTimer=0;
     let releaseTimer=0;
 
+    let exiting=false;
     const release=()=>{
-      if(finished)return;
-      finished=true;
+      if(finished||exiting)return;
+      exiting=true;
       clearInterval(pollTimer);
       clearTimeout(chartTimer);
       clearTimeout(releaseTimer);
-      document.body?.classList.add('caderno-splash-done');
-      try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(e){}
+      const body=document.body;
+      let exitMs=480;
+      try{if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)exitMs=0}catch(e){}
+      body?.classList.add('caderno-splash-exit');
+      setTimeout(()=>{
+        finished=true;
+        body?.classList.add('caderno-splash-done');
+        body?.classList.remove('caderno-splash-exit');
+        try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(e){}
+      },exitMs);
     };
 
     const triggerChart=()=>{
