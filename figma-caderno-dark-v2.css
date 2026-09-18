@@ -217,7 +217,7 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
 /* first-frame splash */
 body:not(.caderno-splash-done){overflow:hidden!important;background:#07101d!important}
 body:not(.caderno-splash-done)>*:not(script):not(style){visibility:hidden!important}
-body:not(.caderno-splash-done)::before{
+body.prumo-app-splash:not(.caderno-splash-done)::before{
   content:'prumo';
   position:fixed;
   left:50%;top:50%;
@@ -232,7 +232,7 @@ body:not(.caderno-splash-done)::before{
   text-shadow:0 8px 28px rgba(0,0,0,.28);
   animation:prumoSplashWords 3.4s cubic-bezier(.22,1,.36,1) both;
 }
-body:not(.caderno-splash-done)::after{
+body.prumo-app-splash:not(.caderno-splash-done)::after{
   content:'';
   position:fixed;
   left:50%;top:calc(50% + 30px);
@@ -298,6 +298,6 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{
   50%{opacity:1}
   100%{background-position:180% 0;opacity:.4}
 }
-@media(prefers-reduced-motion:reduce){body:not(.caderno-splash-done)::before{animation:none;content:'sem estresse';opacity:1;filter:none;transform:translate(-50%,-58%)}body:not(.caderno-splash-done)::after{animation:none;background-position:center}body.caderno-splash-exit:not(.caderno-splash-done)::before,body.caderno-splash-exit:not(.caderno-splash-done)::after{animation:none!important}}
+@media(prefers-reduced-motion:reduce){body.prumo-app-splash:not(.caderno-splash-done)::before{animation:none;content:'sem estresse';opacity:1;filter:none;transform:translate(-50%,-58%)}body.prumo-app-splash:not(.caderno-splash-done)::after{animation:none;background-position:center}body.caderno-splash-exit:not(.caderno-splash-done)::before,body.caderno-splash-exit:not(.caderno-splash-done)::after{animation:none!important}}
 
 @media(max-width:760px){.sidebar{border-color:#1b2a3d!important}}
