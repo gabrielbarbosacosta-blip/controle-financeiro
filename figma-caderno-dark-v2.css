@@ -169,15 +169,18 @@ body:not(.caderno-splash-done)::after{
   box-shadow:0 0 18px rgba(221,234,172,.16);
 }
 @keyframes prumoSplashWords{
-  0%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}
-  8%,24%{content:'prumo';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
-  31%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}
-  32%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}
-  40%,56%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
-  63%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}
-  64%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% + 14px));filter:blur(6px)}
-  73%,92%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
-  100%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% - 12px));filter:blur(4px)}
+  0%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
+  6%{content:'prumo';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}
+  12%,24%{content:'prumo';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
+  30%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
+  33%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
+  39%{content:'sem planilha';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}
+  45%,57%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
+  63%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
+  66%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
+  72%{content:'sem stresse';opacity:.66;transform:translate(-50%,calc(-58% + 3px));filter:blur(1.8px)}
+  78%,92%{content:'sem stresse';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
+  100%{content:'sem stresse';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
 }
 @keyframes cadernoSplashProgress{
   0%{background-position:-80% 0;opacity:.4}
