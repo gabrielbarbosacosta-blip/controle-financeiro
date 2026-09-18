@@ -2,7 +2,7 @@
   if(window.__cadernoFigmaThemeLoaded)return;
   window.__cadernoFigmaThemeLoaded=true;
 
-  const THEME_VERSION='20260918-7';
+  const THEME_VERSION='20260918-8';
   const LABELS={dashboard:'Visão geral',history:'Lançamentos',cards:'Cartões',incomes:'Receitas',debts:'Despesas',projection:'Projeções',goals:'Objetivos',settings:'Configurações'};
   const ICONS={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -106,22 +106,14 @@
     },delay);
   }
 
-  function largeTitles(){
-    const out=[],title=document.getElementById('pageTitle'),page=document.querySelector('.page.active');
-    if(title)out.push(title);
-    if(page)page.querySelectorAll('h3').forEach(h=>out.push(h));
-    document.querySelectorAll('#prumoFinancialPanelV2.open .pfp-title').forEach(h=>out.push(h));
-    return [...new Set(out)];
-  }
-
-  function animateLargeTitles(){
-    largeTitles().forEach((el,index)=>animateTitle(el,index*55));
+  function animatePageTitle(){
+    animateTitle(document.getElementById('pageTitle'));
   }
 
   function animateGreeting(){
     if(greetingAnimated||activePage()!=='dashboard')return;
     greetingAnimated=true;
-    animateLargeTitles();
+    animatePageTitle();
   }
 
   function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
@@ -136,7 +128,7 @@
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-    document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav();animateLargeTitles()},45);if(e.target.closest('.pfp-panel-btn,[data-pfp-link]'))setTimeout(animateLargeTitles,55)});
+    document.addEventListener('click',e=>{if(e.target.closest('.nav button'))setTimeout(()=>{refreshHeading();decorateNav();animatePageTitle()},45)});
   }
   function boot(){
     decorate();observe();setTimeout(decorate,150);setTimeout(decorate,700);
