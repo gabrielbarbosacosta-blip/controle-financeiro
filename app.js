@@ -1,7 +1,7 @@
 const SUPABASE_URL='https://eqolnqnsyomgybyrtrzt.supabase.co';
 const SUPABASE_KEY='sb_publishable_koTIgLL07Qe1Wf-ZY81LCA_0UO310ks';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let currentUser=null;let syncTimer=null;let remoteWriteInFlight=false;
+let currentUser=null;let syncTimer=null;let remoteWriteInFlight=false;let hadAuthenticatedSession=false;
 const STORAGE_KEY='controleFinanceiroWebV2';
 const V1_KEY='controleFinanceiroWebV1';
 const categories=['Moradia','Educação','Alimentação','Transporte','Saúde','Lazer','Assinaturas','Eletrônicos','Compras','Serviços','Investimentos','Dívidas','Salário','Extra','Outros'];
@@ -158,25 +158,47 @@ function runPrumoLoginIntro(auth){
 }
 
 async function handleSession(session){
-  currentUser=session?.user||null;
+  const nextUser=session?.user||null;
   const auth=document.getElementById('authScreen');
   const app=document.getElementById('appRoot');
-  if(!currentUser){
+  if(!nextUser){
+    const returningFromApp=hadAuthenticatedSession;
+    currentUser=null;
+    hadAuthenticatedSession=false;
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
+    app?.classList.add('auth-hidden');
+
     if(auth){
       auth.classList.remove('hidden');
-      auth.classList.add('prumo-login-prep');
-      if(auth.dataset.prumoIntroPlayed!=='1'&&auth.dataset.prumoIntroRunning!=='1'){
+
+      if(returningFromApp){
+        auth.querySelectorAll('.prumo-login-word,.auth-box').forEach(el=>{
+          try{el.getAnimations?.().forEach(animation=>animation.cancel())}catch(e){}
+        });
+        delete auth.dataset.prumoIntroPlayed;
+        auth.dataset.prumoIntroRunning='0';
+        auth.classList.remove('prumo-login-intro');
+        auth.classList.add('prumo-login-prep');
+      }
+
+      if(auth.dataset.prumoIntroRunning==='1'){
+        return;
+      }
+
+      if(auth.dataset.prumoIntroPlayed!=='1'){
+        auth.classList.add('prumo-login-prep');
         requestAnimationFrame(()=>runPrumoLoginIntro(auth));
       }else{
         auth.classList.remove('prumo-login-prep');
         auth.classList.add('prumo-login-intro');
       }
     }
-    app?.classList.add('auth-hidden');
     return;
   }
+
+  currentUser=nextUser;
+  hadAuthenticatedSession=true;
   document.body?.classList.remove('prumo-login-mode');
   if(auth){
     auth.dataset.prumoIntroRunning='0';
@@ -323,5 +345,12 @@ document.getElementById('authLogin').onclick=async()=>{
   }
 };
 document.getElementById('authSignup').onclick=async()=>{const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,msg=document.getElementById('authMsg');if(password.length<6){msg.textContent='Use uma senha com pelo menos 6 caracteres.';return}msg.textContent='Criando conta…';const {data,error}=await sb.auth.signUp({email,password});if(error){msg.textContent=error.message;return}if(data.session){msg.textContent='';await handleSession(data.session)}else msg.textContent='Conta criada. Confirme o e-mail enviado pelo Supabase e depois entre.'};
-document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();currentUser=null;await handleSession(null)};
+document.getElementById('logoutBtn').onclick=async()=>{
+  const {error}=await sb.auth.signOut();
+  if(error){
+    console.error('Falha ao sair da conta',error);
+    return;
+  }
+  if(currentUser)await handleSession(null);
+};
 initApp();
