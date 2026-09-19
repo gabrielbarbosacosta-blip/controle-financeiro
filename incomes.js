@@ -79,8 +79,28 @@
       .income-name{font-weight:750}.pfp-name-button{appearance:none;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.pfp-name-button:hover,.pfp-name-button:focus-visible{color:#8fc2ff;text-decoration:underline;text-underline-offset:3px;outline:none}.income-sub{font-size:12px;color:#94a3b8;margin-top:3px}.income-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-incomes .summary-strip{margin-bottom:14px}
       #incomeValueChangeBox{grid-column:1/-1}
+      .income-counterparty-box{grid-column:1/-1;padding:11px 12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:#0b1424}.income-counterparty-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:9px}.income-counterparty-state{grid-column:1/-1;min-height:14px;font-size:10px;color:var(--muted)}.income-counterparty-state.ok{color:#86efac}.income-counterparty-state.warn{color:#fde68a}.income-counterparty-state.bad{color:#fca5a5}@media(max-width:620px){.income-counterparty-row{grid-template-columns:1fr}.income-counterparty-row .btn{width:100%}}
     `;
     document.head.appendChild(style);
+  }
+
+  function incomeCpfDigits(v){return String(v||'').replace(/\D/g,'').slice(0,11)}
+  function incomeCpfMask(v){return incomeCpfDigits(v).replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2')}
+  function setIncomeCounterpartyState(text,kind=''){const el=document.getElementById('incomeCounterpartyState');if(!el)return;el.textContent=text;el.className=('income-counterparty-state '+kind).trim()}
+  function toggleIncomeCounterparty(){const on=!!document.getElementById('incomeCounterpartyEnabled')?.checked,row=document.getElementById('incomeCounterpartyRow');if(row)row.style.display=on?'grid':'none'}
+  async function lookupIncomeCounterparty(){
+    const input=document.getElementById('incomeCounterpartyCpf'),cpf=incomeCpfDigits(input?.value);
+    if(cpf.length!==11){setIncomeCounterpartyState('Informe os 11 dígitos do CPF.','bad');return}
+    setIncomeCounterpartyState('Buscando…');
+    try{
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      const {data,error}=await client.rpc('finance_find_profile_by_cpf',{p_cpf:cpf});if(error)throw error;
+      const uid=(typeof currentUser!=='undefined'?currentUser?.id:window.currentUser?.id)||'';
+      if(data?.found&&String(data.userId||'')===String(uid)){setIncomeCounterpartyState('Use o CPF de outra pessoa.','bad');return}
+      input.dataset.userId=data?.found?String(data.userId||''):'';
+      input.dataset.personName=data?.found?(data.nickname||data.fullName||'Pessoa cadastrada'):'';
+      setIncomeCounterpartyState(data?.found?('✓ '+input.dataset.personName+' · usuário do Prumo'):'CPF não encontrado no Prumo. Será mantido como devedor externo.',data?.found?'ok':'warn');
+    }catch(e){console.error('Falha ao buscar devedor por CPF.',e);setIncomeCounterpartyState('Não foi possível consultar este CPF agora.','bad')}
   }
 
   function categoryOptions(selected='Salário'){
@@ -137,6 +157,7 @@
             <div class="field" id="incomeLastMonthField"><label>Último mês</label><input id="incomeLastMonth" type="month"><small class="muted">Opcional quando “Sem data final” estiver marcado.</small></div>
             <div class="field" id="incomeNoEndField"><label>Recorrência</label><label class="toggle"><input type="checkbox" id="incomeNoEnd"> Sem data final</label><small class="muted">Mantém até ${OPEN_HORIZON} recebimentos calculados para frente.</small></div>
             <div class="field"><label>Dia do recebimento</label><input id="incomeDueDay" type="number" min="1" max="31" value="1" required></div>
+            <div class="income-counterparty-box"><label class="toggle"><input type="checkbox" id="incomeCounterpartyEnabled"> Informar devedor por CPF</label><div class="income-counterparty-row" id="incomeCounterpartyRow" style="display:none"><div class="field"><label>CPF do devedor</label><input id="incomeCounterpartyCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div><button type="button" class="btn small" id="incomeCounterpartyLookup">Buscar CPF</button><div class="income-counterparty-state" id="incomeCounterpartyState"></div></div></div>
             <div class="field full"><label>Observação</label><textarea id="incomeNotes" rows="3"></textarea></div>
           </div></div>
           <div class="modal-foot"><button type="button" class="btn" id="incomeCancel">Cancelar</button><button class="btn primary" type="submit">Salvar receita</button></div>
@@ -147,6 +168,9 @@
       document.getElementById('incomeModal').addEventListener('click',e=>{if(e.target.id==='incomeModal')closeIncomeModal()});
       document.getElementById('incomeMode').addEventListener('change',toggleIncomeMode);
       document.getElementById('incomeNoEnd').addEventListener('change',toggleIncomeMode);
+      document.getElementById('incomeCounterpartyEnabled').addEventListener('change',toggleIncomeCounterparty);
+      document.getElementById('incomeCounterpartyCpf').addEventListener('input',e=>{e.target.value=incomeCpfMask(e.target.value);e.target.dataset.userId='';e.target.dataset.personName='';setIncomeCounterpartyState('')});
+      document.getElementById('incomeCounterpartyLookup').addEventListener('click',lookupIncomeCounterparty);
       document.getElementById('incomeFirstMonth').addEventListener('change',()=>{
         const mode=document.getElementById('incomeMode').value,first=document.getElementById('incomeFirstMonth').value,last=document.getElementById('incomeLastMonth');
         if(mode==='mensal'&&first&&!document.getElementById('incomeNoEnd').checked&&!last.value)last.value=addMonth(first,11);
