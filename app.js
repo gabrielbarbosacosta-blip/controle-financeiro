@@ -4,7 +4,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{experimen
 let currentUser=null;let syncTimer=null;let remoteWriteInFlight=false;let hadAuthenticatedSession=false;
 const STORAGE_KEY='controleFinanceiroWebV2';
 const V1_KEY='controleFinanceiroWebV1';
-const categories=['Moradia','Educação','Alimentação','Transporte','Saúde','Lazer','Assinaturas','Eletrônicos','Compras','Serviços','Investimentos','Dívidas','Salário','Extra','Outros'];
+const categories=['Moradia','Educação','Alimentação','Transporte','Saúde','Lazer','Assinaturas','Eletrônicos','Compras','Serviços','Investimentos','Dívidas','Salário','Extra','Reembolso','Outros'];
 const fmtMoney=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
 const fmtMonth=ym=>{if(!ym)return'—';const[y,m]=ym.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'short',year:'2-digit'}).format(new Date(y,m-1,1)).replace('.','')};
 const fmtDate=d=>d?new Intl.DateTimeFormat('pt-BR').format(new Date(d+'T12:00:00')):'—';
