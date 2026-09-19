@@ -16,6 +16,7 @@
   let goals=[];
   let loading=false;
   let initialized=false;
+  let lastRenderedGoalSignature='';
 
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function getUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
@@ -184,6 +185,17 @@
     return `<article class="goal-card" data-goal-id="${esc(g.id)}"><div class="goal-head"><div class="goal-icon">${type.icon}</div><div class="goal-title-wrap"><div class="goal-title">${esc(g.name)}</div><div class="goal-sub"><span>${esc(type.label)}</span><span class="goal-pill ${status.key}">${status.label}</span><span class="goal-pill">Prioridade ${esc(priority.toLowerCase())}</span></div></div></div><div class="goal-body"><div class="goal-money-line"><div><div class="goal-saved">${money(p.saved)}</div><div class="muted" style="font-size:10px">reservados</div></div><div class="goal-target">Meta<br><strong>${money(p.target)}</strong></div></div><div class="goal-progress"><span style="width:${p.percent.toFixed(2)}%"></span></div><div class="goal-progress-meta"><span>${p.percent.toFixed(1).replace('.',',')}%</span><span>Faltam ${money(p.remaining)}</span></div><div class="goal-metrics"><div class="goal-metric"><div class="k">Aporte planejado</div><div class="v">${p.monthly>0?money(p.monthly)+'/mês':'Não definido'}</div></div><div class="goal-metric"><div class="k">Prazo</div><div class="v">${g.targetMonth?esc(monthLabel(g.targetMonth)):'Sem prazo'}</div></div><div class="goal-metric"><div class="k">Previsão</div><div class="v">${p.remaining<=0?'Atingida':p.forecast?esc(monthLabel(p.forecast)):'—'}</div></div></div><div class="goal-health">${healthHtml(g,p)}</div>${g.notes?`<div class="muted" style="font-size:10px;margin-top:9px">${esc(g.notes)}</div>`:''}</div>${contribHtml(g)}<div class="goal-actions"><button type="button" class="btn small primary" data-goal-contribute="${esc(g.id)}">+ Aporte extra</button><button type="button" class="btn small" data-goal-edit="${esc(g.id)}">Editar</button>${p.remaining>0?`<button type="button" class="btn small" data-goal-toggle="${esc(g.id)}" data-goal-status="${g.status==='paused'?'active':'paused'}">${g.status==='paused'?'Retomar':'Pausar'}</button>`:''}<button type="button" class="btn small danger" data-goal-delete="${esc(g.id)}">Excluir</button></div></article>`;
   }
 
+  function goalRenderSignature(){
+    return JSON.stringify(goals.map(g=>[
+      g.id,g.name,g.type,g.targetAmount,g.savedAmount,g.targetMonth,g.plannedMonthly,g.priority,g.status,g.notes,
+      g.isOwner,g.ownerUserId,g.ownerName,g.shareId,g.shareStatus,g.shareRole,g.canContribute,g.recurringEnabled,
+      (g.contributions||[]).map(c=>[
+        c.id,c.date,c.amount,c.signedAmount,c.status,c.notes,c.contributionType,c.eventType,c.movementKind,
+        c.reversalOf,c.isReversed,c.contributorUserId,c.contributorName,c.isShared
+      ])
+    ]));
+  }
+
   function render(){
     const totalSaved=goals.reduce((s,g)=>s+(Number(g.savedAmount)||0),0),totalTarget=goals.reduce((s,g)=>s+(Number(g.targetAmount)||0),0),remaining=Math.max(0,totalTarget-totalSaved),active=goals.filter(g=>g.status!=='paused'&&projection(g).remaining>0),monthly=active.reduce((s,g)=>s+(Number(g.plannedMonthly)||0),0);
     const byId=id=>document.getElementById(id);
@@ -192,9 +204,12 @@
     if(byId('goalKpiRemaining'))byId('goalKpiRemaining').textContent=money(remaining);
     if(byId('goalKpiMonthly'))byId('goalKpiMonthly').textContent=money(monthly);
     if(byId('goalKpiCount'))byId('goalKpiCount').textContent=`${goals.length} objetivo${goals.length===1?'':'s'} · ${active.length} ativo${active.length===1?'':'s'}`;
-    try{window.dispatchEvent(new CustomEvent('finance:goals-kpis-rendered'))}catch(_e){}
     const grid=byId('goalGrid');if(!grid)return;
+    const signature=goalRenderSignature();
+    if(signature===lastRenderedGoalSignature&&grid.childElementCount>0)return;
+    lastRenderedGoalSignature=signature;
     grid.innerHTML=goals.length?goals.map(cardHtml).join(''):`<div class="goals-empty" style="grid-column:1/-1"><strong>Nenhum objetivo cadastrado</strong>Crie sua primeira meta para acompanhar capital reservado, prazo e aporte necessário.<div style="margin-top:14px"><button type="button" class="btn primary" id="goalEmptyAdd">+ Criar objetivo</button></div></div>`;
+    try{window.dispatchEvent(new CustomEvent('finance:goals-kpis-rendered'))}catch(_e){}
     document.getElementById('goalEmptyAdd')?.addEventListener('click',()=>openGoalModal());
     grid.querySelectorAll('[data-goal-edit]').forEach(b=>b.onclick=()=>openGoalModal(b.dataset.goalEdit));
     grid.querySelectorAll('[data-goal-contribute]').forEach(b=>b.onclick=()=>{const id=b.dataset.goalContribute;if(typeof window.openGoalContributionChoice==='function')window.openGoalContributionChoice(id);else openContributionModal(id)});
