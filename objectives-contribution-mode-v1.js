@@ -328,7 +328,7 @@
     }
     if(info){
       if(approval==='pending')info.innerHTML='<strong>Aguardando confirmação.</strong> Nenhuma Despesa, Receita ou ocorrência mensal foi criada ainda. Após todos aceitarem, os planos recorrentes serão registrados e passarão a gerar os lançamentos mensais.';
-      else if(approval==='accepted'&&existing?.enabled)info.innerHTML='<strong>Recorrência confirmada e ativa.</strong> Este é o aporte recorrente compartilhado cadastrado para o objetivo. Você pode alterar valor, período, conta ou divisão aqui, ou cancelar a recorrência. As Despesas e Receitas derivadas não podem ser excluídas fora da seção Objetivos.';
+      else if(approval==='accepted'&&existing?.enabled)info.innerHTML='<strong>Recorrência confirmada e ativa.</strong> Este é o aporte recorrente compartilhado cadastrado para o objetivo. Você pode alterar valor, período, conta ou divisão aqui, ou cancelar a recorrência. As Despesas e Receitas derivadas não podem ser excluídas fora da seção Objetivos. Ao salvar alterações, a configuração será reenviada aos participantes para confirmação.';
       else if(approval==='rejected')info.innerHTML='<strong>Solicitação recusada.</strong> Ajuste a divisão ou os dados e salve novamente para enviar uma nova confirmação.';
       else info.innerHTML='Ao salvar, a regra recorrente será enviada aos demais participantes para <strong>confirmação</strong>. Os lançamentos mensais só serão criados depois que todos aceitarem.';
       if(existing&&!canManage)info.innerHTML=`<strong>Aporte recorrente compartilhado já cadastrado.</strong> O pagador é ${esc(existing.payerName||'outro participante')}. Só o pagador pode alterar ou cancelar esta recorrência.`;
@@ -458,6 +458,13 @@
     return true;
   }
 
+  async function openRecurringEntry(goalId){
+    await loadMeta(true);
+    const current=sharedRecurring.get(String(goalId));
+    if(current){await openSharedRecurring(goalId);return}
+    openChoice(goalId,'recurring');
+  }
+
   function interceptClicks(e){
     if(bypass)return;
     const contribute=e.target?.closest?.('[data-goal-contribute]');
@@ -468,10 +475,7 @@
     const recurring=e.target?.closest?.('[data-goal-recurring]');
     if(recurring){
       e.preventDefault();e.stopImmediatePropagation();
-      const goalId=recurring.dataset.goalRecurring;
-      const current=sharedRecurring.get(String(goalId));
-      if(current){openSharedRecurring(goalId);return}
-      openChoice(goalId,'recurring');return;
+      openRecurringEntry(recurring.dataset.goalRecurring).catch(err=>console.error('Falha ao abrir aporte recorrente.',err));return;
     }
     disableIndividualRecurring(e);
   }
