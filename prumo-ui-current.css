@@ -599,3 +599,28 @@ html.caderno-stable .goal-contributor-value strong{color:#dce6f2!important}
 html.caderno-stable .goal-contributor-value.month strong{color:#91d6b9!important}
 
 html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-color:#30445e!important;color:#aebdce!important}
+
+
+/* Lançamentos — seções por natureza financeira */
+#page-history .history-controls-card{margin-bottom:14px}
+#page-history .history-sections{display:grid;gap:14px}
+#page-history .history-section{padding:0;overflow:hidden}
+#page-history .history-section-head{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px 13px;border-bottom:1px solid var(--line)
+}
+#page-history .history-section-head h3{margin:0 0 3px;font-size:15px}
+#page-history .history-section-count{
+  min-width:30px;height:30px;padding:0 9px;border:1px solid var(--line);
+  border-radius:999px;display:inline-grid;place-items:center;
+  font:700 11px/1 "DM Mono",monospace;color:var(--muted);
+  background:rgba(255,255,255,.025)
+}
+#page-history .history-section .table-scroll{border-radius:0}
+#page-history .history-section table{margin:0}
+#page-history .history-section-income{border-left:2px solid rgba(221,234,172,.7)}
+#page-history .history-section-expense{border-left:2px solid rgba(237,119,115,.62)}
+#page-history .history-section-invoice{border-left:2px solid rgba(101,170,255,.62)}
+@media(max-width:800px){
+  #page-history .history-section-head{padding:14px}
+}
