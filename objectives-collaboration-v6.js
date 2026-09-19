@@ -120,8 +120,8 @@
     const map=new Map(goals.map(g=>[String(g.id),g]));
     grid.querySelectorAll('.goal-card[data-goal-id]').forEach(card=>{
       const g=map.get(String(card.dataset.goalId));if(!g)return;
-      if(card.dataset.goalCollabVersion==='6')return;
-      card.dataset.goalCollabVersion='6';
+      if(card.dataset.goalCollabVersion==='7')return;
+      card.dataset.goalCollabVersion='7';
       const sub=card.querySelector('.goal-sub'),actions=card.querySelector('.goal-actions');
       if(g.recurringEnabled)addPill(sub,'Recorrente','recurring');
       if(!g.isOwner)addPill(sub,g.shareStatus==='pending'?'Convite pendente':g.shareRole==='contributor'?'Objetivo compartilhado · colaborador':'Objetivo compartilhado · visualização',g.shareStatus==='pending'?'pending':'shared');
@@ -135,7 +135,7 @@
           recurring.addEventListener('click',()=>{if(typeof window.openGoalRecurringChoice==='function')window.openGoalRecurringChoice(g.id);else openRecurring(g.id)});share.addEventListener('click',()=>openShare(g.id));
         }
       }else{
-        card.querySelectorAll('[data-goal-edit],[data-goal-toggle],[data-goal-delete]').forEach(x=>x.remove());
+        card.querySelectorAll('[data-goal-edit],[data-goal-toggle],[data-goal-delete],[data-goal-recurring],[data-goal-recurring-shared]').forEach(x=>x.remove());
         if(!g.canContribute)card.querySelectorAll('[data-goal-contribute]').forEach(x=>x.remove());
         if(g.shareStatus==='pending'){
           card.classList.add('goal-share-pending');
