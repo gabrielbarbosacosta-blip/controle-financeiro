@@ -136,7 +136,7 @@ button{cursor:pointer}
 .badge.despesa{color:#9a4e4b;background:#fff2f0;border-color:#efcfcc}
 .badge.beneficio,.badge.aberta{color:#496f85;background:#eff5f8;border-color:#d1e0e8}
 .badge.fechada,.badge.pendente{color:#816631;background:#fbf5e9;border-color:#ead9b8}
-.filters{display:grid;grid-template-columns:1.4fr repeat(3,minmax(140px,.55fr));gap:10px;margin-bottom:14px}
+.filters{display:grid;grid-template-columns:1.4fr repeat(4,minmax(125px,.55fr));gap:10px;margin-bottom:14px}
 .field{display:grid;gap:6px}
 .field label{font-size:11px;color:#6f797b;font-weight:600}
 .field input,.field select,.field textarea,.invoice-tools select,.toolbar select{width:100%;background:#fffefa;color:#26343f;border:1px solid #d8d9d4;padding:10px 11px;border-radius:8px;outline:none}
