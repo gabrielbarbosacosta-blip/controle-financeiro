@@ -66,7 +66,7 @@
     box.style.display=allowed?'block':'none';
     if(!allowed){enabled.checked=false;document.getElementById('txCounterpartyBody').style.display='none';return}
     const rel=type==='Despesa'?'credor':'devedor';
-    document.getElementById('txCounterpartyToggleLabel').textContent=`Vincular ${rel} por CPF`;
+    document.getElementById('txCounterpartyToggleLabel').textContent=`Vincular ${rel}`;
     document.getElementById('txCounterpartyCpfLabel').textContent=`CPF do ${rel}`;
     document.getElementById('txCounterpartyBody').style.display=enabled.checked?'grid':'none';
     if(enabled.checked){
