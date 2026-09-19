@@ -40,23 +40,55 @@
     if(document.getElementById(STYLE_ID))return;
     const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
       #sharedBalances.shared-balances-detailed{display:grid;gap:12px}
-      .shared-month-context{padding:9px 12px;border:1px solid #243449;border-radius:11px;background:#0f172a;color:#94a3b8;font-size:11px;margin-bottom:10px}.shared-month-context strong{color:#e2e8f0}
-      .shared-person-card{border:1px solid var(--line);border-radius:15px;background:#0b1424;overflow:hidden}
-      .shared-person-card-head{display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:1px solid var(--line)}
-      .shared-person-avatar{width:46px;height:46px;border-radius:14px;flex:0 0 46px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,#1e3a5f,#172033);border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:800;color:#dbeafe}
+      .shared-month-context{padding:10px 12px;border:1px solid #243449;border-radius:11px;background:#101d2e;color:#94a3b8;font-size:11px;margin-bottom:2px}.shared-month-context strong{color:#e2e8f0}
+      .shared-balance-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+      .shared-balance-column{min-width:0;border:1px solid #23334a;border-radius:14px;background:#0b1424;overflow:hidden}
+      .shared-balance-column-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding:14px;border-bottom:1px solid #22344b;background:#0d1929}
+      .shared-balance-column-kicker{font-size:9px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:#71839a}
+      .shared-balance-column-title{font-size:15px;font-weight:850;color:#edf3f9;margin-top:3px;letter-spacing:-.02em}
+      .shared-balance-column-total{font-size:18px;font-weight:900;white-space:nowrap;letter-spacing:-.025em}
+      .shared-balance-column.receive .shared-balance-column-total{color:#91d6b9}
+      .shared-balance-column.pay .shared-balance-column-total{color:#ef8a81}
+      .shared-balance-list{display:grid;gap:10px;padding:10px}
+      .shared-balance-empty{padding:18px 14px;color:#7f90a5;font-size:11px;line-height:1.5;text-align:center;border:1px dashed #30445e;border-radius:11px;background:#101d2e}
+      .shared-person-card{border:1px solid #23334a;border-radius:12px;background:#0d1929;overflow:hidden}
+      .shared-person-card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px}
+      .shared-person-avatar{width:42px;height:42px;border-radius:50%;flex:0 0 42px;display:grid;place-items:center;overflow:hidden;background:#101d2e;border:1px solid #30445e;font-size:12px;font-weight:800;color:#ddeaac}
       .shared-person-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-      .shared-person-card-title{min-width:0;flex:1}.shared-person-card-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shared-person-card-sub{font-size:10px;color:var(--muted);margin-top:3px}
+      .shared-person-card-title{min-width:0}
+      .shared-person-relation{font-size:12px;font-weight:820;color:#eaf0f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .shared-person-card-sub{font-size:10px;color:#8293a8;margin-top:3px}
+      .shared-person-balance{text-align:right;white-space:nowrap}
+      .shared-person-balance strong{display:block;font-size:14px;font-weight:900;letter-spacing:-.02em}
+      .shared-person-balance span{display:block;font-size:9px;color:#8293a8;margin-top:2px}
+      .shared-person-card.receive .shared-person-balance strong{color:#91d6b9}
+      .shared-person-card.pay .shared-person-balance strong{color:#ef8a81}
+      .shared-person-details{border-top:1px solid #22344b}
+      .shared-person-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;color:#91a2b7;font-size:10px;font-weight:750;background:#0a1524}
+      .shared-person-details>summary::-webkit-details-marker{display:none}
+      .shared-person-details>summary span{min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:grid;place-items:center;background:#132238;color:#b8c5d5;font-size:9px}
+      .shared-person-details[open]>summary{color:#d8e1ec}
       .shared-entry-list{display:grid}
-      .shared-entry-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(148,163,184,.11)}
-      .shared-entry-line:last-child{border-bottom:0}.shared-entry-title{font-size:12px;font-weight:720}.shared-entry-meta{font-size:10px;color:var(--muted);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-      .shared-entry-kind{display:inline-flex;padding:3px 6px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:9px;font-weight:750}
-      .shared-entry-kind.receive{border-color:#245f37;background:#102a19;color:#bbf7d0}.shared-entry-kind.pay{border-color:#6b5318;background:#30230c;color:#fde68a}
-      .shared-entry-status{display:inline-flex;padding:3px 6px;border-radius:999px;border:1px solid #6b5318;background:#30230c;color:#fde68a;font-size:9px;font-weight:750}
-      .shared-entry-status.paid{border-color:#245f37;background:#102a19;color:#bbf7d0}.shared-entry-status.waiting{border-color:#1d497b;background:#102845;color:#bfdbfe}
-      .shared-entry-value{text-align:right;font-size:12px;font-weight:800;white-space:nowrap}
-      .shared-person-card-foot{padding:12px 14px;background:rgba(15,23,42,.72);display:flex;justify-content:space-between;gap:14px;align-items:center}
-      .shared-person-total-label{font-size:10px;color:var(--muted)}.shared-person-total{font-size:16px;font-weight:850;margin-top:2px}.shared-person-total.positive{color:#86efac}.shared-person-total.negative{color:#fca5a5}.shared-person-total.settled{color:#cbd5e1}
-      @media(max-width:700px){.shared-entry-line{grid-template-columns:1fr}.shared-entry-value{text-align:left}.shared-person-card-foot{align-items:flex-end}}
+      .shared-entry-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 13px;border-top:1px solid #1f3047}
+      .shared-entry-title{font-size:11px;font-weight:760;color:#dce6f2}
+      .shared-entry-meta{font-size:9px;color:#8091a6;margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+      .shared-entry-relation{display:inline-flex;padding:3px 6px;border-radius:999px;border:1px solid #30445e;background:#111f31;color:#cbd6e3;font-size:9px;font-weight:750}
+      .shared-entry-relation.receive{background:#102a20;border-color:#28513e;color:#a5e2c8}
+      .shared-entry-relation.pay{background:#2a1d1d;border-color:#5b3431;color:#efaaa4}
+      .shared-entry-status{display:inline-flex;padding:3px 6px;border-radius:999px;border:1px solid #5a4824;background:#2a2213;color:#ead38f;font-size:9px;font-weight:750}
+      .shared-entry-status.paid{border-color:#28513e;background:#102a20;color:#a5e2c8}.shared-entry-status.waiting{border-color:#275073;background:#10243a;color:#abd5f3}
+      .shared-entry-value{text-align:right;font-size:11px;font-weight:850;white-space:nowrap;color:#eef3f8}
+      .shared-settled-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid #23334a;border-radius:12px;background:#101d2e}
+      .shared-settled-strip strong{display:block;color:#d9e3ee;font-size:11px}
+      .shared-settled-strip span{display:block;color:#8293a8;font-size:10px;margin-top:2px}
+      .shared-settled-count{flex:0 0 auto;min-width:28px;height:24px;padding:0 8px;border-radius:999px;display:grid!important;place-items:center;background:#102a20;color:#a5e2c8!important;font-weight:850!important;margin:0!important}
+      @media(max-width:900px){.shared-balance-board{grid-template-columns:1fr}.shared-balance-column-head{align-items:center}}
+      @media(max-width:620px){
+        .shared-person-card-head{grid-template-columns:auto minmax(0,1fr)}
+        .shared-person-balance{grid-column:2;text-align:left}
+        .shared-entry-line{grid-template-columns:1fr}.shared-entry-value{text-align:left}
+        .shared-settled-strip{align-items:flex-start}
+      }
     `;document.head.appendChild(s);
   }
 
@@ -92,28 +124,54 @@
   }
 
   function updateSummary(rows){
-    const receive=rows.reduce((s,b)=>s+(Number(b.toReceive)||0),0);
-    const pay=rows.reduce((s,b)=>s+(Number(b.toPay)||0),0);
+    const receive=rows.reduce((s,b)=>s+Math.max(0,Number(b.net)||0),0);
+    const pay=rows.reduce((s,b)=>s+Math.max(0,-(Number(b.net)||0)),0);
     const net=receive-pay;
     const rec=document.getElementById('sharedToReceive');if(rec)rec.textContent=money(receive);
     const payEl=document.getElementById('sharedToPay');if(payEl)payEl.textContent=money(pay);
     const netEl=document.getElementById('sharedNet');if(netEl){netEl.textContent=money(net);netEl.className=`value ${net>=0?'positive':'negative'}`}
   }
 
-  function entryHtml(e){
-    const dir=e.direction==='receive'?'receive':'pay';
-    const status=String(e.status||'Pendente');
-    return `<div class="shared-entry-line"><div><div class="shared-entry-title">${esc(e.description||'Despesa compartilhada')}</div><div class="shared-entry-meta"><span class="shared-entry-kind ${dir}">${esc(e.kind||(dir==='receive'?'Reembolso':'Despesa'))}</span><span class="shared-entry-status ${statusClass(status)}">${esc(status)}</span>${e.date?`<span>${esc(dateLabel(e.date))}</span>`:''}</div></div><div class="shared-entry-value">${money(e.amount)}</div></div>`;
+  function avatarHtml(b){
+    return b.avatarUrl?`<img src="${esc(b.avatarUrl)}" alt="Foto de ${esc(b.name||'participante')}">`:`<span>${esc(initials(b.name))}</span>`;
   }
 
-  function cardHtml(b){
-    const net=Number(b.net)||0,toPay=Number(b.toPay)||0,toReceive=Number(b.toReceive)||0;
-    let label='Tudo acertado',value=0,cls='settled';
-    if(net<0){label='Valor a pagar';value=Math.abs(net);cls='negative'}
-    else if(net>0){label='Valor a receber';value=net;cls='positive'}
+  function entryHtml(e,personName){
+    const dir=e.direction==='receive'?'receive':'pay';
+    const status=String(e.status||'Pendente');
+    const settled=isSettled(status);
+    let relation='';
+    if(settled)relation=dir==='receive'?'Você recebeu este valor':'Você pagou este valor';
+    else relation=dir==='receive'?`${personName} te deve`:`Você deve para ${personName}`;
+    return `<div class="shared-entry-line"><div><div class="shared-entry-title">${esc(e.description||'Despesa compartilhada')}</div><div class="shared-entry-meta"><span class="shared-entry-relation ${dir}">${esc(relation)}</span><span class="shared-entry-status ${statusClass(status)}">${esc(status)}</span>${e.date?`<span>${esc(dateLabel(e.date))}</span>`:''}</div></div><div class="shared-entry-value">${money(e.amount)}</div></div>`;
+  }
+
+  function cardHtml(b,side){
+    const name=String(b.name||'Participante');
+    const amount=Math.abs(Number(b.net)||0);
     const entries=Array.isArray(b.entries)?b.entries:[];
-    const avatar=b.avatarUrl?`<img src="${esc(b.avatarUrl)}" alt="Foto de ${esc(b.name||'participante')}">`:`<span>${esc(initials(b.name))}</span>`;
-    return `<div class="shared-person-card"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatar}</div><div class="shared-person-card-title"><div class="shared-person-card-name">${esc(b.name||'Participante')}</div><div class="shared-person-card-sub">${entries.length} lançamento${entries.length===1?'':'s'} nesta competência</div></div></div><div class="shared-entry-list">${entries.length?entries.map(entryHtml).join(''):'<div class="empty">Nenhuma despesa ou reembolso.</div>'}</div><div class="shared-person-card-foot"><div><div class="shared-person-total-label">${label}</div><div class="shared-person-total ${cls}">${money(value)}</div></div><div style="text-align:right"><div class="shared-person-total-label">A pagar ${money(toPay)} · A receber ${money(toReceive)}</div></div></div></div>`;
+    const pending=entries.filter(e=>!isSettled(e.status)).length;
+    const relation=side==='receive'?`${name} te deve`:`Você deve para ${name}`;
+    const balanceLabel=side==='receive'?'a receber':'a pagar';
+    const pendingLabel=`${pending} pendência${pending===1?'':'s'} · ${entries.length} lançamento${entries.length===1?'':'s'}`;
+    return `<article class="shared-person-card ${side}"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatarHtml(b)}</div><div class="shared-person-card-title"><div class="shared-person-relation">${esc(relation)}</div><div class="shared-person-card-sub">${esc(pendingLabel)}</div></div><div class="shared-person-balance"><strong>${money(amount)}</strong><span>${balanceLabel}</span></div></div><details class="shared-person-details"><summary>Ver detalhes <span>${entries.length}</span></summary><div class="shared-entry-list">${entries.length?entries.map(e=>entryHtml(e,name)).join(''):'<div class="shared-balance-empty">Nenhum lançamento nesta competência.</div>'}</div></details></article>`;
+  }
+
+  function columnHtml(side,rows){
+    const isReceive=side==='receive';
+    const total=rows.reduce((s,b)=>s+Math.abs(Number(b.net)||0),0);
+    const title=isReceive?'Te devem':'Você deve';
+    const kicker=isReceive?'A RECEBER':'A PAGAR';
+    const empty=isReceive?'Ninguém te deve nesta competência.':'Você não deve para ninguém nesta competência.';
+    return `<section class="shared-balance-column ${side}"><div class="shared-balance-column-head"><div><div class="shared-balance-column-kicker">${kicker}</div><div class="shared-balance-column-title">${title}</div></div><div class="shared-balance-column-total">${money(total)}</div></div><div class="shared-balance-list">${rows.length?rows.map(b=>cardHtml(b,side)).join(''):`<div class="shared-balance-empty">${empty}</div>`}</div></section>`;
+  }
+
+  function settledHtml(rows){
+    if(!rows.length)return'';
+    const names=rows.map(b=>String(b.name||'Participante'));
+    const shown=names.slice(0,3).join(', ');
+    const extra=names.length>3?` e mais ${names.length-3}`:'';
+    return `<div class="shared-settled-strip"><div><strong>Tudo acertado</strong><span>Sem valor líquido pendente com ${esc(shown+extra)} nesta competência.</span></div><span class="shared-settled-count">${rows.length}</span></div>`;
   }
 
   function installHostGuard(host){
@@ -125,7 +183,7 @@
       get(){return descriptor.get.call(this)},
       set(value){
         const html=String(value??'');
-        const detailMarkup=html.includes('shared-month-context')||html.includes('shared-person-card')||html.includes('Nenhum acerto nesta competência.');
+        const detailMarkup=html.includes('shared-month-context')||html.includes('shared-balance-board')||html.includes('shared-person-card')||html.includes('shared-settled-strip')||html.includes('Nenhum acerto nesta competência.');
         if(internalRender||detailMarkup)return descriptor.set.call(this,value);
         if(window.__sharedBalancesDetailLoaded)return;
         return descriptor.set.call(this,value);
@@ -145,12 +203,15 @@
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
       updateSummary(rows);
       const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,(b.entries||[]).map(e=>[e.sharedId,e.date,e.status,e.amount,e.direction])])]);
-      const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-person-card'));
+      const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-balance-board'));
       if(!force&&signature===lastSignature&&alreadyDetailed)return;
       lastSignature=signature;lastSelectedMonth=selectedMonth;
       internalRender=true;
       host.classList.add('shared-balances-detailed');
-      host.innerHTML=`<div class="shared-month-context">Exibindo acertos de <strong>${esc(monthLabel(selectedMonth))}</strong></div>${rows.length?rows.map(cardHtml).join(''):'<div class="empty">Nenhum acerto nesta competência.</div>'}`;
+      const receiveRows=rows.filter(b=>(Number(b.net)||0)>0.005);
+      const payRows=rows.filter(b=>(Number(b.net)||0)<-0.005);
+      const settledRows=rows.filter(b=>Math.abs(Number(b.net)||0)<=0.005);
+      host.innerHTML=`<div class="shared-month-context">Acertos de <strong>${esc(monthLabel(selectedMonth))}</strong></div>${rows.length?`<div class="shared-balance-board">${columnHtml('receive',receiveRows)}${columnHtml('pay',payRows)}</div>${settledHtml(settledRows)}`:'<div class="shared-balance-empty">Nenhum acerto nesta competência.</div>'}`;
       queueMicrotask(()=>{internalRender=false});
     }catch(e){console.warn('Falha ao detalhar acertos por pessoa.',e)}finally{loading=false}
   }
