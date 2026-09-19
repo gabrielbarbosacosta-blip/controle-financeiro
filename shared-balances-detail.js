@@ -11,6 +11,8 @@
   let internalRender=false;
   let refreshScheduled=false;
   let lastSelectedMonth='';
+  let lastRows=[];
+  let settling=false;
 
   function getSb(){try{return sb}catch(e){return window.sb||null}}
   function getUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
@@ -63,6 +65,8 @@
       .shared-person-balance span{display:block;font-size:9px;color:#8293a8;margin-top:2px}
       .shared-person-card.receive .shared-person-balance strong{color:#91d6b9}
       .shared-person-card.pay .shared-person-balance strong{color:#ef8a81}
+      .shared-person-actions{display:flex;justify-content:flex-end;padding:0 13px 12px}
+      .shared-person-actions .btn{min-width:148px}
       .shared-person-details{border-top:1px solid #22344b}
       .shared-person-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;color:#91a2b7;font-size:10px;font-weight:750;background:#0a1524}
       .shared-person-details>summary::-webkit-details-marker{display:none}
@@ -86,6 +90,7 @@
       @media(max-width:620px){
         .shared-person-card-head{grid-template-columns:auto minmax(0,1fr)}
         .shared-person-balance{grid-column:2;text-align:left}
+        .shared-person-actions{justify-content:stretch}.shared-person-actions .btn{width:100%}
         .shared-entry-line{grid-template-columns:1fr}.shared-entry-value{text-align:left}
         .shared-settled-strip{align-items:flex-start}
       }
@@ -146,6 +151,16 @@
     return `<div class="shared-entry-line"><div><div class="shared-entry-title">${esc(e.description||'Despesa compartilhada')}</div><div class="shared-entry-meta"><span class="shared-entry-relation ${dir}">${esc(relation)}</span><span class="shared-entry-status ${statusClass(status)}">${esc(status)}</span>${e.date?`<span>${esc(dateLabel(e.date))}</span>`:''}</div></div><div class="shared-entry-value">${money(e.amount)}</div></div>`;
   }
 
+  function actionableEntries(b,side){
+    const entries=Array.isArray(b?.entries)?b.entries:[];
+    return entries.filter(e=>{
+      if(e.direction!==side||!e.transactionId)return false;
+      const status=String(e.status||'').toLowerCase();
+      if(side==='pay')return status==='pendente';
+      return !isSettled(status);
+    });
+  }
+
   function cardHtml(b,side){
     const name=String(b.name||'Participante');
     const amount=Math.abs(Number(b.net)||0);
@@ -154,7 +169,10 @@
     const relation=side==='receive'?`${name} te deve`:`Você deve para ${name}`;
     const balanceLabel=side==='receive'?'a receber':'a pagar';
     const pendingLabel=`${pending} pendência${pending===1?'':'s'} · ${entries.length} lançamento${entries.length===1?'':'s'}`;
-    return `<article class="shared-person-card ${side}"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatarHtml(b)}</div><div class="shared-person-card-title"><div class="shared-person-relation">${esc(relation)}</div><div class="shared-person-card-sub">${esc(pendingLabel)}</div></div><div class="shared-person-balance"><strong>${money(amount)}</strong><span>${balanceLabel}</span></div></div><details class="shared-person-details"><summary>Ver detalhes <span>${entries.length}</span></summary><div class="shared-entry-list">${entries.length?entries.map(e=>entryHtml(e,name)).join(''):'<div class="shared-balance-empty">Nenhum lançamento nesta competência.</div>'}</div></details></article>`;
+    const actionable=actionableEntries(b,side).length;
+    const actionLabel=side==='receive'?'Informar recebimento':'Informar pagamento';
+    const action=actionable?`<div class="shared-person-actions"><button type="button" class="btn small ${side==='receive'?'primary':''}" data-shared-settle="${side}" data-shared-user="${esc(b.userId)}">${actionLabel}</button></div>`:'';
+    return `<article class="shared-person-card ${side}"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatarHtml(b)}</div><div class="shared-person-card-title"><div class="shared-person-relation">${esc(relation)}</div><div class="shared-person-card-sub">${esc(pendingLabel)}</div></div><div class="shared-person-balance"><strong>${money(amount)}</strong><span>${balanceLabel}</span></div></div>${action}<details class="shared-person-details"><summary>Ver detalhes <span>${entries.length}</span></summary><div class="shared-entry-list">${entries.length?entries.map(e=>entryHtml(e,name)).join(''):'<div class="shared-balance-empty">Nenhum lançamento nesta competência.</div>'}</div></details></article>`;
   }
 
   function columnHtml(side,rows){
@@ -202,7 +220,8 @@
       const rows=contextualizeRows(data?.items||[],selectedMonth);
       await Promise.all(rows.map(async b=>{b.avatarUrl=await signedAvatar(b.avatarPath)}));
       updateSummary(rows);
-      const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,(b.entries||[]).map(e=>[e.sharedId,e.date,e.status,e.amount,e.direction])])]);
+      lastRows=rows;
+      const signature=JSON.stringify([selectedMonth,rows.map(b=>[b.userId,b.net,b.toPay,b.toReceive,b.avatarPath,(b.entries||[]).map(e=>[e.sharedId,e.transactionId,e.date,e.status,e.amount,e.direction])])]);
       const alreadyDetailed=host.classList.contains('shared-balances-detailed')&&(rows.length===0||!!host.querySelector('.shared-balance-board'));
       if(!force&&signature===lastSignature&&alreadyDetailed)return;
       lastSignature=signature;lastSelectedMonth=selectedMonth;
@@ -216,6 +235,53 @@
     }catch(e){console.warn('Falha ao detalhar acertos por pessoa.',e)}finally{loading=false}
   }
 
+  async function settlePerson(userId,side,button){
+    if(settling)return;
+    const row=lastRows.find(b=>String(b.userId)===String(userId));if(!row)return;
+    const entries=actionableEntries(row,side);if(!entries.length)return;
+    const name=String(row.name||'Participante');
+    const count=entries.length;
+    const question=side==='pay'
+      ?`Informar o pagamento de ${count} despesa${count===1?'':'s'} para ${name}? Cada despesa ficará aguardando a confirmação da outra pessoa.`
+      :`Confirmar o recebimento de ${count} despesa${count===1?'':'s'} de ${name}? O recebimento será baixado imediatamente, sem confirmação adicional.`;
+    if(!confirm(question))return;
+    const client=getSb();if(!client)return;
+    settling=true;
+    const original=button?.textContent||'';
+    if(button){button.disabled=true;button.textContent='Processando…'}
+    let completed=0;
+    try{
+      for(const entry of entries){
+        const status=side==='pay'?'Pago':'Recebido';
+        const {data,error}=await client.rpc('finance_set_shared_transaction_status',{p_transaction_id:String(entry.transactionId),p_status:status});
+        if(error)throw error;
+        if(!data?.ok)throw new Error(data?.detail||data?.error||'shared_settlement_failed');
+        completed++;
+      }
+      try{if(window.financeCloud?.refresh)await window.financeCloud.refresh()}catch(e){}
+      try{if(typeof renderAll==='function')renderAll()}catch(e){}
+      try{window.financeSharedPaymentConfirmationsRefresh?.()}catch(e){}
+      try{window.financeNotificationsRefresh?.()}catch(e){}
+      await refresh(true);
+      try{
+        if(typeof setSyncStatus==='function')setSyncStatus(
+          side==='pay'
+            ?`Pagamento informado em ${completed} despesa${completed===1?'':'s'}; aguardando confirmação`
+            :`Recebimento registrado em ${completed} despesa${completed===1?'':'s'}`
+        );
+      }catch(e){}
+    }catch(err){
+      console.error('Falha ao registrar acerto por pessoa.',err);
+      alert(completed
+        ?`${completed} despesa${completed===1?' foi processada':'s foram processadas'}, mas não foi possível concluir todas.`
+        :'Não foi possível registrar este acerto agora.');
+      try{await refresh(true)}catch(e){}
+    }finally{
+      settling=false;
+      if(button){button.disabled=false;button.textContent=original}
+    }
+  }
+
   function scheduleRefresh(force=false){
     if(refreshScheduled)return;
     refreshScheduled=true;
@@ -227,6 +293,12 @@
   function init(){
     injectStyles();
     document.addEventListener('click',e=>{
+      const settle=e.target?.closest?.('[data-shared-settle]');
+      if(settle){
+        e.preventDefault();
+        settlePerson(settle.dataset.sharedUser,settle.dataset.sharedSettle,settle);
+        return;
+      }
       if(e.target?.closest?.('[data-page="sharing"]'))setTimeout(()=>refresh(false),120);
     },true);
     const monthEvent=e=>{
