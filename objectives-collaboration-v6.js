@@ -33,7 +33,8 @@
       .goal-share-name{font-size:12px;font-weight:780}.goal-share-meta{font-size:10px;color:var(--muted);margin-top:3px}.goal-share-state{font-size:10px;min-height:14px;margin-top:8px}.goal-share-state.ok{color:#86efac}.goal-share-state.bad{color:#fca5a5}
       .goal-recurring-summary{padding:10px 11px;border:1px solid #155e75;border-radius:11px;background:#083344;color:#cffafe;font-size:10px;line-height:1.45;margin-bottom:12px}
       .goal-recurring-danger{margin-right:auto}
-      @media(max-width:620px){.goal-share-row{align-items:flex-start;flex-direction:column}.goal-share-row .btn{width:100%}}
+      .goal-exit-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.goal-exit-option{display:flex;gap:8px;align-items:flex-start;padding:11px;border:1px solid #2f415a;border-radius:11px;background:#0b1424;cursor:pointer}.goal-exit-option:has(input:checked){border-color:#60a5fa;background:#10243b;box-shadow:inset 0 0 0 1px rgba(96,165,250,.18)}.goal-exit-option input{margin-top:2px}.goal-exit-option strong{display:block;font-size:10px}.goal-exit-option small{display:block;color:var(--muted);font-size:9px;line-height:1.4;margin-top:3px}.goal-exit-refund-note{padding:10px 11px;border-radius:11px;border:1px solid #28513e;background:#102a20;color:#bbf7d0;font-size:10px;line-height:1.45}.goal-exit-error{min-height:15px;color:#fca5a5;font-size:10px;margin-top:7px}
+      @media(max-width:620px){.goal-share-row{align-items:flex-start;flex-direction:column}.goal-share-row .btn{width:100%}.goal-exit-options{grid-template-columns:1fr}}
     `;document.head.appendChild(s);
   }
 
@@ -54,8 +55,17 @@
       document.getElementById('goalShareCpf').addEventListener('input',e=>{e.target.value=cpfMask(e.target.value)});
     }
 
+    if(!document.getElementById('goalExitModal')){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="modal-backdrop" id="goalExitModal"><div class="modal"><form id="goalExitForm"><div class="modal-head"><h3 id="goalExitTitle">Saída do objetivo</h3><button type="button" class="btn ghost" data-goal-collab-close="goalExitModal">✕</button></div><div class="modal-body"><div class="goal-modal-note" id="goalExitDescription"></div><input type="hidden" id="goalExitShareId"><input type="hidden" id="goalExitOwnerView"><div><strong style="font-size:11px">Há valores a restituir?</strong><div class="goal-exit-options"><label class="goal-exit-option"><input type="radio" name="goalExitRefundChoice" value="no" checked><span><strong>Não</strong><small>Encerra a participação sem movimentação financeira.</small></span></label><label class="goal-exit-option"><input type="radio" name="goalExitRefundChoice" value="yes"><span><strong>Sim</strong><small>Registra um resgate no objetivo e uma receita de reembolso para quem está saindo.</small></span></label></div></div><div class="field" id="goalExitRefundField" style="display:none"><label>Valor a restituir (R$)</label><input id="goalExitRefundAmount" type="number" min="0.01" step="0.01" inputmode="decimal"><small class="muted">O valor será retirado do montante reservado do objetivo.</small></div><div class="goal-exit-refund-note" id="goalExitRefundPreview" style="display:none"></div><div class="goal-exit-error" id="goalExitError"></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-collab-close="goalExitModal">Cancelar</button><button class="btn danger" type="submit" id="goalExitConfirm">Confirmar saída</button></div></form></div></div>`;
+      document.body.appendChild(wrap.firstElementChild);
+      document.getElementById('goalExitForm').addEventListener('submit',confirmGoalExit);
+      document.querySelectorAll('input[name="goalExitRefundChoice"]').forEach(x=>x.addEventListener('change',updateGoalExitRefundUi));
+      document.getElementById('goalExitRefundAmount').addEventListener('input',updateGoalExitRefundUi);
+    }
+
     document.querySelectorAll('[data-goal-collab-close]').forEach(b=>{if(b.dataset.boundGoalCollab)return;b.dataset.boundGoalCollab='1';b.addEventListener('click',()=>closeModal(b.dataset.goalCollabClose))});
-    ['goalRecurringModal','goalShareModal'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.backdropBound){el.dataset.backdropBound='1';el.addEventListener('click',e=>{if(e.target===el)closeModal(id)})}});
+    ['goalRecurringModal','goalShareModal','goalExitModal'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.backdropBound){el.dataset.backdropBound='1';el.addEventListener('click',e=>{if(e.target===el)closeModal(id)})}});
   }
 
   function openModal(id){document.getElementById(id)?.classList.add('open')}
@@ -96,7 +106,7 @@
     const uid=getUserId(),byId=new Map((g.contributions||[]).map(c=>[String(c.id),c]));
     card.querySelectorAll('[data-goal-contrib-delete]').forEach(btn=>{
       const c=byId.get(String(btn.dataset.goalContribDelete));
-      if(!c||String(c.contributorUserId||g.ownerUserId)!==uid){btn.remove();return}
+      if(!c||c.eventType==='redemption'||String(c.contributorUserId||g.ownerUserId)!==uid){btn.remove();return}
       btn.title='Excluir seu aporte';
     });
   }
@@ -107,8 +117,8 @@
     const map=new Map(goals.map(g=>[String(g.id),g]));
     grid.querySelectorAll('.goal-card[data-goal-id]').forEach(card=>{
       const g=map.get(String(card.dataset.goalId));if(!g)return;
-      if(card.dataset.goalCollabVersion==='8')return;
-      card.dataset.goalCollabVersion='8';
+      if(card.dataset.goalCollabVersion==='9')return;
+      card.dataset.goalCollabVersion='9';
       const sub=card.querySelector('.goal-sub'),actions=card.querySelector('.goal-actions');
       if(g.recurringEnabled)addPill(sub,'Recorrente','recurring');
       if(!g.isOwner)addPill(sub,g.shareStatus==='pending'?'Convite pendente':g.shareRole==='contributor'?'Objetivo compartilhado · colaborador':'Objetivo compartilhado · visualização',g.shareStatus==='pending'?'pending':'shared');
@@ -224,11 +234,82 @@
     finally{busy=false}
   }
 
-  async function removeShare(id,ownerView){
-    if(busy||!id)return;const msg=ownerView?'Remover esta pessoa do objetivo compartilhado?':'Sair deste objetivo compartilhado?';if(!confirm(msg))return;busy=true;
-    try{const {data,error}=await getSb().rpc('finance_remove_goal_share',{p_share_id:id});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'remove_failed');if(ownerView){shares=shares.filter(s=>s.id!==id);renderShares()}await refreshGoals(false);statusText(ownerView?'Compartilhamento removido':'Você saiu do objetivo compartilhado')}
-    catch(e){console.error('Falha ao remover compartilhamento.',e);alert('Não foi possível remover o compartilhamento agora.')}
+  function goalExitContext(id,ownerView){
+    if(ownerView){
+      const s=shares.find(x=>String(x.id)===String(id))||null;
+      const goalId=document.getElementById('goalShareGoalId')?.value||'';
+      const g=goalById(goalId);
+      return{share:s,goal:g,name:s?.name||'Participante',accepted:s?.status==='accepted'};
+    }
+    const g=goals.find(x=>String(x.shareId)===String(id))||null;
+    return{share:null,goal:g,name:'Você',accepted:g?.shareStatus==='accepted'};
+  }
+
+  async function removePendingShare(id,ownerView){
+    const msg=ownerView?'Remover este convite de compartilhamento?':'Sair deste objetivo compartilhado?';
+    if(!confirm(msg))return;
+    busy=true;
+    try{
+      const {data,error}=await getSb().rpc('finance_remove_goal_share',{p_share_id:id});
+      if(error)throw error;if(!data?.ok)throw new Error(data?.error||'remove_failed');
+      if(ownerView){shares=shares.filter(s=>String(s.id)!==String(id));renderShares()}
+      await refreshGoals(false);statusText(ownerView?'Compartilhamento removido':'Você saiu do objetivo compartilhado');
+    }catch(e){console.error('Falha ao remover compartilhamento.',e);alert('Não foi possível remover o compartilhamento agora.')}
     finally{busy=false}
+  }
+
+  function removeShare(id,ownerView){
+    if(busy||!id)return;
+    const ctx=goalExitContext(id,ownerView);
+    if(!ctx.accepted){removePendingShare(id,ownerView);return}
+    ensureModals();
+    const goalName=ctx.goal?.name||'objetivo';
+    document.getElementById('goalExitShareId').value=id;
+    document.getElementById('goalExitOwnerView').value=ownerView?'1':'0';
+    document.getElementById('goalExitTitle').textContent=ownerView?`Remover ${ctx.name}`:`Sair de ${goalName}`;
+    document.getElementById('goalExitDescription').innerHTML=ownerView
+      ? `Você está encerrando a participação de <strong>${esc(ctx.name)}</strong> em <strong>${esc(goalName)}</strong>. Os aportes já registrados serão preservados no histórico.`
+      : `Você está saindo de <strong>${esc(goalName)}</strong>. Seus aportes anteriores continuarão no histórico do objetivo.`;
+    const no=document.querySelector('input[name="goalExitRefundChoice"][value="no"]');if(no)no.checked=true;
+    document.getElementById('goalExitRefundAmount').value='';
+    document.getElementById('goalExitError').textContent='';
+    updateGoalExitRefundUi();
+    openModal('goalExitModal');
+  }
+
+  function updateGoalExitRefundUi(){
+    const yes=document.querySelector('input[name="goalExitRefundChoice"]:checked')?.value==='yes';
+    const field=document.getElementById('goalExitRefundField'),preview=document.getElementById('goalExitRefundPreview'),amount=Number(document.getElementById('goalExitRefundAmount')?.value)||0;
+    if(field)field.style.display=yes?'block':'none';
+    if(preview){
+      preview.style.display=yes&&amount>0?'block':'none';
+      if(yes&&amount>0)preview.innerHTML=`Será registrado <strong>Resgate de ${money(amount)}</strong> no objetivo e <strong>Receita de reembolso de ${money(amount)}</strong> para o colaborador que está saindo.`;
+    }
+  }
+
+  async function confirmGoalExit(e){
+    e.preventDefault();if(busy)return;
+    const id=document.getElementById('goalExitShareId').value,ownerView=document.getElementById('goalExitOwnerView').value==='1';
+    const yes=document.querySelector('input[name="goalExitRefundChoice"]:checked')?.value==='yes';
+    const amount=yes?(Number(document.getElementById('goalExitRefundAmount').value)||0):0;
+    const errorEl=document.getElementById('goalExitError');
+    if(yes&&amount<=0){errorEl.textContent='Informe o valor a restituir.';return}
+    errorEl.textContent='';busy=true;const btn=e.submitter;if(btn)btn.disabled=true;
+    try{
+      const {data,error}=await getSb().rpc('finance_exit_goal_share',{p_share_id:id,p_refund_amount:amount});
+      if(error)throw error;
+      if(!data?.ok){
+        if(data?.error==='refund_exceeds_saved_amount')throw new Error(`O valor informado supera o montante reservado do objetivo (${money(data.availableAmount||0)}).`);
+        throw new Error(data?.detail||data?.error||'exit_failed');
+      }
+      closeModal('goalExitModal');
+      if(ownerView){shares=shares.filter(s=>String(s.id)!==String(id));renderShares()}
+      await refreshGoals(false);
+      statusText(amount>0?`Saída concluída · reembolso de ${money(amount)} registrado`:(ownerView?'Compartilhamento removido':'Você saiu do objetivo compartilhado'));
+    }catch(err){
+      console.error('Falha ao concluir saída do objetivo.',err);
+      errorEl.textContent=err.message||'Não foi possível concluir a saída agora.';
+    }finally{busy=false;if(btn)btn.disabled=false}
   }
 
   async function refreshGoals(syncPlans){
@@ -242,7 +323,7 @@
 
   function init(){
     injectStyles();ensureModals();observeGrid();
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('goalRecurringModal');closeModal('goalShareModal')}});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('goalRecurringModal');closeModal('goalShareModal');closeModal('goalExitModal')}});
     window.addEventListener('focus',()=>{if(document.getElementById('page-goals')?.classList.contains('active'))loadGoalsMeta()});
     document.addEventListener('click',e=>{if(e.target?.closest?.('.nav [data-page="goals"]'))setTimeout(loadGoalsMeta,80)},true);
     document.getElementById('monthSelect')?.addEventListener('change',()=>setTimeout(loadGoalsMeta,50));
