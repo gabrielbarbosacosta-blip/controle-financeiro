@@ -26,6 +26,29 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
 @keyframes prumoCriticalProgress{0%{background-position:-80% 0;opacity:.4}50%{opacity:1}100%{background-position:180% 0;opacity:.4}}
 @media(prefers-reduced-motion:reduce){body.prumo-app-splash:not(.caderno-splash-done)::before{animation:none;content:'prumo'}body.prumo-app-splash:not(.caderno-splash-done)::after{animation:none;background-position:center}}
 </style>
+<style id="prumo-current-ui-gate">
+html:not(.prumo-current-ui-ready) #appRoot:not(.auth-hidden){visibility:hidden!important;opacity:0!important}
+body.prumo-ui-loading{overflow:hidden!important;background:#07101d!important}
+body.prumo-ui-loading::before{
+  content:'prumo';
+  position:fixed;inset:0;z-index:2147483646;
+  display:grid;place-items:center;
+  background:#07101d;color:#ddeaac;
+  font:800 28px Manrope,Arial,sans-serif;
+  letter-spacing:-.055em;
+}
+body.prumo-ui-loading::after{
+  content:'';
+  position:fixed;left:50%;top:calc(50% + 30px);
+  width:92px;height:2px;transform:translateX(-50%);
+  z-index:2147483647;border-radius:999px;
+  background:linear-gradient(90deg,transparent,#ddeaac,transparent);
+  background-size:50% 100%;background-repeat:no-repeat;
+  animation:prumoCurrentUiBoot 1s ease-in-out infinite;
+}
+@keyframes prumoCurrentUiBoot{0%{background-position:-70% 0;opacity:.35}50%{opacity:1}100%{background-position:170% 0;opacity:.35}}
+@media(prefers-reduced-motion:reduce){body.prumo-ui-loading::after{animation:none;background-position:center}}
+</style>
 <link id="caderno-figma-theme" rel="stylesheet" href="figma-caderno-theme-v1.css?v=20260919-loginsplashfix2">
 <link id="caderno-figma-dark-v2" rel="stylesheet" href="figma-caderno-dark-v2.css?v=20260918-passkey1">
 <link id="caderno-stability-v3" rel="stylesheet" href="figma-caderno-stability-v3.css?v=20260919-contributors2">
@@ -185,7 +208,7 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
   };
 })();
 </script>
-<script src="app.js?v=20260919-loginsplashfix2"></script>\n<script src="auth-transition-failsafe-v1.js?v=20260919-loginsplashfix2"></script>
+<script src="app.js?v=20260919-currentui1"></script>\n<script src="auth-transition-failsafe-v1.js?v=20260919-currentui1"></script>
 <script src="cloud-sync.js?v=20260918-logoutfix2"></script>
 <script src="csv-import.js"></script>
 <script src="sync-icon.js"></script>
@@ -200,7 +223,7 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
 <script src="projected-closing.js"></script>
 <script src="purchase-management.js"></script>
 <script src="purchase-simulator.js"></script>
-<script src="history-status.js?v=20260919-recurringplans1"></script>
+<script src="history-status.js?v=20260919-currentui1"></script>
 <script src="financial-entity-panel-runtime-v2.js?v=20260918-financialpanel1"></script>
 </body>
 </html>
