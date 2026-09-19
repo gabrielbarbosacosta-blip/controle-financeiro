@@ -43,7 +43,7 @@
       .goal-contributor-list{display:grid;gap:8px}
       .goal-contributor-row{padding:8px 0;border-top:1px solid rgba(148,163,184,.1)}
       .goal-contributor-row:first-child{border-top:0;padding-top:2px}
-      .goal-contributor-name{font-size:10px;font-weight:780;color:#e6edf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .goal-contributor-name{font-size:10px;font-weight:780;color:#e6edf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.goal-contributor-owner{display:inline-flex;margin-left:5px;padding:1px 4px;border-radius:999px;border:1px solid #30445e;background:#111f31;color:#aebdce;font-size:7px;font-weight:760;vertical-align:1px}
       .goal-contributor-values{display:grid;grid-template-columns:1fr;gap:3px;margin-top:5px}
       .goal-contributor-value{display:flex;justify-content:space-between;gap:7px;align-items:baseline;font-size:8px;color:#7f90a5}
       .goal-contributor-value strong{font:700 10px 'DM Mono',monospace;color:#dce6f2;white-space:nowrap}
