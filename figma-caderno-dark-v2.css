@@ -165,6 +165,20 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
 .auth-box{background:#0d1929!important;border-color:#23334a!important;box-shadow:0 26px 80px rgba(0,0,0,.38)!important}
 .auth-box h2,.auth-box .brand h1{color:#eef3f9!important}
 .auth-box p,.auth-msg{color:#9baabd!important}
+.auth-passkey-divider{display:flex;align-items:center;gap:12px;margin:18px 0 12px;color:#708198;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.auth-passkey-divider::before,.auth-passkey-divider::after{content:'';height:1px;flex:1;background:#23334a}
+.auth-passkey-btn{width:100%;display:flex!important;align-items:center;justify-content:center;gap:9px;min-height:42px}
+.auth-passkey-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.auth-passkey-btn:disabled,#registerPasskeyBtn:disabled{opacity:.52;cursor:not-allowed}
+.passkey-settings-card .toolbar{margin-top:14px}
+.passkey-settings-msg{min-height:18px;margin-top:12px;color:#9baabd;font-size:12px}
+.passkey-list{display:grid;gap:8px;margin-top:12px}
+.passkey-empty{padding:12px 0;color:#7f90a5;font-size:12px}
+.passkey-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 13px;border:1px solid #23334a;border-radius:10px;background:#0b1625}
+.passkey-item-copy{min-width:0;display:grid;gap:3px}
+.passkey-item-copy strong{color:#e7edf5;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.passkey-item-copy small{color:#8394a9;font-size:11px}
+
 @media(max-width:820px){
   .auth-screen.prumo-login-intro{
     grid-template-columns:1fr;
