@@ -163,6 +163,35 @@
       }
       return cloud;
     },
+    async activateSession(userId){
+      if(!userId)throw new Error('user_required');
+      relationalReady=false;
+      localWritePending=false;
+      writeQueued=false;
+
+      const cloud=await this.load(userId);
+      let serverState=validFinanceState(cloud?.state)?cloud.state:null;
+
+      if(!serverState){
+        serverState=blankFinanceState();
+        relationalReady=true;
+        await this.save(userId,serverState);
+        relationalReady=false;
+      }
+
+      await applyServerState(serverState,{render:false});
+      selectedCardId=state.cards[0]?.id||null;
+      selectedInvoiceYm=state.settings.selectedMonth;
+      relationalReady=true;
+      await clearLegacyCopies();
+      return serverState;
+    },
+    deactivateSession(){
+      relationalReady=false;
+      localWritePending=false;
+      writeQueued=false;
+      lastRemoteUpdatedAt=null;
+    },
     get version(){return lastRemoteUpdatedAt},
     get hasPendingLocalWrite(){return localWritePending||remoteWriteInFlight},
     get ready(){return relationalReady}
@@ -199,76 +228,6 @@
     }
   };
 
-  const baseHandleSession=handleSession;
-
-  handleSession=async function(session){
-    currentUser=session?.user||null;
-    relationalReady=false;
-    localWritePending=false;
-    writeQueued=false;
-
-    if(!currentUser){
-      try{
-        await baseHandleSession(null);
-      }catch(e){
-        console.error('Falha ao restaurar tela de login:',e);
-        setVisible(false);
-      }
-      return;
-    }
-
-    try{hadAuthenticatedSession=true}catch(e){}
-
-    // A camada de dados não decide mais qual tela deve aparecer.
-    // Uma sessão válida inicia/continua o fluxo canônico de splash -> app.
-    setVisible(true);
-    setSyncStatus('Carregando banco relacional…');
-
-    try{
-      const cloud=await window.financeCloud.load(currentUser.id);
-      let serverState=validFinanceState(cloud?.state)?cloud.state:null;
-
-      if(!serverState){
-        serverState=blankFinanceState();
-        relationalReady=true;
-        await window.financeCloud.save(currentUser.id,serverState);
-        relationalReady=false;
-      }
-
-      await applyServerState(serverState,{render:false});
-      selectedCardId=state.cards[0]?.id||null;
-      selectedInvoiceYm=state.settings.selectedMonth;
-
-      applyingRemote=true;
-      try{if(typeof renderAll==='function')renderAll()}finally{applyingRemote=false}
-
-      relationalReady=true;
-      await clearLegacyCopies();
-
-      // Reafirma a sessão válida depois do carregamento dos dados.
-      setVisible(true);
-      setSyncStatus('Sincronizado com banco relacional');
-    }catch(e){
-      relationalReady=false;
-      console.error('Falha ao carregar dados financeiros relacionais:',e);
-
-      // Falha de dados não equivale a logout. Mantém a sessão e abre o app
-      // com o estado já disponível, exibindo apenas o erro de sincronização.
-      try{
-        applyingRemote=true;
-        if(typeof renderAll==='function')renderAll();
-      }catch(renderError){
-        console.error('Falha ao renderizar estado local após erro remoto:',renderError);
-      }finally{
-        applyingRemote=false;
-      }
-      setVisible(true);
-      const msg=document.getElementById('authMsg');
-      if(msg)msg.textContent='';
-      setSyncStatus('Falha ao carregar dados do servidor',true);
-    }
-  };
-
   async function refreshFromServer(){
     if(!currentUser?.id||!relationalReady||remoteWriteInFlight||localWritePending||Date.now()-lastRefreshAt<2000)return;
     lastRefreshAt=Date.now();
@@ -284,19 +243,8 @@
     }
   }
 
-  async function bootstrap(){
-    try{
-      const {data,error}=await sb.auth.getSession();
-      if(error)throw error;
-      if(data?.session)await handleSession(data.session);
-    }catch(e){
-      relationalReady=false;
-      console.error('Falha ao inicializar sincronização:',e);
-      setSyncStatus('Falha ao sincronizar',true);
-    }
-  }
-
+  window.__financeCloudModuleReady=true;
+  try{window.dispatchEvent(new CustomEvent('finance:cloud-ready'))}catch(_e){}
   window.addEventListener('focus',refreshFromServer);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshFromServer()});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootstrap,{once:true});else bootstrap();
 })();
