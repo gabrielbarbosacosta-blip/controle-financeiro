@@ -1,4 +1,4 @@
-const CACHE='prumo-pwa-v54-20260919-logoutlayout2';
+const CACHE='prumo-pwa-v55-20260919-tabfocusfix1';
 const SHELL=['/','/index.html','/prumo-ui-current.css','/prumo-ui-current.js','/profile-panel-current.js','/app.js','/history-status.js','/debts.js','/incomes.js','/financial-entity-panel-runtime-v2.js','/kpi-countup-v1.js','/profile-avatar-performance-v1.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
