@@ -49,10 +49,71 @@ body.prumo-ui-loading::after{
 @keyframes prumoCurrentUiBoot{0%{background-position:-70% 0;opacity:.35}50%{opacity:1}100%{background-position:170% 0;opacity:.35}}
 @media(prefers-reduced-motion:reduce){body.prumo-ui-loading::after{animation:none;background-position:center}}
 </style>
-<link id="prumo-ui-current" rel="stylesheet" href="prumo-ui-current.css?v=20260919-current1">
+<style id="prumo-splash-current-style">
+/* Splash canônica: fica acima do shell e impede qualquer interface intermediária de aparecer. */
+#prumoSplash{
+  position:fixed;inset:0;z-index:2147483647;
+  display:none;place-items:center;
+  visibility:visible!important;
+  background:#07101d;
+  opacity:1;
+  transition:opacity .65s cubic-bezier(.22,1,.36,1),filter .65s cubic-bezier(.22,1,.36,1);
+}
+body.prumo-app-splash:not(.caderno-splash-done) #prumoSplash{display:grid!important}
+body.caderno-splash-exit:not(.caderno-splash-done) #prumoSplash{display:grid!important;opacity:0;filter:blur(10px);pointer-events:none}
+body.caderno-splash-done #prumoSplash{display:none!important}
+body.prumo-app-splash::before,body.prumo-app-splash::after,
+body.prumo-ui-loading::before,body.prumo-ui-loading::after{display:none!important}
+.prumo-splash-word{
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,calc(-50% + 7px));
+  opacity:0;filter:blur(5px);
+  white-space:nowrap;
+  font:800 34px Manrope,Arial,sans-serif;
+  letter-spacing:-.055em;
+  color:#f3f7fb;
+  will-change:opacity,transform,filter;
+}
+.prumo-splash-word-1{color:#ddeaac;animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) .10s both}
+.prumo-splash-word-2{animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) 1.17s both}
+.prumo-splash-word-3{animation:prumoSplashWordLast 1.05s cubic-bezier(.22,1,.36,1) 2.24s both}
+.prumo-splash-progress{
+  position:absolute;left:50%;top:calc(50% + 42px);
+  width:132px;height:3px;transform:translateX(-50%);
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent 0%,#ddeaac 48%,transparent 100%);
+  background-size:55% 100%;background-repeat:no-repeat;
+  animation:prumoSplashProgress 1.05s ease-in-out infinite;
+}
+@keyframes prumoSplashWordCycle{
+  0%{opacity:0;transform:translate(-50%,calc(-50% + 7px));filter:blur(5px)}
+  34%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
+  64%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
+  100%{opacity:0;transform:translate(-50%,calc(-50% - 7px));filter:blur(5px)}
+}
+@keyframes prumoSplashWordLast{
+  0%{opacity:0;transform:translate(-50%,calc(-50% + 7px));filter:blur(5px)}
+  38%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
+  100%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
+}
+@keyframes prumoSplashProgress{0%{background-position:-80% 0;opacity:.4}50%{opacity:1}100%{background-position:180% 0;opacity:.4}}
+@media(prefers-reduced-motion:reduce){
+  .prumo-splash-word-1,.prumo-splash-word-2{animation:none!important;opacity:0!important}
+  .prumo-splash-word-3{animation:none!important;opacity:1!important;transform:translate(-50%,-50%)!important;filter:none!important}
+  .prumo-splash-progress{animation:none!important;background-position:center}
+  #prumoSplash{transition:none!important}
+}
+</style>
+<link id="prumo-ui-current" rel="stylesheet" href="prumo-ui-current.css?v=20260919-current2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 </head>
 <body>
+<div id="prumoSplash" aria-hidden="true">
+  <span class="prumo-splash-word prumo-splash-word-1">prumo</span>
+  <span class="prumo-splash-word prumo-splash-word-2">sem planilha</span>
+  <span class="prumo-splash-word prumo-splash-word-3">sem estresse</span>
+  <span class="prumo-splash-progress"></span>
+</div>
 <div class="auth-screen hidden" id="authScreen">
   <div class="prumo-login-story" aria-hidden="true">
     <span class="prumo-login-word prumo-login-word-1">prumo</span>
@@ -206,7 +267,7 @@ body.prumo-ui-loading::after{
   };
 })();
 </script>
-<script src="app.js?v=20260919-currentui1"></script>\n<script src="auth-transition-failsafe-v1.js?v=20260919-currentui1"></script>
+<script src="app.js?v=20260919-splashrestore1"></script>\n<script src="auth-transition-failsafe-v1.js?v=20260919-splashrestore1"></script>
 <script src="cloud-sync.js?v=20260918-logoutfix2"></script>
 <script src="csv-import.js"></script>
 <script src="sync-icon.js"></script>
@@ -221,7 +282,7 @@ body.prumo-ui-loading::after{
 <script src="projected-closing.js"></script>
 <script src="purchase-management.js"></script>
 <script src="purchase-simulator.js"></script>
-<script src="history-status.js?v=20260919-canonicalui1"></script>
+<script src="history-status.js?v=20260919-splashrestore1"></script>
 <script src="financial-entity-panel-runtime-v2.js?v=20260918-financialpanel1"></script>
 </body>
 </html>
