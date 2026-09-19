@@ -186,6 +186,7 @@
       const {data,error}=await getSb().rpc('finance_respond_connection',{p_connection_id:id,p_accept:accept});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'connection_response_failed');
       await loadConnections();
+      try{await window.financeNotificationsRefresh?.()}catch(_e){}
       try{if(typeof setSyncStatus==='function')setSyncStatus(accept?'Conexão adicionada':'Solicitação recusada')}catch(_e){}
     }catch(e){console.error('Falha ao responder conexão.',e);alert('Não foi possível responder esta solicitação.')}
   }
