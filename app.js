@@ -581,7 +581,28 @@ function historyDeadlineKind(r){
 function renderHistory(){
  const q=document.getElementById('searchFilter').value.toLowerCase().trim(),type=document.getElementById('typeFilter').value,cat=document.getElementById('categoryFilter').value,status=document.getElementById('statusFilter').value,deadline=document.getElementById('deadlineFilter')?.value||'';
  const rows=historyRowsForMonth(state.settings.selectedMonth).filter(r=>!type||r.type===type).filter(r=>!cat||r.category===cat).filter(r=>!status||r.status===status).filter(r=>!deadline||historyDeadlineKind(r)===deadline).filter(r=>!q||`${r.description} ${r.account} ${r.notes}`.toLowerCase().includes(q)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- document.getElementById('historyCount').textContent=`${rows.length} item(ns) em ${fmtMonth(state.settings.selectedMonth)}`;document.getElementById('historyBody').innerHTML=rows.length?rows.map(r=>{const deadlineKind=historyDeadlineKind(r),deadlineBadge=deadlineKind?` <span class="badge ${deadlineKind==='overdue'?'despesa':'pendente'}">${deadlineKind==='overdue'?'Vencido':'A vencer'}</span>`:'';return `<tr><td>${fmtDate(r.date)}</td><td><span class="badge ${r.type.toLowerCase().replace('í','i')}">${r.type}</span></td><td>${r.description}</td><td>${r.category||'—'}</td><td>${r.account||'—'}</td><td><span class="badge ${String(r.status).toLowerCase()}">${r.status}</span>${deadlineBadge}</td><td class="num ${r.type==='Receita'?'positive':r.type==='Benefício'?'':'negative'}">${fmtMoney(r.amount)}</td><td>${r.kind==='invoice'?`<button class="btn small" onclick="openInvoiceFromHistory('${r.id}')">Abrir</button>`:`<button class="btn small" onclick="editTx('${r.id}')">Editar</button>`}</td></tr>`}).join(''):'<tr><td colspan="8" class="empty">Nenhum item encontrado.</td></tr>'
+
+ const rowHtml=r=>{
+   const deadlineKind=historyDeadlineKind(r),deadlineBadge=deadlineKind?` <span class="badge ${deadlineKind==='overdue'?'despesa':'pendente'}">${deadlineKind==='overdue'?'Vencido':'A vencer'}</span>`:'';
+   return `<tr><td>${fmtDate(r.date)}</td><td><span class="badge ${r.type.toLowerCase().replace('í','i')}">${r.type}</span></td><td>${r.description}</td><td>${r.category||'—'}</td><td>${r.account||'—'}</td><td><span class="badge ${String(r.status).toLowerCase()}">${r.status}</span>${deadlineBadge}</td><td class="num ${r.type==='Receita'?'positive':r.type==='Benefício'?'':'negative'}">${fmtMoney(r.amount)}</td><td>${r.kind==='invoice'?`<button class="btn small" onclick="openInvoiceFromHistory('${r.id}')">Abrir</button>`:`<button class="btn small" onclick="editTx('${r.id}')">Editar</button>`}</td></tr>`;
+ };
+ const fill=(id,list,emptyText)=>{
+   const body=document.getElementById(id);
+   if(body)body.innerHTML=list.length?list.map(rowHtml).join(''):`<tr><td colspan="8" class="empty">${emptyText}</td></tr>`;
+ };
+
+ const incomeRows=rows.filter(r=>r.type==='Receita'||r.type==='Benefício');
+ const expenseRows=rows.filter(r=>r.type==='Despesa');
+ const invoiceRows=rows.filter(r=>r.type==='Fatura'||r.kind==='invoice');
+
+ document.getElementById('historyCount').textContent=`${rows.length} item(ns) em ${fmtMonth(state.settings.selectedMonth)}`;
+ const incomeCount=document.getElementById('historyIncomeCount');if(incomeCount)incomeCount.textContent=incomeRows.length;
+ const expenseCount=document.getElementById('historyExpenseCount');if(expenseCount)expenseCount.textContent=expenseRows.length;
+ const invoiceCount=document.getElementById('historyInvoiceCount');if(invoiceCount)invoiceCount.textContent=invoiceRows.length;
+
+ fill('historyBody',incomeRows,'Nenhuma receita encontrada.');
+ fill('historyExpenseBody',expenseRows,'Nenhuma despesa encontrada.');
+ fill('historyInvoiceBody',invoiceRows,'Nenhuma fatura encontrada.');
 }
 function renderCards(){
  if(!selectedCardId||!getCard(selectedCardId))selectedCardId=state.cards[0]?.id||null;
