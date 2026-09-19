@@ -4,6 +4,9 @@
 
   let connections=[],incoming=[],outgoing=[],loading=false,initialized=false;
   const STYLE_ID='finance-connections-v1-style';
+  const AVATAR_BUCKET='profile-photos';
+  const AVATAR_TTL_MS=50*60*1000;
+  const avatarCache=new Map();
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
   const digits=v=>String(v||'').replace(/\D/g,'').slice(0,11);
@@ -18,7 +21,7 @@
     const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
       .connections-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
       .connection-card{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #26374d;border-radius:13px;background:#0b1424}
-      .connection-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#18263a;border:1px solid #31445d;font-weight:850;font-size:11px;flex:0 0 auto}
+      .connection-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#18263a;border:1px solid #31445d;font-weight:850;font-size:11px;flex:0 0 auto;overflow:hidden}.connection-avatar img{width:100%;height:100%;object-fit:cover;display:block}
       .connection-main{min-width:0;flex:1}.connection-name{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.connection-meta{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.4}
       .connection-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.connection-empty{padding:16px;border:1px dashed #334155;border-radius:12px;color:var(--muted);font-size:10px}
       .connection-section+.connection-section{margin-top:16px}.connection-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
@@ -95,6 +98,29 @@
   }
   function closeConnectionModal(){document.getElementById('connectionModal')?.classList.remove('open')}
 
+  async function signedAvatar(path){
+    if(!path)return'';
+    const now=Date.now(),cached=avatarCache.get(path);
+    if(cached?.url&&cached.expiresAt>now)return cached.url;
+    const client=getSb();if(!client)return cached?.url||'';
+    try{
+      const {data,error}=await client.storage.from(AVATAR_BUCKET).createSignedUrl(path,3600);
+      if(error)throw error;
+      const url=data?.signedUrl||'';
+      if(url)avatarCache.set(path,{url,expiresAt:now+AVATAR_TTL_MS});
+      return url||cached?.url||'';
+    }catch(e){
+      console.warn('Falha ao carregar foto da conexão.',e);
+      return cached?.url||'';
+    }
+  }
+
+  async function hydrateAvatars(list){
+    await Promise.all((list||[]).map(async item=>{
+      item.avatarUrl=await signedAvatar(item.avatarPath);
+    }));
+  }
+
   function showConnectionsPage(){
     ensureUi();
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-connections'));
@@ -111,7 +137,10 @@
       : outgoingCard
         ? `<div class="connection-actions"><button class="btn small danger" data-connection-remove="${esc(item.id)}">Cancelar solicitação</button></div>`
         : `<div class="connection-actions"><button class="btn small danger" data-connection-remove="${esc(item.id)}">Remover conexão</button></div>`;
-    return `<div class="connection-card"><div class="connection-avatar">${esc(initials(item.name))}</div><div class="connection-main"><div class="connection-name">${esc(item.name||'Usuário do Prumo')}</div><div class="connection-meta">${esc(meta)}</div>${actions}</div></div>`;
+    const avatar=item.avatarUrl
+      ? `<img src="${esc(item.avatarUrl)}" alt="Foto de ${esc(item.name||'conexão')}">`
+      : esc(initials(item.name));
+    return `<div class="connection-card"><div class="connection-avatar">${avatar}</div><div class="connection-main"><div class="connection-name">${esc(item.name||'Usuário do Prumo')}</div><div class="connection-meta">${esc(meta)}</div>${actions}</div></div>`;
   }
 
   function bindListActions(root=document){
@@ -149,6 +178,7 @@
       const {data,error}=await getSb().rpc('finance_list_connections');
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'connection_list_failed');
       connections=data.items||[];incoming=data.incoming||[];outgoing=data.outgoing||[];
+      await Promise.all([hydrateAvatars(connections),hydrateAvatars(incoming),hydrateAvatars(outgoing)]);
       renderConnections();
     }catch(e){console.error('Falha ao carregar conexões.',e)}
     finally{loading=false}
