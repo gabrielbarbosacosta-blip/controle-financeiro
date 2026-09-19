@@ -46,11 +46,11 @@
       .goal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.goal-metric{padding:9px 10px;border:1px solid rgba(148,163,184,.12);border-radius:11px;background:#0b1424}.goal-metric .k{font-size:9px;color:var(--muted)}.goal-metric .v{font-size:11px;font-weight:780;margin-top:3px;line-height:1.35}
       .goal-health{margin-top:10px;padding:9px 10px;border-radius:11px;border:1px solid #243449;background:#111c2f;font-size:10px;color:#cbd5e1;line-height:1.45}.goal-health strong{color:#f8fafc}
       .goal-actions{display:flex;gap:7px;flex-wrap:wrap;padding:11px 14px;border-top:1px solid var(--line);background:rgba(11,20,36,.55)}
-      .goal-contribs{padding:0 14px 12px}.goal-contrib-title{font-size:10px;font-weight:800;color:#cbd5e1;margin:2px 0 7px}.goal-contrib-list{display:grid;gap:6px}.goal-contrib-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;font-size:10px;padding:7px 8px;border-radius:9px;background:#0b1424;border:1px solid rgba(148,163,184,.1)}.goal-contrib-row .note{color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.goal-contrib-value{font-weight:800;color:#bbf7d0;white-space:nowrap}.goal-contrib-delete{border:0;background:transparent;color:#94a3b8;cursor:pointer;font-size:15px;padding:2px 4px}.goal-contrib-delete:hover{color:#fca5a5}
+      .goal-contribs{padding:0 14px 12px}.goal-contrib-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 7px}.goal-contrib-title{font-size:10px;font-weight:800;color:#cbd5e1}.goal-contrib-all{border:0;background:transparent;color:#93c5fd;font-size:10px;font-weight:750;cursor:pointer;padding:2px 0}.goal-contrib-all:hover{color:#dbeafe}.goal-contrib-list{display:grid;gap:6px}.goal-contrib-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;font-size:10px;padding:9px 9px;border-radius:10px;background:#0b1424;border:1px solid rgba(148,163,184,.1)}.goal-contrib-row-main{min-width:0}.goal-contrib-row-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.goal-contrib-row-top strong{font-size:10px;color:#e2e8f0}.goal-contrib-date{color:#7f90a5;font-size:9px}.goal-contrib-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.goal-contrib-chip{display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;border:1px solid #30445e;background:#111f31;color:#b8c5d5;font-size:8px;font-weight:720}.goal-contrib-chip.shared{border-color:#5b21b6;background:#2e1065;color:#ddd6fe}.goal-contrib-chip.recurring{border-color:#155e75;background:#083344;color:#a5f3fc}.goal-contrib-chip.paid{border-color:#28513e;background:#102a20;color:#a5e2c8}.goal-contrib-chip.pending{border-color:#5a4824;background:#2a2213;color:#ead38f}.goal-contrib-row .note{color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.goal-contrib-value{font-weight:800;color:#bbf7d0;white-space:nowrap}.goal-contrib-delete{border:0;background:transparent;color:#94a3b8;cursor:pointer;font-size:15px;padding:2px 4px}.goal-contrib-delete:hover{color:#fca5a5}.goal-contrib-empty{padding:10px;border:1px dashed #30445e;border-radius:10px;color:#7f90a5;font-size:10px;text-align:center}.goal-contrib-history-list{display:grid;gap:8px}.goal-contrib-history-list .goal-contrib-row{padding:10px}.goal-contrib-history-summary{margin-bottom:10px;color:#94a3b8;font-size:10px}
       .goals-empty{padding:42px 20px;text-align:center;border:1px dashed #334155;border-radius:16px;background:#0f172a;color:var(--muted)}.goals-empty strong{display:block;color:#f8fafc;font-size:14px;margin-bottom:6px}
       .goal-modal-note{padding:10px 11px;border-radius:11px;background:#10233c;border:1px solid #1e4978;color:#bfdbfe;font-size:10px;line-height:1.45;margin-bottom:12px}
       @media(max-width:1050px){.goals-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.goal-grid{grid-template-columns:1fr}}
-      @media(max-width:620px){.goals-kpis{grid-template-columns:1fr}.goal-metrics{grid-template-columns:1fr 1fr}.goal-contrib-row{grid-template-columns:1fr auto}.goal-contrib-delete{grid-column:2;grid-row:1/3}}
+      @media(max-width:620px){.goals-kpis{grid-template-columns:1fr}.goal-metrics{grid-template-columns:1fr 1fr}.goal-contrib-row{grid-template-columns:1fr auto}.goal-contrib-delete{grid-column:2;grid-row:1/3}.goal-contrib-value{grid-column:2;grid-row:1}}
     `;document.head.appendChild(s);
   }
 
@@ -87,8 +87,11 @@
       const wrap=document.createElement('div');wrap.innerHTML=`<div class="modal-backdrop" id="goalContributionModal"><div class="modal"><form id="goalContributionForm"><div class="modal-head"><h3 id="goalContributionTitle">Registrar aporte</h3><button type="button" class="btn ghost" data-goal-close="goalContributionModal">✕</button></div><div class="modal-body"><div class="goal-modal-note">O aporte aumenta o valor reservado do objetivo, mas não cria uma despesa no fluxo de caixa.</div><input type="hidden" id="goalContributionGoalId"><div class="form-grid"><div class="field"><label>Valor do aporte (R$)</label><input id="goalContributionAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Data</label><input id="goalContributionDate" type="date" required></div><div class="field full"><label>Observação</label><textarea id="goalContributionNotes" rows="3" placeholder="Ex.: Aporte do salário de setembro"></textarea></div></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-close="goalContributionModal">Cancelar</button><button class="btn primary" type="submit">Registrar aporte</button></div></form></div></div>`;document.body.appendChild(wrap.firstElementChild);
       document.getElementById('goalContributionForm').onsubmit=addContribution;
     }
+    if(!document.getElementById('goalContributionHistoryModal')){
+      const wrap=document.createElement('div');wrap.innerHTML=`<div class="modal-backdrop" id="goalContributionHistoryModal"><div class="modal"><div class="modal-head"><h3 id="goalContributionHistoryTitle">Histórico de aportes</h3><button type="button" class="btn ghost" data-goal-close="goalContributionHistoryModal">✕</button></div><div class="modal-body"><div class="goal-contrib-history-summary" id="goalContributionHistorySummary"></div><div class="goal-contrib-history-list" id="goalContributionHistoryList"></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-close="goalContributionHistoryModal">Fechar</button></div></div></div>`;document.body.appendChild(wrap.firstElementChild);
+    }
     document.querySelectorAll('[data-goal-close]').forEach(btn=>btn.onclick=()=>closeModal(btn.dataset.goalClose));
-    ['goalModal','goalContributionModal'].forEach(id=>document.getElementById(id)?.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)}));
+    ['goalModal','goalContributionModal','goalContributionHistoryModal'].forEach(id=>document.getElementById(id)?.addEventListener('click',e=>{if(e.target.id===id)closeModal(id)}));
   }
 
   function openModal(id){document.getElementById(id)?.classList.add('open')}
@@ -136,10 +139,30 @@
     return `No ritmo atual, a previsão fica <strong>${p.delta} ${p.delta===1?'mês':'meses'} após</strong> o prazo. Para cumprir ${esc(monthLabel(g.targetMonth))}, reserve cerca de <strong>${req}/mês</strong>.`;
   }
 
+  function contributionTypeLabel(c){return String(c?.contributionType||'extra')==='recurring'?'Recorrente':'Extra'}
+  function contributionStatusLabel(c){return String(c?.status||'').toLowerCase()==='paid'?'Pago':'Pendente'}
+  function contributionRowHtml(c,history=false){
+    const type=contributionTypeLabel(c),status=contributionStatusLabel(c);
+    const payer=c.contributorName||'Participante';
+    const own=String(c.contributorUserId||'')===String(getUserId()||'');
+    return `<div class="goal-contrib-row" data-goal-contribution-row="${esc(c.id)}"><div class="goal-contrib-row-main"><div class="goal-contrib-row-top"><strong>${esc(type)}</strong><span class="goal-contrib-date">${esc(dateLabel(c.date))}</span></div><div class="goal-contrib-meta"><span class="goal-contrib-chip ${type==='Recorrente'?'recurring':''}">${esc(type)}</span><span class="goal-contrib-chip">${esc('Pago por '+payer)}</span><span class="goal-contrib-chip ${c.isShared?'shared':''}">${c.isShared?'Compartilhado':'Individual'}</span><span class="goal-contrib-chip ${status==='Pago'?'paid':'pending'}">${esc(status)}</span></div>${c.notes?`<div class="note">${esc(c.notes)}</div>`:''}</div><div class="goal-contrib-value">+ ${money(c.amount)}</div>${own?`<button type="button" class="goal-contrib-delete" title="Excluir aporte" data-goal-contrib-delete="${esc(c.id)}" ${history?'data-goal-history-delete="1"':''}>×</button>`:''}</div>`;
+  }
+
   function contribHtml(g){
-    const list=Array.isArray(g.contributions)?g.contributions.slice(0,3):[];
-    if(!list.length)return'';
-    return `<div class="goal-contribs"><div class="goal-contrib-title">Últimos aportes</div><div class="goal-contrib-list">${list.map(c=>`<div class="goal-contrib-row"><div><div>${esc(dateLabel(c.date))}</div>${c.notes?`<div class="note">${esc(c.notes)}</div>`:''}</div><div class="goal-contrib-value">+ ${money(c.amount)}</div><button type="button" class="goal-contrib-delete" title="Excluir aporte" data-goal-contrib-delete="${esc(c.id)}">×</button></div>`).join('')}</div></div>`;
+    const all=Array.isArray(g.contributions)?g.contributions:[];
+    const list=all.slice(0,3);
+    return `<div class="goal-contribs"><div class="goal-contrib-head"><div class="goal-contrib-title">Últimos aportes</div><button type="button" class="goal-contrib-all" data-goal-contrib-all="${esc(g.id)}">Ver todos${all.length?` (${all.length})`:''}</button></div><div class="goal-contrib-list">${list.length?list.map(c=>contributionRowHtml(c)).join(''):'<div class="goal-contrib-empty">Nenhum aporte registrado ainda.</div>'}</div></div>`;
+  }
+
+  function openContributionHistory(id){
+    const g=goals.find(x=>String(x.id)===String(id));if(!g)return;
+    const list=Array.isArray(g.contributions)?g.contributions:[];
+    document.getElementById('goalContributionHistoryTitle').textContent=`Aportes · ${g.name}`;
+    document.getElementById('goalContributionHistorySummary').textContent=`${list.length} aporte${list.length===1?'':'s'} registrado${list.length===1?'':'s'}`;
+    const host=document.getElementById('goalContributionHistoryList');
+    host.innerHTML=list.length?list.map(c=>contributionRowHtml(c,true)).join(''):'<div class="goal-contrib-empty">Nenhum aporte registrado ainda.</div>';
+    host.querySelectorAll('[data-goal-contrib-delete]').forEach(b=>b.onclick=async()=>{await deleteContribution(b.dataset.goalContribDelete,b);openContributionHistory(id)});
+    openModal('goalContributionHistoryModal');
   }
 
   function cardHtml(g){
@@ -161,6 +184,7 @@
     document.getElementById('goalEmptyAdd')?.addEventListener('click',()=>openGoalModal());
     grid.querySelectorAll('[data-goal-edit]').forEach(b=>b.onclick=()=>openGoalModal(b.dataset.goalEdit));
     grid.querySelectorAll('[data-goal-contribute]').forEach(b=>b.onclick=()=>{const id=b.dataset.goalContribute;if(typeof window.openGoalContributionChoice==='function')window.openGoalContributionChoice(id);else openContributionModal(id)});
+    grid.querySelectorAll('[data-goal-contrib-all]').forEach(b=>b.onclick=()=>openContributionHistory(b.dataset.goalContribAll));
     grid.querySelectorAll('[data-goal-toggle]').forEach(b=>b.onclick=()=>setStatus(b.dataset.goalToggle,b.dataset.goalStatus,b));
     grid.querySelectorAll('[data-goal-delete]').forEach(b=>b.onclick=()=>deleteGoal(b.dataset.goalDelete,b));
     grid.querySelectorAll('[data-goal-contrib-delete]').forEach(b=>b.onclick=()=>deleteContribution(b.dataset.goalContribDelete,b));
@@ -238,7 +262,7 @@
 
   function init(){
     if(initialized)return;initialized=true;injectStyles();ensureNav();ensurePage();ensureModals();
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('goalModal');closeModal('goalContributionModal')}});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('goalModal');closeModal('goalContributionModal');closeModal('goalContributionHistoryModal')}});
     window.addEventListener('focus',()=>{if(document.getElementById('page-goals')?.classList.contains('active'))loadGoals()});
     let tries=0;const ready=setInterval(()=>{tries++;ensureNav();ensurePage();if(getSb()&&getUserId()){clearInterval(ready);loadGoals()}else if(tries>300)clearInterval(ready)},100);
     window.financeGoalsRefresh=loadGoals;
