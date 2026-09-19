@@ -195,7 +195,11 @@
         debtId:debt.id,
         debtInstallmentNumber:n,
         debtInstallmentTotal:debt.openEnded?null:last,
-        debtOpenEnded:!!debt.openEnded
+        debtOpenEnded:!!debt.openEnded,
+        counterpartyCpf:debt.counterpartyCpf||null,
+        counterpartyUserId:debt.counterpartyUserId||null,
+        counterpartyName:debt.counterpartyName||null,
+        counterpartyRole:debt.counterpartyCpf?'creditor':null
       });
     }
     state.transactions.push(...generated);
@@ -229,8 +233,11 @@
     document.getElementById('debtFirstInstallment').value=debt?.firstInstallment??1;
     document.getElementById('debtFirstMonth').value=debt?.firstMonth||state?.settings?.selectedMonth||new Date().toISOString().slice(0,7);
     document.getElementById('debtDueDay').value=debt?.dueDay??10;
+    const cpInput=document.getElementById('debtCounterpartyCpf'),cpEnabled=document.getElementById('debtCounterpartyEnabled');
+    cpEnabled.checked=!!debt?.counterpartyCpf;cpInput.value=debtCpfMask(debt?.counterpartyCpf||'');cpInput.dataset.userId=debt?.counterpartyUserId||'';cpInput.dataset.personName=debt?.counterpartyName||'';
+    setDebtCounterpartyState(debt?.counterpartyCpf?(debt?.counterpartyName?('✓ '+debt.counterpartyName):'Credor externo vinculado'):'',debt?.counterpartyUserId?'ok':debt?.counterpartyCpf?'warn':'');
     document.getElementById('debtNotes').value=debt?.notes||'';
-    toggleOpenEndedFields();
+    toggleOpenEndedFields();toggleDebtCounterparty();
     document.getElementById('debtModal').classList.add('open');
   }
   function closeDebtModal(){document.getElementById('debtModal')?.classList.remove('open')}
@@ -254,8 +261,13 @@
       firstMonth:document.getElementById('debtFirstMonth').value,
       dueDay:Math.min(31,Math.max(1,Number(document.getElementById('debtDueDay').value)||10)),
       notes:document.getElementById('debtNotes').value.trim(),
-      openEnded
+      openEnded,
+      counterpartyCpf:document.getElementById('debtCounterpartyEnabled').checked?debtCpfDigits(document.getElementById('debtCounterpartyCpf').value):null,
+      counterpartyUserId:document.getElementById('debtCounterpartyEnabled').checked?(document.getElementById('debtCounterpartyCpf').dataset.userId||null):null,
+      counterpartyName:document.getElementById('debtCounterpartyEnabled').checked?(document.getElementById('debtCounterpartyCpf').dataset.personName||null):null,
+      counterpartyRole:document.getElementById('debtCounterpartyEnabled').checked?'creditor':null
     };
+    if(debt.counterpartyCpf&&debt.counterpartyCpf.length!==11){alert('Informe um CPF válido para o credor.');return}
     const idx=state.debts.findIndex(d=>d.id===id);
     if(idx>=0)state.debts[idx]=debt;else state.debts.push(debt);
     syncDebtTransactions(debt);
@@ -291,7 +303,7 @@
       const progress=d.openEnded?'':`<div class="debt-progress"><span style="width:${pct}%"></span></div>`;
       const nextLabel=next?`${monthLabel(String(next.date).slice(0,7))}<div class="debt-sub">parcela ${next.debtInstallmentNumber}/${d.openEnded?'∞':d.totalInstallments}</div>`:(d.openEnded?'—':'Quitada');
       return `<tr>
-        <td><button type="button" class="debt-name pfp-name-button pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">${esc(d.name)}</button><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}</div>${progress}</td>
+        <td><button type="button" class="debt-name pfp-name-button pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">${esc(d.name)}</button><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}${d.counterpartyCpf?`<br>Credor: ${esc(d.counterpartyName||debtCpfMask(d.counterpartyCpf))}`:''}</div>${progress}</td>
         <td>${parcelInfo}</td>
         <td>${monthLabel(d.firstMonth)}</td>
         <td>${nextLabel}</td>
