@@ -37,8 +37,9 @@
 
   function isSharedReceivable(t){
     if(!t||String(t.type||'').toLowerCase()!=='receita')return false;
-    const id=String(t.id||''),desc=String(t.description||''),notes=String(t.notes||'');
-    return id.startsWith('shared-')&&(desc.startsWith('Reembolso —')||notes.includes('Valor a receber referente à despesa compartilhada'));
+    const id=String(t.id||''),desc=String(t.description||''),notes=String(t.notes||''),incomePlanId=String(t.incomePlanId||'');
+    return (id.startsWith('shared-')||id.startsWith('gsh-itx-')||incomePlanId.startsWith('goal-shared-income-'))
+      &&(desc.startsWith('Reembolso —')||notes.includes('Valor a receber referente à despesa compartilhada')||incomePlanId.startsWith('goal-shared-income-'));
   }
 
   function sharedReceivables(month=getSelectedMonth()){
