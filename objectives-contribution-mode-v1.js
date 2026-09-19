@@ -417,6 +417,8 @@
 
   function init(){
     injectStyles();ensureModals();observe();loadMeta(true);
+    window.openGoalContributionChoice=function(goalId){openChoice(goalId,'extra')};
+    window.openGoalRecurringChoice=function(goalId){openChoice(goalId,'recurring')};
     document.addEventListener('click',interceptClicks,true);
     document.addEventListener('submit',saveIndividualRecurring,true);
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){['goalContributionModeModal','goalSharedExtraModal','goalSharedRecurringModal'].forEach(closeModal)}});
