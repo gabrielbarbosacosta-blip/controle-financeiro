@@ -8,6 +8,8 @@
   let signedAvatarUrl='';
   let initialized=false;
   let saving=false;
+  let loadedProfileUserId=null;
+  const avatarUrlCache=new Map();
 
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const digits=value=>String(value||'').replace(/\D/g,'').slice(0,11);
@@ -130,24 +132,47 @@
   }
   window.openFinanceProfile=openProfilePage;
 
-  async function avatarSignedUrl(path){
+  async function avatarSignedUrl(path,{force=false}={}){
     if(!path)return'';
+    const cached=avatarUrlCache.get(path);
+    if(!force&&cached?.url&&cached.expiresAt>Date.now())return cached.url;
     try{
       const {data,error}=await sb.storage.from(BUCKET).createSignedUrl(path,3600);
       if(error)throw error;
-      return data?.signedUrl||'';
-    }catch(e){console.warn('Não foi possível carregar a foto de perfil.',e);return''}
+      const url=data?.signedUrl||'';
+      if(url)avatarUrlCache.set(path,{url,expiresAt:Date.now()+50*60*1000});
+      return url;
+    }catch(e){console.warn('Não foi possível carregar a foto de perfil.',e);return cached?.url||''}
   }
 
-  function avatarHtml(url,large=false){
-    return url?`<img src="${esc(url)}" alt="Foto de perfil">`:`<span>${esc(initials())}</span>`;
+  function patchAvatar(el,url){
+    if(!el)return;
+    if(url){
+      const img=el.querySelector(':scope > img');
+      if(img){
+        const current=img.getAttribute('src')||'';
+        if(current!==url)img.setAttribute('src',url);
+        return;
+      }
+      el.replaceChildren(Object.assign(document.createElement('img'),{src:url,alt:'Foto de perfil'}));
+      return;
+    }
+    const value=initials();
+    const span=el.querySelector(':scope > span');
+    if(span){
+      if(span.textContent!==value)span.textContent=value;
+      return;
+    }
+    const next=document.createElement('span');
+    next.textContent=value;
+    el.replaceChildren(next);
   }
 
   function updateVisuals(){
     const label=profile?.nickname||profile?.full_name||currentUser?.email||'Meu perfil';
-    const sideName=document.getElementById('profileSidebarName');if(sideName)sideName.textContent=label;
-    const side=document.getElementById('profileSidebarAvatar');if(side)side.innerHTML=avatarHtml(signedAvatarUrl);
-    const large=document.getElementById('profileAvatarLarge');if(large)large.innerHTML=avatarHtml(signedAvatarUrl,true);
+    const sideName=document.getElementById('profileSidebarName');if(sideName&&sideName.textContent!==label)sideName.textContent=label;
+    patchAvatar(document.getElementById('profileSidebarAvatar'),signedAvatarUrl);
+    patchAvatar(document.getElementById('profileAvatarLarge'),signedAvatarUrl);
   }
 
   function renderProfile(){
@@ -169,13 +194,25 @@
     else hint.textContent=`${value.length}/11 dígitos`;
   }
 
-  async function loadProfile(){
+  async function loadProfile({forceAvatar=false}={}){
     if(!currentUser?.id)return null;
+    const userId=currentUser.id;
+    const previousPath=profile?.user_id===userId?profile?.avatar_path||null:null;
+    const previousUrl=profile?.user_id===userId?signedAvatarUrl:'';
     try{
-      const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf,avatar_path,share_code').eq('user_id',currentUser.id).maybeSingle();
+      const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf,avatar_path,share_code').eq('user_id',userId).maybeSingle();
       if(error)throw error;
-      profile=data||{user_id:currentUser.id,full_name:'',nickname:'',cpf:null,avatar_path:null,share_code:null};
-      signedAvatarUrl=await avatarSignedUrl(profile.avatar_path);
+      const nextProfile=data||{user_id:userId,full_name:'',nickname:'',cpf:null,avatar_path:null,share_code:null};
+      const nextPath=nextProfile.avatar_path||null;
+      profile=nextProfile;
+      loadedProfileUserId=userId;
+
+      if(nextPath&&previousPath===nextPath&&previousUrl&&!forceAvatar){
+        signedAvatarUrl=previousUrl;
+      }else{
+        signedAvatarUrl=await avatarSignedUrl(nextPath,{force:forceAvatar});
+      }
+
       renderProfile();
       return profile;
     }catch(e){console.error('Falha ao carregar perfil.',e);return null}
@@ -274,8 +311,19 @@
       if(data?.session?.user&&!currentUser)currentUser=data.session.user;
     }catch(e){}
     if(currentUser?.id)await loadProfile();
-    sb.auth.onAuthStateChange((_event,session)=>{
-      if(session?.user){setTimeout(()=>loadProfile(),0)}else{profile=null;signedAvatarUrl='';updateVisuals()}
+    sb.auth.onAuthStateChange((event,session)=>{
+      if(session?.user){
+        const sameUser=loadedProfileUserId===session.user.id&&profile?.user_id===session.user.id;
+        if(sameUser&&['SIGNED_IN','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))return;
+        setTimeout(()=>loadProfile(),0);
+        return;
+      }
+      if(event==='SIGNED_OUT'){
+        profile=null;
+        signedAvatarUrl='';
+        loadedProfileUserId=null;
+        updateVisuals();
+      }
     });
   }
 
