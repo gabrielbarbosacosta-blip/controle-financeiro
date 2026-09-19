@@ -16,6 +16,7 @@
   function classify(card,index){
     if(card.classList.contains('payment-confirmation'))return {mode:'persistent',kind:'payment',key:card.dataset.paymentConfirmation||`payment:${index}`,priority:10};
     if(card.classList.contains('deletion-request'))return {mode:'persistent',kind:'delete',key:card.dataset.deleteNotification||`delete:${index}`,priority:20};
+    if(card.hasAttribute('data-notification-connection'))return {mode:'persistent',kind:'connection',key:card.dataset.notificationConnection||`connection:${index}`,priority:25};
     if(card.hasAttribute('data-notification-shared'))return {mode:'persistent',kind:'invite',key:card.dataset.notificationShared||`invite:${index}`,priority:30};
     if(card.classList.contains('charge'))return {mode:'once',kind:'charge',key:card.dataset.notificationKey||'',priority:40};
     return {mode:'persistent',kind:'other',key:`other:${index}`,priority:50};
