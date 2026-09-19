@@ -114,6 +114,53 @@
       .map(p=>({...p,isMe:String(p.userId)===uid}));
   }
 
+  function contributionSignedAmount(c){
+    if(String(c?.status||'').toLowerCase()!=='paid')return 0;
+    const kind=String(c?.movementKind||'');
+    const raw=Number(c?.signedAmount);
+    if(Number.isFinite(raw)&&raw!==0){
+      if(kind==='opening_balance'||kind==='adjustment_in'||kind==='adjustment_out'||kind==='withdrawal')return 0;
+      return raw;
+    }
+    const amount=Math.abs(Number(c?.amount)||0);
+    if(!amount)return 0;
+    if(kind==='opening_balance'||kind==='adjustment_in'||kind==='adjustment_out'||kind==='withdrawal')return 0;
+    if(kind==='refund'||kind==='reversal'||c?.eventType==='redemption')return -amount;
+    return amount;
+  }
+
+  function collaboratorContribution(goal,userId,month){
+    let monthTotal=0,periodTotal=0;
+    for(const c of (goal?.contributions||[])){
+      if(String(c?.contributorUserId||'')!==String(userId||''))continue;
+      const value=contributionSignedAmount(c);
+      if(!value)continue;
+      periodTotal+=value;
+      if(String(c?.date||'').slice(0,7)===month)monthTotal+=value;
+    }
+    return{month:Math.round(monthTotal*100)/100,period:Math.round(periodTotal*100)/100};
+  }
+
+  function enhanceContributorSummaries(){
+    const month=currentYm();
+    document.querySelectorAll('#goalGrid .goal-card[data-goal-id]').forEach(card=>{
+      const goalId=String(card.dataset.goalId||''),goal=goals.get(goalId);
+      const host=card.querySelector('[data-goal-contributor-summary]');
+      if(!goal||!host)return;
+      const people=(participants.get(goalId)||[])
+        .filter(p=>!p.isOwner&&p.role==='contributor')
+        .map(p=>({...p,totals:collaboratorContribution(goal,p.userId,month)}));
+      const signature=JSON.stringify([month,people.map(p=>[p.userId,p.name,p.totals.month,p.totals.period])]);
+      if(host.dataset.summarySignature===signature)return;
+      host.dataset.summarySignature=signature;
+      host.innerHTML=`<div class="goal-contributor-summary-title">Colaboradores</div><div class="goal-contributor-summary-month">${esc(month)}</div>${
+        people.length
+          ? `<div class="goal-contributor-list">${people.map(p=>`<div class="goal-contributor-row"><div class="goal-contributor-name" title="${esc(p.name||'Colaborador')}">${esc(p.name||'Colaborador')}</div><div class="goal-contributor-values"><div class="goal-contributor-value month"><span>No mês</span><strong>${money(p.totals.month)}</strong></div><div class="goal-contributor-value"><span>No período</span><strong>${money(p.totals.period)}</strong></div></div></div>`).join('')}</div>`
+          : '<div class="goal-contributor-summary-empty">Nenhum colaborador com permissão de aporte.</div>'
+      }`;
+    });
+  }
+
   function equalize(hostId){
     const host=document.getElementById(hostId);if(!host)return;
     const rows=[...host.querySelectorAll('.goal-split-row')].filter(r=>r.querySelector('[data-split-enabled]')?.checked);
@@ -187,6 +234,7 @@
       if(btn.textContent!=='↻ Aporte recorrente')btn.textContent='↻ Aporte recorrente';
       if(btn.title!=='Configurar aporte recorrente')btn.title='Configurar aporte recorrente';
     });
+    enhanceContributorSummaries();
   }
 
   function openChoice(goalId,kind){
@@ -423,6 +471,7 @@
     document.addEventListener('submit',saveIndividualRecurring,true);
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){['goalContributionModeModal','goalSharedExtraModal','goalSharedRecurringModal'].forEach(closeModal)}});
     document.addEventListener('click',e=>{if(e.target?.closest?.('.nav [data-page="goals"]'))setTimeout(()=>loadMeta(true),100)},true);
+    document.getElementById('monthSelect')?.addEventListener('change',()=>setTimeout(enhanceContributorSummaries,0));
     window.addEventListener('focus',()=>{if(document.getElementById('page-goals')?.classList.contains('active'))loadMeta(true)});
     window.financeGoalContributionModesRefresh=()=>loadMeta(true);
   }
