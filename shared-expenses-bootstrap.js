@@ -27,7 +27,7 @@
     if(window.__sharedExpensesLoaded)return true;
     if(document.querySelector('script[data-shared-expenses-v2="1"]'))return false;
     const script=document.createElement('script');
-    script.src='shared-expenses.js?v=20260915-series2';
+    script.src='shared-expenses.js?v=20260919-counterparty1';
     script.dataset.sharedExpensesV2='1';
     document.body.appendChild(script);
     return false;
