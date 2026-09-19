@@ -26,6 +26,8 @@
     document.body.appendChild(script);
   });
   for(const src of scripts)await loadScript(src);
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  document.documentElement?.classList.add('prumo-current-ui-ready');
   window.__prumoInitialModulesReady=true;
   try{window.dispatchEvent(new CustomEvent('prumo:initial-modules-ready'))}catch(_e){}
 
