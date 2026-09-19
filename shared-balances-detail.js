@@ -54,7 +54,7 @@
       .shared-balance-list{display:grid;gap:10px;padding:10px}
       .shared-balance-empty{padding:18px 14px;color:#7f90a5;font-size:11px;line-height:1.5;text-align:center;border:1px dashed #30445e;border-radius:11px;background:#101d2e}
       .shared-person-card{border:1px solid #23334a;border-radius:12px;background:#0d1929;overflow:hidden}
-      .shared-person-card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px}
+      .shared-person-card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:11px;padding:13px}
       .shared-person-avatar{width:42px;height:42px;border-radius:50%;flex:0 0 42px;display:grid;place-items:center;overflow:hidden;background:#101d2e;border:1px solid #30445e;font-size:12px;font-weight:800;color:#ddeaac}
       .shared-person-avatar img{width:100%;height:100%;object-fit:cover;display:block}
       .shared-person-card-title{min-width:0}
@@ -65,8 +65,8 @@
       .shared-person-balance span{display:block;font-size:9px;color:#8293a8;margin-top:2px}
       .shared-person-card.receive .shared-person-balance strong{color:#91d6b9}
       .shared-person-card.pay .shared-person-balance strong{color:#ef8a81}
-      .shared-person-actions{display:flex;justify-content:flex-end;padding:0 13px 12px}
-      .shared-person-actions .btn{min-width:148px}
+      .shared-person-action{display:flex;align-items:center}
+      .shared-person-action .btn{white-space:nowrap}
       .shared-person-details{border-top:1px solid #22344b}
       .shared-person-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;color:#91a2b7;font-size:10px;font-weight:750;background:#0a1524}
       .shared-person-details>summary::-webkit-details-marker{display:none}
@@ -88,9 +88,10 @@
       .shared-settled-count{flex:0 0 auto;min-width:28px;height:24px;padding:0 8px;border-radius:999px;display:grid!important;place-items:center;background:#102a20;color:#a5e2c8!important;font-weight:850!important;margin:0!important}
       @media(max-width:900px){.shared-balance-board{grid-template-columns:1fr}.shared-balance-column-head{align-items:center}}
       @media(max-width:620px){
-        .shared-person-card-head{grid-template-columns:auto minmax(0,1fr)}
+        .shared-person-card-head{grid-template-columns:auto minmax(0,1fr);align-items:start}
         .shared-person-balance{grid-column:2;text-align:left}
-        .shared-person-actions{justify-content:stretch}.shared-person-actions .btn{width:100%}
+        .shared-person-action{grid-column:2;width:100%}
+        .shared-person-action .btn{width:100%}
         .shared-entry-line{grid-template-columns:1fr}.shared-entry-value{text-align:left}
         .shared-settled-strip{align-items:flex-start}
       }
@@ -171,8 +172,8 @@
     const pendingLabel=`${pending} pendência${pending===1?'':'s'} · ${entries.length} lançamento${entries.length===1?'':'s'}`;
     const actionable=actionableEntries(b,side).length;
     const actionLabel=side==='receive'?'Informar recebimento':'Informar pagamento';
-    const action=actionable?`<div class="shared-person-actions"><button type="button" class="btn small ${side==='receive'?'primary':''}" data-shared-settle="${side}" data-shared-user="${esc(b.userId)}">${actionLabel}</button></div>`:'';
-    return `<article class="shared-person-card ${side}"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatarHtml(b)}</div><div class="shared-person-card-title"><div class="shared-person-relation">${esc(relation)}</div><div class="shared-person-card-sub">${esc(pendingLabel)}</div></div><div class="shared-person-balance"><strong>${money(amount)}</strong><span>${balanceLabel}</span></div></div>${action}<details class="shared-person-details"><summary>Ver detalhes <span>${entries.length}</span></summary><div class="shared-entry-list">${entries.length?entries.map(e=>entryHtml(e,name)).join(''):'<div class="shared-balance-empty">Nenhum lançamento nesta competência.</div>'}</div></details></article>`;
+    const action=actionable?`<div class="shared-person-action"><button type="button" class="btn small ${side==='receive'?'primary':''}" data-shared-settle="${side}" data-shared-user="${esc(b.userId)}">${actionLabel}</button></div>`:'';
+    return `<article class="shared-person-card ${side}"><div class="shared-person-card-head"><div class="shared-person-avatar">${avatarHtml(b)}</div><div class="shared-person-card-title"><div class="shared-person-relation">${esc(relation)}</div><div class="shared-person-card-sub">${esc(pendingLabel)}</div></div><div class="shared-person-balance"><strong>${money(amount)}</strong><span>${balanceLabel}</span></div>${action}</div><details class="shared-person-details"><summary>Ver detalhes <span>${entries.length}</span></summary><div class="shared-entry-list">${entries.length?entries.map(e=>entryHtml(e,name)).join(''):'<div class="shared-balance-empty">Nenhum lançamento nesta competência.</div>'}</div></details></article>`;
   }
 
   function columnHtml(side,rows){
