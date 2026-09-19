@@ -82,10 +82,19 @@ async function handleSession(session){
   if(!currentUser){
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
-    auth?.classList.remove('hidden','prumo-login-intro');
-    if(auth){void auth.offsetWidth;auth.classList.add('prumo-login-intro')}
+    if(auth){
+      auth.classList.remove('prumo-login-intro');
+      auth.classList.add('prumo-login-prep');
+      auth.classList.remove('hidden');
+      void auth.offsetWidth;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if(!auth.isConnected||currentUser)return;
+        auth.classList.remove('prumo-login-prep');
+        auth.classList.add('prumo-login-intro');
+        try{window.dispatchEvent(new CustomEvent('prumo:login-intro-start'))}catch(e){}
+      }));
+    }
     app?.classList.add('auth-hidden');
-    try{window.dispatchEvent(new CustomEvent('prumo:login-intro-start'))}catch(e){}
     return;
   }
   document.body?.classList.remove('prumo-login-mode');
