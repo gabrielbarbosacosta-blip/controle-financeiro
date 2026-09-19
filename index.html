@@ -74,16 +74,16 @@ body.prumo-ui-loading::before,body.prumo-ui-loading::after{display:none!importan
   color:#f3f7fb;
   will-change:opacity,transform,filter;
 }
-.prumo-splash-word-1{color:#ddeaac;animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) .10s both}
-.prumo-splash-word-2{animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) 1.17s both}
-.prumo-splash-word-3{animation:prumoSplashWordLast 1.05s cubic-bezier(.22,1,.36,1) 2.24s both}
+.prumo-splash-word-1{color:#ddeaac}
+body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-word-1{animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) .10s both}
+body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-word-2{animation:prumoSplashWordCycle .95s cubic-bezier(.22,1,.36,1) 1.17s both}
+body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-word-3{animation:prumoSplashWordLast 1.05s cubic-bezier(.22,1,.36,1) 2.24s both}
 .prumo-splash-progress{
   position:absolute;left:50%;top:calc(50% + 42px);
   width:132px;height:3px;transform:translateX(-50%);
   border-radius:999px;
   background:linear-gradient(90deg,transparent 0%,#ddeaac 48%,transparent 100%);
   background-size:55% 100%;background-repeat:no-repeat;
-  animation:prumoSplashProgress 1.05s ease-in-out infinite;
 }
 @keyframes prumoSplashWordCycle{
   0%{opacity:0;transform:translate(-50%,calc(-50% + 7px));filter:blur(5px)}
@@ -96,6 +96,7 @@ body.prumo-ui-loading::before,body.prumo-ui-loading::after{display:none!importan
   38%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
   100%{opacity:1;transform:translate(-50%,-50%);filter:blur(0)}
 }
+body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-progress{animation:prumoSplashProgress 1.05s ease-in-out infinite}
 @keyframes prumoSplashProgress{0%{background-position:-80% 0;opacity:.4}50%{opacity:1}100%{background-position:180% 0;opacity:.4}}
 @media(prefers-reduced-motion:reduce){
   .prumo-splash-word-1,.prumo-splash-word-2{animation:none!important;opacity:0!important}
