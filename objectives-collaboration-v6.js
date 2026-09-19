@@ -132,7 +132,7 @@
           const share=button('Compartilhar','data-goal-share',g.id);
           actions.insertBefore(recurring,actions.querySelector('[data-goal-edit]')||null);
           actions.insertBefore(share,actions.querySelector('[data-goal-edit]')||null);
-          recurring.addEventListener('click',()=>openRecurring(g.id));share.addEventListener('click',()=>openShare(g.id));
+          recurring.addEventListener('click',()=>{if(typeof window.openGoalRecurringChoice==='function')window.openGoalRecurringChoice(g.id);else openRecurring(g.id)});share.addEventListener('click',()=>openShare(g.id));
         }
       }else{
         card.querySelectorAll('[data-goal-edit],[data-goal-toggle],[data-goal-delete]').forEach(x=>x.remove());
