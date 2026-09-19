@@ -5,23 +5,18 @@
   function revealApp(){
     const auth=document.getElementById('authScreen');
     const app=document.getElementById('appRoot');
-    document.body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit');
-    document.body?.classList.add('caderno-splash-done');
-    if(auth){
-      auth.classList.add('hidden');
-      auth.hidden=true;
-      auth.setAttribute('aria-hidden','true');
-      auth.style.pointerEvents='none';
-    }
-    if(app){
-      app.classList.remove('auth-hidden');
-      app.hidden=false;
-      app.removeAttribute('aria-hidden');
-    }
     try{
-      if(typeof showPage==='function')showPage('dashboard');
-      else document.querySelector('.nav button[data-page="dashboard"]')?.click();
+      if(typeof showAuthenticatedApp==='function'){
+        showAuthenticatedApp(auth,app);
+        return;
+      }
     }catch(_e){}
+    if(window.__prumoInitialModulesReady!==true)return;
+    document.body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit','prumo-ui-loading');
+    document.body?.classList.add('caderno-splash-done');
+    document.documentElement?.classList.add('prumo-current-ui-ready');
+    if(auth){auth.classList.add('hidden');auth.hidden=true;auth.setAttribute('aria-hidden','true');}
+    if(app){app.classList.remove('auth-hidden');app.hidden=false;app.removeAttribute('aria-hidden');}
   }
 
   async function reconcile(){
