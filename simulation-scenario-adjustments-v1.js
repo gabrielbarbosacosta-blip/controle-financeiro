@@ -45,12 +45,34 @@
       return months.some(ym=>impactsMonth(tx,ym));
     }).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.description||'').localeCompare(String(b.description||'')));
   }
+  function isGoalTx(tx){
+    const id=String(tx?.id||''),nature=String(tx?.nature||'').toLowerCase(),category=String(tx?.category||'').toLowerCase();
+    return id.startsWith('goal-plan-')||id.startsWith('goal-contrib-')||(nature==='objetivo'&&category==='objetivos');
+  }
+  function goalNameFromTx(tx){
+    return String(tx?.description||'Objetivo')
+      .replace(/^Aporte planejado\s*[—-]\s*/i,'')
+      .replace(/^Aporte\s*[—-]\s*/i,'')
+      .trim()||'Objetivo';
+  }
+  function goalEntityKey(tx){
+    return 'goal:'+goalNameFromTx(tx).toLocaleLowerCase('pt-BR');
+  }
   function entityKeyForTx(tx){
+    if(isGoalTx(tx))return goalEntityKey(tx);
     if(tx?.debtManaged===true&&tx?.debtId)return `debt:${tx.debtId}`;
     if(tx?.incomeManaged===true&&tx?.incomePlanId)return `income:${tx.incomePlanId}`;
     return `tx:${tx?.id||''}`;
   }
   function entitySummary(entity){
+    if(entity.kind==='goal'){
+      const amounts=entity.transactions.map(tx=>Number(tx.amount)||0).filter(v=>v>0);
+      const recurring=entity.transactions.some(tx=>String(tx.id||'').startsWith('goal-plan-'));
+      const uniqueMonths=new Set(entity.transactions.map(tx=>monthOf(tx.date)).filter(Boolean)).size;
+      if(recurring&&amounts.length)return `${money(amounts[0])} por aporte · ${uniqueMonths} competência${uniqueMonths===1?'':'s'} na projeção`;
+      const total=amounts.reduce((s,v)=>s+v,0);
+      return `${entity.transactions.length} aporte${entity.transactions.length===1?'':'s'} · ${money(total)} no período`;
+    }
     if(entity.kind==='debt'){
       const d=entity.source||{},amount=Number(d.installmentAmount)||Number(entity.transactions?.[0]?.amount)||0;
       return d.openEnded
@@ -70,11 +92,17 @@
     const s=getState(),groups=new Map();
     for(const tx of relevantTransactions()){
       const key=entityKeyForTx(tx);
-      if(!groups.has(key))groups.set(key,{key,type:tx.type,transactions:[],kind:key.startsWith('debt:')?'debt':key.startsWith('income:')?'income':'transaction'});
+      if(!groups.has(key))groups.set(key,{key,type:tx.type,transactions:[],kind:key.startsWith('goal:')?'goal':key.startsWith('debt:')?'debt':key.startsWith('income:')?'income':'transaction'});
       groups.get(key).transactions.push(tx);
     }
     for(const entity of groups.values()){
-      if(entity.kind==='debt'){
+      if(entity.kind==='goal'){
+        const tx=entity.transactions[0]||{};
+        entity.source=null;
+        entity.title=goalNameFromTx(tx);
+        entity.account='Objetivos';
+        entity.subtitle='Objetivo';
+      }else if(entity.kind==='debt'){
         const id=entity.key.slice(5),d=(s.debts||[]).find(x=>String(x.id)===id);
         entity.source=d||null;entity.title=d?.name||entity.transactions[0]?.description||'Despesa';
         entity.account=d?.account||entity.transactions[0]?.account||'';
