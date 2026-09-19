@@ -624,3 +624,22 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
 @media(max-width:800px){
   #page-history .history-section-head{padding:14px}
 }
+
+
+/* Itens financeiros cuja gestão pertence a Objetivos */
+.history-goal-managed,
+.goal-managed-plan-label{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:4px 8px;
+  border:1px solid rgba(221,234,172,.22);
+  border-radius:999px;
+  background:rgba(221,234,172,.06);
+  color:#aeba8d;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.history-goal-managed{margin-left:6px}
