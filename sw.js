@@ -1,4 +1,4 @@
-const CACHE='prumo-pwa-v44-20260918-auth-deadlock-fix';
+const CACHE='prumo-pwa-v45-20260918-authserialize1';
 const SHELL=['/','/index.html','/figma-caderno-theme-v1.css','/figma-caderno-theme-v1.js','/figma-caderno-dark-v2.css','/figma-caderno-stability-v3.css','/app.js','/history-status.js','/debts.js','/incomes.js','/financial-entity-panel-runtime-v2.js','/kpi-countup-v1.js','/profile-avatar-performance-v1.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
