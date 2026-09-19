@@ -188,6 +188,13 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
 
 function scheduleAuthenticatedSplashRelease(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
   if(window.__prumoInitialModulesReady!==true)return;
+  const month=document.getElementById('monthSelect');
+  const opening=String(document.getElementById('kpiOpening')?.textContent||'').trim();
+  if(!(month?.options?.length>0)||!opening||opening==='—'){
+    clearTimeout(authenticatedSplashReleaseTimer);
+    authenticatedSplashReleaseTimer=setTimeout(()=>scheduleAuthenticatedSplashRelease(auth,app),60);
+    return;
+  }
   const reduce=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_e){return false}})();
   const minVisible=reduce?0:3450;
   const elapsed=Math.max(0,performance.now()-authenticatedSplashStartedAt);
