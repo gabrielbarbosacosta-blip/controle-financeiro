@@ -114,7 +114,7 @@
     if(!sidebar||!nav||document.getElementById('profileSidebarCard'))return;
     const card=document.createElement('div');
     card.id='profileSidebarCard';card.className='profile-sidebar-card';card.tabIndex=0;card.setAttribute('role','button');
-    card.innerHTML='<div class="profile-sidebar-avatar" id="profileSidebarAvatar"><span>U</span></div><div class="profile-sidebar-copy"><div class="profile-sidebar-name" id="profileSidebarName">Meu perfil</div><div class="profile-sidebar-label">Perfil e compartilhamento</div></div>';
+    card.innerHTML='<div class="profile-sidebar-avatar" id="profileSidebarAvatar"><span>U</span></div><div class="profile-sidebar-copy"><div class="profile-sidebar-name" id="profileSidebarName">Meu perfil</div><div class="profile-sidebar-label">Perfil</div></div>';
     card.onclick=()=>openProfilePage();
     card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProfilePage()}};
     nav.insertAdjacentElement('afterend',card);
