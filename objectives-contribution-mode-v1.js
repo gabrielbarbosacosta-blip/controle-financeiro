@@ -180,12 +180,12 @@
   function enhanceButtons(){
     const grid=document.getElementById('goalGrid');if(!grid)return;
     grid.querySelectorAll('[data-goal-contribute]').forEach(btn=>{
-      btn.textContent='+ Aporte extra';
-      btn.title='Registrar aporte extra';
+      if(btn.textContent!=='+ Aporte extra')btn.textContent='+ Aporte extra';
+      if(btn.title!=='Registrar aporte extra')btn.title='Registrar aporte extra';
     });
     grid.querySelectorAll('[data-goal-recurring]').forEach(btn=>{
-      btn.textContent='↻ Aporte recorrente';
-      btn.title='Configurar aporte recorrente';
+      if(btn.textContent!=='↻ Aporte recorrente')btn.textContent='↻ Aporte recorrente';
+      if(btn.title!=='Configurar aporte recorrente')btn.title='Configurar aporte recorrente';
     });
   }
 
