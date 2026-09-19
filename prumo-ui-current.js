@@ -58,9 +58,8 @@
     if(!profile){profile=document.createElement('div');profile.className='caderno-profile';profile.setAttribute('aria-label','Conta pessoal');brand.insertAdjacentElement('afterend',profile)}
     const wanted=`<span class="caderno-avatar">${initials(info.name)}</span><span class="caderno-profile-copy"><b>${escapeHtml(info.name)}</b><small>${escapeHtml(info.email||'Conta pessoal')}</small></span><span class="caderno-profile-chevron">›</span>`;
     if(profile.innerHTML!==wanted)profile.innerHTML=wanted;
-    const originalLogout=document.getElementById('logoutBtn');let logout=sidebar.querySelector('.caderno-sidebar-logout');
-    if(!logout){logout=document.createElement('button');logout.type='button';logout.className='caderno-sidebar-logout';logout.textContent='Sair da conta';sidebar.appendChild(logout)}
-    if(!logout.dataset.bound){logout.dataset.bound='1';logout.addEventListener('click',()=>originalLogout?.click())}
+    const legacyLogout=sidebar.querySelector('.caderno-sidebar-logout');
+    if(legacyLogout)legacyLogout.remove();
   }
 
   function iconFor(page){const path=ICONS[page]||ICONS.settings;return `<span class="caderno-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></span>`}
