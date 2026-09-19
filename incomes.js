@@ -204,7 +204,7 @@
       const ym=addMonth(first,i),previous=byMonth.get(ym);
       if(previous&&String(previous.status||'').toLowerCase()!=='pendente'){generated.push(previous);continue}
       generated.push({
-        id:previous?.id||txUid(),date:safeDate(ym,plan.dueDay),type:'Receita',category:plan.category||'Salário',description:plan.name,account:plan.account||'',nature:plan.mode==='mensal'?'Fixa':'Extra',amount:amountForMonth(plan,ym),status:previous?.status||'Pendente',notes:[`Receita gerada automaticamente por "${plan.name}".`,plan.notes||''].filter(Boolean).join(' '),projection:true,recurring:false,installmentCurrent:null,installmentTotal:null,incomeManaged:true,incomePlanId:plan.id,incomeOccurrence:i+1,incomeOccurrenceTotal:plan.openEnded?null:span+1,incomeOpenEnded:!!plan.openEnded
+        id:previous?.id||txUid(),date:safeDate(ym,plan.dueDay),type:'Receita',category:plan.category||'Salário',description:plan.name,account:plan.account||'',nature:plan.mode==='mensal'?'Fixa':'Extra',amount:amountForMonth(plan,ym),status:previous?.status||'Pendente',notes:[`Receita gerada automaticamente por "${plan.name}".`,plan.notes||''].filter(Boolean).join(' '),projection:true,recurring:false,installmentCurrent:null,installmentTotal:null,incomeManaged:true,incomePlanId:plan.id,incomeOccurrence:i+1,incomeOccurrenceTotal:plan.openEnded?null:span+1,incomeOpenEnded:!!plan.openEnded,counterpartyCpf:plan.counterpartyCpf||null,counterpartyUserId:plan.counterpartyUserId||null,counterpartyName:plan.counterpartyName||null,counterpartyRole:plan.counterpartyCpf?'debtor':null
       });
     }
     old.filter(t=>String(t.status||'').toLowerCase()!=='pendente'&&(String(t.date||'').slice(0,7)<first||String(t.date||'').slice(0,7)>last)).forEach(t=>generated.push(t));
@@ -234,6 +234,9 @@
     document.getElementById('incomeNoEnd').checked=plan?.openEnded===true;
     document.getElementById('incomeLastMonth').value=plan?.lastMonth||'';
     document.getElementById('incomeDueDay').value=plan?.dueDay??1;
+    const cpInput=document.getElementById('incomeCounterpartyCpf'),cpEnabled=document.getElementById('incomeCounterpartyEnabled');
+    cpEnabled.checked=!!plan?.counterpartyCpf;cpInput.value=incomeCpfMask(plan?.counterpartyCpf||'');cpInput.dataset.userId=plan?.counterpartyUserId||'';cpInput.dataset.personName=plan?.counterpartyName||'';
+    setIncomeCounterpartyState(plan?.counterpartyCpf?(plan?.counterpartyName?('✓ '+plan.counterpartyName):'Devedor externo vinculado'):'',plan?.counterpartyUserId?'ok':plan?.counterpartyCpf?'warn':'');
     document.getElementById('incomeNotes').value=plan?.notes||'';
 
     const versionBox=document.getElementById('incomeValueChangeBox');
@@ -250,7 +253,7 @@
       document.getElementById('incomeValueChangeMonth').value='';
       document.getElementById('incomeValueHistorySummary').textContent='';
     }
-    toggleIncomeMode();
+    toggleIncomeMode();toggleIncomeCounterparty();
     document.getElementById('incomeModal').classList.add('open');
   }
   function closeIncomeModal(){document.getElementById('incomeModal')?.classList.remove('open')}
@@ -285,8 +288,9 @@
     }
 
     const plan={
-      id,name:document.getElementById('incomeName').value.trim(),account:document.getElementById('incomeAccount').value.trim(),category:document.getElementById('incomeCategory').value||'Salário',amount:baseAmount,mode,firstMonth,lastMonth:openEnded?null:lastMonth,openEnded,dueDay:Math.min(31,Math.max(1,Number(document.getElementById('incomeDueDay').value)||1)),notes:document.getElementById('incomeNotes').value.trim(),amountVersions:versions,monthOverrides:overrides
+      id,name:document.getElementById('incomeName').value.trim(),account:document.getElementById('incomeAccount').value.trim(),category:document.getElementById('incomeCategory').value||'Salário',amount:baseAmount,mode,firstMonth,lastMonth:openEnded?null:lastMonth,openEnded,dueDay:Math.min(31,Math.max(1,Number(document.getElementById('incomeDueDay').value)||1)),notes:document.getElementById('incomeNotes').value.trim(),amountVersions:versions,monthOverrides:overrides,counterpartyCpf:document.getElementById('incomeCounterpartyEnabled').checked?incomeCpfDigits(document.getElementById('incomeCounterpartyCpf').value):null,counterpartyUserId:document.getElementById('incomeCounterpartyEnabled').checked?(document.getElementById('incomeCounterpartyCpf').dataset.userId||null):null,counterpartyName:document.getElementById('incomeCounterpartyEnabled').checked?(document.getElementById('incomeCounterpartyCpf').dataset.personName||null):null,counterpartyRole:document.getElementById('incomeCounterpartyEnabled').checked?'debtor':null
     };
+    if(document.getElementById('incomeCounterpartyEnabled').checked&&plan.counterpartyCpf.length!==11){alert('Informe um CPF válido para o devedor.');return}
     const idx=state.incomePlans.findIndex(p=>p.id===id);
     if(idx>=0)state.incomePlans[idx]=plan;else state.incomePlans.push(plan);
     syncIncomeTransactions(plan);closeIncomeModal();
@@ -315,7 +319,7 @@
       const period=p.mode==='mensal'?(p.openEnded?`${monthLabel(p.firstMonth)} → Sem fim`:`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`):monthLabel(p.firstMonth);
       const progress=p.openEnded?'':`<div class="income-progress"><span style="width:${pct}%"></span></div>`;
       return `<tr>
-        <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}</div>${progress}</td>
+        <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}${p.counterpartyCpf?`<br>Devedor: ${esc(p.counterpartyName||incomeCpfMask(p.counterpartyCpf))}`:''}</div>${progress}</td>
         <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pend.length} pendente(s)</div></td>
         <td>${period}</td>
         <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
