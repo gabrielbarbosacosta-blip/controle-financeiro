@@ -4,7 +4,7 @@
 
   const STYLE_ID='finance-notifications-style';
   let panel=null,backdrop=null,toastHost=null;
-  let items=[],balances=[],seenChargeKeys=new Set();
+  let items=[],balances=[],connectionRequests=[],seenChargeKeys=new Set();
   let loadPromise=null,lastMonth='';
   const toastQueue=[];let toastActive=false;
 
@@ -62,17 +62,42 @@
   function invitationCard(i){const value=i.isPayer?Number(i.amount)||0:Number(i.myAmount)||0;return `<div class="notification-card" data-base-notification="1" data-notification-shared="${esc(i.id)}"><div class="notification-type">Despesa compartilhada</div><div class="notification-title">${esc(i.description||'Nova despesa compartilhada')}</div><div class="notification-meta">${esc(creatorLabel(i))} compartilhou uma despesa com você${i.payerName?`.<br>Pagador: ${esc(i.payerName)}`:''}${i.date?` · ${esc(fmtDateSafe(i.date))}`:''}</div><div class="notification-value">${money(value)}</div><div class="notification-actions"><button type="button" class="btn small primary" data-notification-accept="${esc(i.id)}">Aceitar despesa</button><button type="button" class="btn small" data-notification-open-sharing="1">Ver detalhes</button></div></div>`}
   function contextualCharges(){const month=selectedMonth();return balances.map(b=>{const amount=monthReceive(b,month);return {...b,month,amount,key:amount>0?chargeKey(b,month,amount):''}}).filter(c=>c.amount>0&&!seenChargeKeys.has(c.key))}
   function chargeCard(c){const name=c.name||'Participante';return `<div class="notification-card charge" data-base-notification="1" data-notification-mode="once" data-notification-kind="charge" data-notification-key="${esc(c.key)}"><div class="notification-type">Cobrança pendente</div><div class="notification-title">${esc(name)} ainda possui valor pendente com você</div><div class="notification-meta">Saldo pendente em ${esc(monthLabel(c.month))}. Esta notificação não volta depois de visualizada.</div><div class="notification-value">${money(c.amount)}</div><div class="notification-actions"><button type="button" class="btn small" data-notification-open-sharing="1">Abrir compartilhamentos</button></div></div>`}
+  function connectionCard(i){
+    return `<div class="notification-card connection-request" data-base-notification="1" data-notification-mode="persistent" data-notification-kind="connection" data-notification-connection="${esc(i.id)}"><div class="notification-type">Solicitação de conexão</div><div class="notification-title">${esc(i.name||'Usuário do Prumo')} quer se conectar com você</div><div class="notification-meta">Ao aceitar, essa pessoa ficará disponível na sua lista de conexões e poderá ser selecionada como credor ou devedor sem informar o CPF novamente.</div><div class="notification-actions"><button type="button" class="btn small primary" data-connection-notification-accept="${esc(i.id)}">Aceitar conexão</button><button type="button" class="btn small danger" data-connection-notification-reject="${esc(i.id)}">Recusar</button><button type="button" class="btn small" data-connection-notification-open="1">Abrir conexões</button></div></div>`;
+  }
+
+  function openConnectionsFromNotification(){
+    closePanel();
+    document.querySelector('.nav [data-page="connections"]')?.click();
+  }
+
+  async function respondConnectionNotification(id,accept,button){
+    const client=getSb();if(!id||!client)return;
+    const old=button?.textContent;if(button){button.disabled=true;button.textContent=accept?'Aceitando…':'Recusando…'}
+    try{
+      const {data,error}=await client.rpc('finance_respond_connection',{p_connection_id:id,p_accept:accept});
+      if(error)throw error;if(!data?.ok)throw new Error(data?.error||'connection_response_failed');
+      try{await window.financeConnections?.refresh?.()}catch(_e){}
+      await loadNotifications();
+      try{if(typeof setSyncStatus==='function')setSyncStatus(accept?'Conexão adicionada':'Solicitação de conexão recusada')}catch(_e){}
+    }catch(e){
+      console.error('Falha ao responder solicitação de conexão pela notificação.',e);
+      alert('Não foi possível responder esta solicitação de conexão agora.');
+      if(button){button.disabled=false;button.textContent=old||(accept?'Aceitar conexão':'Recusar')}
+    }
+  }
+
 
   function render(){
     ensureUi();const pending=items.filter(i=>i.myStatus==='pending'),charges=contextualCharges(),host=document.getElementById('notificationsList');if(!host)return;
-    host.querySelectorAll('.notification-card[data-base-notification="1"],.notification-card.charge,.notification-card[data-notification-shared],.notification-empty').forEach(el=>{if(!el.classList.contains('payment-confirmation')&&!el.classList.contains('deletion-request'))el.remove()});
-    const html=pending.map(invitationCard).join('')+charges.map(chargeCard).join('');if(html)host.insertAdjacentHTML('beforeend',html);
+    host.querySelectorAll('.notification-card[data-base-notification="1"],.notification-card.charge,.notification-card[data-notification-shared],.notification-card[data-notification-connection],.notification-empty').forEach(el=>{if(!el.classList.contains('payment-confirmation')&&!el.classList.contains('deletion-request'))el.remove()});
+    const html=connectionRequests.map(connectionCard).join('')+pending.map(invitationCard).join('')+charges.map(chargeCard).join('');if(html)host.insertAdjacentHTML('beforeend',html);
     if(!host.querySelector('.notification-card'))host.innerHTML='<div class="notification-empty">Nenhuma notificação pendente.</div>';
     bindActions(host);lastMonth=selectedMonth();
     queueMicrotask(()=>{if(typeof window.financeNotificationQueueRefresh==='function')window.financeNotificationQueueRefresh();else updateBadgeFallback()});
   }
   function updateBadgeFallback(){const host=document.getElementById('notificationsList'),total=host?[...host.querySelectorAll('.notification-card')].filter(el=>el.style.display!=='none').length:0,b=bell();if(b){b.classList.toggle('has-notifications',total>0);const badge=b.querySelector('.notification-badge');if(badge)badge.textContent=total>9?'9+':String(total)}const count=document.getElementById('notificationsCount');if(count)count.textContent=`${total} pendência${total===1?'':'s'}`}
-  function bindActions(root){root.querySelectorAll('[data-notification-accept]').forEach(btn=>btn.onclick=()=>acceptShared(btn.dataset.notificationAccept,btn));root.querySelectorAll('[data-notification-open-sharing]').forEach(btn=>btn.onclick=()=>{closePanel();if(typeof window.openSharedExpenses==='function')window.openSharedExpenses();else document.querySelector('.nav [data-page="sharing"]')?.click()})}
+  function bindActions(root){root.querySelectorAll('[data-notification-accept]').forEach(btn=>btn.onclick=()=>acceptShared(btn.dataset.notificationAccept,btn));root.querySelectorAll('[data-notification-open-sharing]').forEach(btn=>btn.onclick=()=>{closePanel();if(typeof window.openSharedExpenses==='function')window.openSharedExpenses();else document.querySelector('.nav [data-page="sharing"]')?.click()});root.querySelectorAll('[data-connection-notification-accept]').forEach(btn=>btn.onclick=()=>respondConnectionNotification(btn.dataset.connectionNotificationAccept,true,btn));root.querySelectorAll('[data-connection-notification-reject]').forEach(btn=>btn.onclick=()=>respondConnectionNotification(btn.dataset.connectionNotificationReject,false,btn));root.querySelectorAll('[data-connection-notification-open]').forEach(btn=>btn.onclick=openConnectionsFromNotification)}
   async function acceptShared(id,button){const client=getSb();if(!id||!client)return;const old=button?.textContent;if(button){button.disabled=true;button.textContent='Aceitando…'}try{const {data,error}=await client.rpc('finance_respond_shared_expense',{p_shared_id:id,p_accept:true});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'respond_failed');if(window.financeCloud?.refresh)await window.financeCloud.refresh();await loadNotifications();try{if(typeof setSyncStatus==='function')setSyncStatus('Despesa compartilhada confirmada')}catch(e){}}catch(e){console.error('Falha ao aceitar despesa compartilhada pela notificação.',e);alert('Não foi possível aceitar esta despesa agora.');if(button){button.disabled=false;button.textContent=old||'Aceitar despesa'}}}
 
   async function markChargeViewed(key){const client=getSb();key=String(key||'');if(!client||!key)return false;try{if(!seenChargeKeys.has(key)){const {data,error}=await client.rpc('finance_mark_notification_viewed',{p_notification_key:key});if(error||data?.ok===false)throw error||new Error(data?.error||'mark_view_failed');seenChargeKeys.add(key)}const host=document.getElementById('notificationsList');host?.querySelectorAll('.notification-card.charge[data-notification-key]').forEach(card=>{if(card.dataset.notificationKey===key)card.remove()});if(host&&!host.querySelector('.notification-card'))host.innerHTML='<div class="notification-empty">Nenhuma notificação pendente.</div>';window.financeNotificationQueueRefresh?.();return true}catch(e){console.warn('Falha ao marcar cobrança como visualizada.',e);return false}}
@@ -80,7 +105,7 @@
 
   async function loadNotifications(){
     const client=getSb(),userId=getCurrentUserId();if(!client||!userId)return;if(loadPromise)return loadPromise;
-    loadPromise=(async()=>{try{const [listRes,balanceRes,viewRes]=await Promise.all([client.rpc('finance_list_shared_expenses'),client.rpc('finance_shared_balances'),client.rpc('finance_list_notification_views',{p_prefix:'shared-charge:'})]);if(listRes.error)throw listRes.error;if(balanceRes.error)throw balanceRes.error;if(viewRes.error)throw viewRes.error;const nextItems=listRes.data?.items||[];detectNewInvitations(nextItems);items=nextItems;balances=balanceRes.data?.items||[];seenChargeKeys=new Set(Array.isArray(viewRes.data?.keys)?viewRes.data.keys:[]);render()}catch(e){console.warn('Falha ao carregar notificações.',e)}finally{loadPromise=null}})();return loadPromise;
+    loadPromise=(async()=>{try{const [listRes,balanceRes,viewRes,connectionRes]=await Promise.all([client.rpc('finance_list_shared_expenses'),client.rpc('finance_shared_balances'),client.rpc('finance_list_notification_views',{p_prefix:'shared-charge:'}),client.rpc('finance_list_connections')]);if(listRes.error)throw listRes.error;if(balanceRes.error)throw balanceRes.error;if(viewRes.error)throw viewRes.error;if(connectionRes.error)throw connectionRes.error;const nextItems=listRes.data?.items||[];detectNewInvitations(nextItems);items=nextItems;balances=balanceRes.data?.items||[];connectionRequests=connectionRes.data?.incoming||[];seenChargeKeys=new Set(Array.isArray(viewRes.data?.keys)?viewRes.data.keys:[]);render()}catch(e){console.warn('Falha ao carregar notificações.',e)}finally{loadPromise=null}})();return loadPromise;
   }
 
   function init(){ensureUi();let tries=0;const readyTimer=setInterval(()=>{tries++;bindBell();if(getCurrentUserId()&&getSb()){clearInterval(readyTimer);loadNotifications()}else if(tries>300)clearInterval(readyTimer)},100);setInterval(()=>{if(getCurrentUserId())loadNotifications()},30000);window.addEventListener('resize',()=>{if(panel?.classList.contains('open'))positionPanel()});window.addEventListener('scroll',()=>{if(panel?.classList.contains('open'))positionPanel()},{passive:true});window.addEventListener('focus',()=>{if(panel?.classList.contains('open'))loadNotifications()});document.addEventListener('click',e=>{if(panel?.classList.contains('open')&&!panel.contains(e.target)&&!bell()?.contains(e.target))closePanel()});document.addEventListener('change',e=>{const v=String(e.target?.value||'');if(/^\d{4}-\d{2}$/.test(v)&&selectedMonth()!==lastMonth)loadNotifications()},true);window.financeNotificationsRefresh=loadNotifications;window.financeMarkChargeNotificationViewed=markChargeViewed;window.financeMarkVisibleChargeNotificationsViewed=markVisibleChargesViewed;window.__financeNotificationsContextNative=true}
