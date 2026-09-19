@@ -258,7 +258,45 @@
   }
   function closeIncomeModal(){document.getElementById('incomeModal')?.classList.remove('open')}
 
-  function saveIncomeFromForm(e){
+  async function syncIncomePlanObligation(plan,{persistFirst=false,silent=false}={}){
+    if(!plan?.counterpartyCpf)return null;
+    try{
+      if(persistFirst&&window.financeCloud?.save&&typeof currentUser!=='undefined'&&currentUser?.id){
+        await window.financeCloud.save(currentUser.id,state);
+      }
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      const {data,error}=await client.rpc('finance_upsert_plan_obligation',{
+        p_plan_kind:'income',
+        p_plan_id:String(plan.id),
+        p_plan_data:plan,
+        p_counterparty_cpf:plan.counterpartyCpf
+      });
+      if(error)throw error;
+      if(!data?.ok)throw new Error(data?.detail||data?.error||'plan_obligation_failed');
+      if(data?.linked){
+        plan.counterpartyUserId=data.counterpartyUserId||plan.counterpartyUserId||null;
+        plan.counterpartyName=data.counterpartyName||plan.counterpartyName||null;
+        syncIncomeTransactions(plan);
+        if(!silent)try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='accepted'?'Vínculo com devedor confirmado':'Receita salva · aguardando confirmação do devedor')}catch(_e){}
+      }else if(!silent){
+        try{if(typeof setSyncStatus==='function')setSyncStatus('Receita salva · devedor externo vinculado')}catch(_e){}
+      }
+      try{await window.financeSharedExpensesRefresh?.()}catch(_e){}
+      return data;
+    }catch(err){
+      console.error('Falha ao criar pendência para o devedor.',err);
+      if(!silent)alert('A receita foi salva, mas não foi possível gerar a pendência de confirmação para o devedor agora.');
+      return null;
+    }
+  }
+
+  async function syncExistingIncomePlanObligations(){
+    if(!ensureIncomeState())return;
+    const items=(state.incomePlans||[]).filter(p=>p?.counterpartyCpf);
+    for(const plan of items)await syncIncomePlanObligation(plan,{persistFirst:false,silent:true});
+  }
+
+  async function saveIncomeFromForm(e){
     e.preventDefault();
     if(!ensureIncomeState())return;
     const existingId=document.getElementById('incomeId').value,id=existingId||planUid(),existing=existingId?state.incomePlans.find(p=>p.id===existingId):null;
@@ -293,7 +331,9 @@
     if(document.getElementById('incomeCounterpartyEnabled').checked&&plan.counterpartyCpf.length!==11){alert('Informe um CPF válido para o devedor.');return}
     const idx=state.incomePlans.findIndex(p=>p.id===id);
     if(idx>=0)state.incomePlans[idx]=plan;else state.incomePlans.push(plan);
-    syncIncomeTransactions(plan);closeIncomeModal();
+    syncIncomeTransactions(plan);
+    if(plan.counterpartyCpf)await syncIncomePlanObligation(plan,{persistFirst:true});
+    closeIncomeModal();
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
     renderIncomePage();
   }
@@ -343,6 +383,6 @@
   window.editIncomePlan=openIncomeModal;
   window.deleteIncomePlan=deleteIncome;
 
-  function init(){if(!ensureIncomeState())return;buildUi()}
+  function init(){if(!ensureIncomeState())return;buildUi();setTimeout(syncExistingIncomePlanObligations,700)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
