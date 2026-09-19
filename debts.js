@@ -315,9 +315,18 @@
     renderDebtPage();
   }
 
+  function isGoalManagedDebt(id){
+    try{if(window.financeGoalManagedProtection?.isDebtPlan?.(id))return true}catch(_e){}
+    return String(id||'').startsWith('goal-shared-');
+  }
+
   function deleteDebt(id){
     if(!ensureDebtState())return;
     const debt=state.debts.find(d=>d.id===id);if(!debt)return;
+    if(isGoalManagedDebt(id)){
+      alert('Esta despesa é gerenciada pela seção Objetivos. Altere ou cancele o aporte recorrente no objetivo correspondente.');
+      return;
+    }
     if(!confirm(`Excluir a despesa "${debt.name}" e todas as parcelas vinculadas, inclusive as já marcadas como pagas?`))return;
     state.debts=state.debts.filter(d=>d.id!==id);
     state.transactions=state.transactions.filter(t=>!(t.debtManaged===true&&t.debtId===id));
@@ -348,7 +357,7 @@
         <td>${nextLabel}</td>
         <td class="num">${money(d.installmentAmount)}</td>
         <td class="num"><strong>${money(remaining)}</strong>${d.openEnded?`<div class="debt-sub">janela de ${OPEN_HORIZON} meses</div>`:''}</td>
-        <td><div class="debt-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">Painel</button><button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button></div></td>
+        <td><div class="debt-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">Painel</button>${isGoalManagedDebt(d.id)?'<span class="goal-managed-plan-label">Gerenciado em Objetivos</span>':`<button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button>`}</div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma despesa cadastrada.</td></tr>';
   }
