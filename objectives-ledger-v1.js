@@ -2,7 +2,7 @@
   if(window.__financeGoalLedgerV1Loaded)return;
   window.__financeGoalLedgerV1Loaded=true;
 
-  let goals=[],activeGoalId='',activeMonth='',loading=false;
+  let goals=[],participantsByGoal=new Map(),activeGoalId='',activeMonth='',loading=false;
   const STYLE_ID='finance-goal-ledger-v1-style';
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
@@ -29,7 +29,18 @@
       .goal-ledger-pending{display:inline-flex;padding:2px 5px;border-radius:999px;border:1px solid #5a4824;background:#2a2213;color:#ead38f;font-size:8px;margin-left:5px}
       .goal-ledger-actions{display:flex;gap:7px;flex-wrap:wrap}
       .goal-ledger-help{padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:var(--panel2);font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px}
-      @media(max-width:720px){.goal-ledger-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+      .goal-ledger-people{margin-bottom:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden}
+      .goal-ledger-people>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:10px;font-weight:820;color:var(--text)}
+      .goal-ledger-people>summary::-webkit-details-marker{display:none}
+      .goal-ledger-people>summary span{font-size:9px;font-weight:600;color:var(--muted)}
+      .goal-ledger-people-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;padding:0 10px 10px}
+      .goal-ledger-person-card{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.04)}
+      .goal-ledger-person-name{font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .goal-ledger-owner{display:inline-flex;margin-left:5px;padding:1px 4px;border-radius:999px;border:1px solid var(--line);font-size:7px;color:var(--muted);vertical-align:1px}
+      .goal-ledger-person-values{display:grid;gap:4px;margin-top:7px}.goal-ledger-person-value{display:flex;justify-content:space-between;gap:8px;font-size:8px;color:var(--muted)}
+      .goal-ledger-person-value strong{font:700 10px 'DM Mono',monospace;color:var(--text)}.goal-ledger-person-value.month strong{color:#91d6b9}
+      .goal-ledger-people-empty{padding:0 12px 12px;color:var(--muted);font-size:9px}
+      @media(max-width:720px){.goal-ledger-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.goal-ledger-people-grid{grid-template-columns:1fr 1fr}}
     `;document.head.appendChild(s);
   }
 
@@ -37,7 +48,7 @@
     injectStyles();
     if(!document.getElementById('goalLedgerModal')){
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="modal-backdrop goal-ledger-modal" id="goalLedgerModal"><div class="modal"><div class="modal-head"><div><h3 id="goalLedgerTitle">Extrato do objetivo</h3><div class="muted" id="goalLedgerSubtitle"></div></div><button type="button" class="btn ghost" data-goal-ledger-close="goalLedgerModal">✕</button></div><div class="modal-body"><div class="goal-ledger-toolbar"><div class="goal-ledger-month-control"><button type="button" class="btn small" id="goalLedgerPrev" aria-label="Mês anterior">‹</button><div class="field" style="margin:0"><label>Mês do extrato</label><input id="goalLedgerMonth" type="month"></div><button type="button" class="btn small" id="goalLedgerNext" aria-label="Próximo mês">›</button></div><div class="goal-ledger-actions" id="goalLedgerActions"></div></div><div class="goal-ledger-summary"><div class="goal-ledger-kpi"><div class="k">Saldo anterior</div><div class="v" id="goalLedgerOpening">—</div></div><div class="goal-ledger-kpi"><div class="k">Entradas</div><div class="v positive" id="goalLedgerIn">—</div></div><div class="goal-ledger-kpi"><div class="k">Saídas</div><div class="v negative" id="goalLedgerOut">—</div></div><div class="goal-ledger-kpi"><div class="k">Saldo final</div><div class="v" id="goalLedgerClosing">—</div></div></div><div class="goal-ledger-table-wrap"><table class="goal-ledger-table"><thead><tr><th>Data</th><th>Pessoa</th><th>Movimentação</th><th class="num">Entrada</th><th class="num">Saída</th><th class="num">Saldo</th></tr></thead><tbody id="goalLedgerRows"></tbody></table></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-ledger-close="goalLedgerModal">Fechar</button></div></div></div>`;
+      wrap.innerHTML=`<div class="modal-backdrop goal-ledger-modal" id="goalLedgerModal"><div class="modal"><div class="modal-head"><div><h3 id="goalLedgerTitle">Extrato do objetivo</h3><div class="muted" id="goalLedgerSubtitle"></div></div><button type="button" class="btn ghost" data-goal-ledger-close="goalLedgerModal">✕</button></div><div class="modal-body"><div class="goal-ledger-toolbar"><div class="goal-ledger-month-control"><button type="button" class="btn small" id="goalLedgerPrev" aria-label="Mês anterior">‹</button><div class="field" style="margin:0"><label>Mês do extrato</label><input id="goalLedgerMonth" type="month"></div><button type="button" class="btn small" id="goalLedgerNext" aria-label="Próximo mês">›</button></div><div class="goal-ledger-actions" id="goalLedgerActions"></div></div><div class="goal-ledger-summary"><div class="goal-ledger-kpi"><div class="k">Saldo anterior</div><div class="v" id="goalLedgerOpening">—</div></div><div class="goal-ledger-kpi"><div class="k">Entradas</div><div class="v positive" id="goalLedgerIn">—</div></div><div class="goal-ledger-kpi"><div class="k">Saídas</div><div class="v negative" id="goalLedgerOut">—</div></div><div class="goal-ledger-kpi"><div class="k">Saldo final</div><div class="v" id="goalLedgerClosing">—</div></div></div><details class="goal-ledger-people" id="goalLedgerPeople" open><summary><div>Contribuição por participante</div><span id="goalLedgerPeopleContext"></span></summary><div class="goal-ledger-people-grid" id="goalLedgerPeopleGrid"></div></details><div class="goal-ledger-table-wrap"><table class="goal-ledger-table"><thead><tr><th>Data</th><th>Pessoa</th><th>Movimentação</th><th class="num">Entrada</th><th class="num">Saída</th><th class="num">Saldo</th></tr></thead><tbody id="goalLedgerRows"></tbody></table></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-ledger-close="goalLedgerModal">Fechar</button></div></div></div>`;
       document.body.appendChild(wrap.firstElementChild);
       document.getElementById('goalLedgerMonth').addEventListener('change',e=>{if(e.target.value)loadStatement(activeGoalId,e.target.value)});
       document.getElementById('goalLedgerPrev').onclick=()=>moveMonth(-1);
@@ -84,6 +95,60 @@
     host.innerHTML=rows.join('');
   }
 
+  function contributionSignedAmount(c){
+    if(String(c?.status||'').toLowerCase()!=='paid')return 0;
+    const kind=String(c?.movementKind||'');
+    const raw=Number(c?.signedAmount);
+    if(Number.isFinite(raw)&&raw!==0){
+      if(kind==='opening_balance'||kind==='adjustment_in'||kind==='adjustment_out'||kind==='withdrawal')return 0;
+      return raw;
+    }
+    const amount=Math.abs(Number(c?.amount)||0);
+    if(!amount)return 0;
+    if(kind==='opening_balance'||kind==='adjustment_in'||kind==='adjustment_out'||kind==='withdrawal')return 0;
+    if(kind==='refund'||kind==='reversal'||c?.eventType==='redemption')return -amount;
+    return amount;
+  }
+
+  function participantTotals(goal,userId,month){
+    let monthTotal=0,periodTotal=0;
+    for(const c of (goal?.contributions||[])){
+      if(String(c?.contributorUserId||'')!==String(userId||''))continue;
+      const value=contributionSignedAmount(c);
+      if(!value)continue;
+      periodTotal+=value;
+      if(String(c?.date||'').slice(0,7)===String(month||''))monthTotal+=value;
+    }
+    return{month:Math.round(monthTotal*100)/100,period:Math.round(periodTotal*100)/100};
+  }
+
+  function renderParticipantSummary(goal,month){
+    const host=document.getElementById('goalLedgerPeopleGrid'),ctx=document.getElementById('goalLedgerPeopleContext');
+    if(!host||!goal)return;
+    if(ctx)ctx.textContent=monthLabel(month);
+    let people=(participantsByGoal.get(String(goal.id))||[])
+      .filter(p=>p.isOwner||p.role==='contributor')
+      .map(p=>({...p,totals:participantTotals(goal,p.userId,month)}));
+
+    const ownerId=String(goal.ownerUserId||goal.userId||'');
+    if(ownerId&&!people.some(p=>String(p.userId)===ownerId)){
+      people.unshift({
+        userId:ownerId,
+        name:goal.ownerName||(goal.isOwner?'Você':'Proprietário'),
+        isOwner:true,
+        role:'owner',
+        totals:participantTotals(goal,ownerId,month)
+      });
+    }
+
+    if(!people.length){
+      host.innerHTML='<div class="goal-ledger-people-empty">Nenhum participante identificado para este objetivo.</div>';
+      return;
+    }
+
+    host.innerHTML=people.map(p=>`<div class="goal-ledger-person-card"><div class="goal-ledger-person-name" title="${esc((p.name||'Participante')+(p.isOwner?' · Proprietário':''))}">${esc(p.name||'Participante')}${p.isOwner?' <span class="goal-ledger-owner">Proprietário</span>':''}</div><div class="goal-ledger-person-values"><div class="goal-ledger-person-value month"><span>No mês</span><strong>${money(p.totals.month)}</strong></div><div class="goal-ledger-person-value"><span>No período</span><strong>${money(p.totals.period)}</strong></div></div></div>`).join('');
+  }
+
   function renderStatement(data){
     const g=goalById(activeGoalId);
     document.getElementById('goalLedgerTitle').textContent=`Extrato · ${data.goalName||g?.name||'Objetivo'}`;
@@ -97,6 +162,7 @@
     actions.innerHTML=g?.isOwner?`<button type="button" class="btn small" data-ledger-withdraw="${esc(g.id)}">Resgatar</button><button type="button" class="btn small" data-ledger-adjust="${esc(g.id)}">Ajustar saldo</button>`:'';
     actions.querySelector('[data-ledger-withdraw]')?.addEventListener('click',()=>openWithdrawal(g.id));
     actions.querySelector('[data-ledger-adjust]')?.addEventListener('click',()=>openAdjustment(g.id));
+    renderParticipantSummary(g,data.month);
     renderRows(data);
   }
 
@@ -217,9 +283,14 @@
   async function refreshMeta(){
     if(loading||!getSb()||!getUserId())return;loading=true;
     try{
-      const {data,error}=await getSb().rpc('finance_list_goals');
-      if(error)throw error;if(data?.ok===false)throw new Error(data.error||'load_failed');
-      goals=Array.isArray(data?.items)?data.items:[];
+      const [gRes,pRes]=await Promise.all([
+        getSb().rpc('finance_list_goals'),
+        getSb().rpc('finance_list_goal_participants')
+      ]);
+      if(gRes.error)throw gRes.error;if(gRes.data?.ok===false)throw new Error(gRes.data.error||'load_failed');
+      if(pRes.error)throw pRes.error;
+      goals=Array.isArray(gRes.data?.items)?gRes.data.items:[];
+      participantsByGoal=new Map((pRes.data?.items||[]).map(x=>[String(x.goalId),x.participants||[]]));
       enhanceCards();
     }catch(e){console.warn('Falha ao carregar metadados do extrato dos objetivos.',e)}
     finally{loading=false}
