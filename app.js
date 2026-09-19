@@ -157,8 +157,16 @@ function runPrumoLoginIntro(auth){
   }
 }
 
+window.__prumoSplashManagedByApp=true;
+let authenticatedSplashStartedAt=0;
+let authenticatedSplashReleaseTimer=null;
+let authenticatedSplashExitTimer=null;
+let authenticatedUiRevealBound=false;
+
 function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
   const body=document.body,root=document.documentElement;
+  clearTimeout(authenticatedSplashReleaseTimer);
+  clearTimeout(authenticatedSplashExitTimer);
   body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit','prumo-ui-loading');
   body?.classList.add('caderno-splash-done');
   root?.classList.add('prumo-current-ui-ready');
@@ -175,11 +183,27 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
   }
+  try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
 
-let authenticatedUiRevealBound=false;
+function scheduleAuthenticatedSplashRelease(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
+  if(window.__prumoInitialModulesReady!==true)return;
+  const reduce=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_e){return false}})();
+  const minVisible=reduce?0:3450;
+  const elapsed=Math.max(0,performance.now()-authenticatedSplashStartedAt);
+  const wait=Math.max(0,minVisible-elapsed);
+  clearTimeout(authenticatedSplashReleaseTimer);
+  clearTimeout(authenticatedSplashExitTimer);
+  authenticatedSplashReleaseTimer=setTimeout(()=>{
+    const body=document.body;
+    body?.classList.add('caderno-splash-exit');
+    const exitMs=reduce?0:650;
+    authenticatedSplashExitTimer=setTimeout(()=>finalizeAuthenticatedApp(auth,app),exitMs);
+  },wait);
+}
+
 function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
-  const body=document.body;
+  const body=document.body,root=document.documentElement;
   if(auth){
     auth.classList.add('hidden');
     auth.hidden=true;
@@ -187,34 +211,46 @@ function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=doc
     auth.style.pointerEvents='none';
   }
 
-  if(window.__prumoInitialModulesReady===true){
-    requestAnimationFrame(()=>requestAnimationFrame(()=>finalizeAuthenticatedApp(auth,app)));
-    return;
+  if(!body?.classList.contains('prumo-app-splash')||body.classList.contains('caderno-splash-done')){
+    authenticatedSplashStartedAt=performance.now();
   }
 
-  body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit');
-  body?.classList.add('caderno-splash-done','prumo-ui-loading');
+  body?.classList.remove('prumo-login-mode','caderno-splash-done','caderno-splash-exit','prumo-ui-loading');
+  body?.classList.add('prumo-app-splash');
+  root?.classList.remove('prumo-current-ui-ready');
+
+  // O app pode montar por baixo da splash, mas não fica visível enquanto
+  // a interface atual não estiver pronta e a animação não terminar.
   if(app){
-    app.classList.add('auth-hidden');
-    app.hidden=true;
-    app.setAttribute('aria-hidden','true');
+    app.classList.remove('auth-hidden');
+    app.hidden=false;
+    app.removeAttribute('aria-hidden');
+  }
+
+  if(window.__prumoInitialModulesReady===true){
+    root?.classList.add('prumo-current-ui-ready');
+    scheduleAuthenticatedSplashRelease(auth,app);
+    return;
   }
 
   if(!authenticatedUiRevealBound){
     authenticatedUiRevealBound=true;
     window.addEventListener('prumo:initial-modules-ready',()=>{
       authenticatedUiRevealBound=false;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>finalizeAuthenticatedApp(
+      document.documentElement?.classList.add('prumo-current-ui-ready');
+      scheduleAuthenticatedSplashRelease(
         document.getElementById('authScreen'),
         document.getElementById('appRoot')
-      )));
+      );
     },{once:true});
   }
 }
 
 function showLoginScreen(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
+  clearTimeout(authenticatedSplashReleaseTimer);
+  clearTimeout(authenticatedSplashExitTimer);
   document.documentElement?.classList.remove('prumo-current-ui-ready');
-  document.body?.classList.remove('prumo-ui-loading');
+  document.body?.classList.remove('prumo-ui-loading','prumo-app-splash','caderno-splash-exit');
   if(app){
     app.classList.add('auth-hidden');
     app.hidden=true;
