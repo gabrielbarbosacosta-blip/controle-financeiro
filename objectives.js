@@ -198,13 +198,14 @@
   }
 
   function render(){
-    const totalSaved=goals.reduce((s,g)=>s+(Number(g.savedAmount)||0),0),totalTarget=goals.reduce((s,g)=>s+(Number(g.targetAmount)||0),0),remaining=Math.max(0,totalTarget-totalSaved),active=goals.filter(g=>g.status!=='paused'&&projection(g).remaining>0),monthly=active.reduce((s,g)=>s+(Number(g.plannedMonthly)||0),0);
+    const kpiGoals=goals.filter(g=>g.isOwner===true||String(g.shareStatus||'').toLowerCase()==='accepted');
+    const totalSaved=kpiGoals.reduce((s,g)=>s+(Number(g.savedAmount)||0),0),totalTarget=kpiGoals.reduce((s,g)=>s+(Number(g.targetAmount)||0),0),remaining=Math.max(0,totalTarget-totalSaved),active=kpiGoals.filter(g=>g.status!=='paused'&&projection(g).remaining>0),monthly=active.reduce((s,g)=>s+(Number(g.plannedMonthly)||0),0);
     const byId=id=>document.getElementById(id);
     if(byId('goalKpiSaved'))byId('goalKpiSaved').textContent=money(totalSaved);
     if(byId('goalKpiTarget'))byId('goalKpiTarget').textContent=money(totalTarget);
     if(byId('goalKpiRemaining'))byId('goalKpiRemaining').textContent=money(remaining);
     if(byId('goalKpiMonthly'))byId('goalKpiMonthly').textContent=money(monthly);
-    if(byId('goalKpiCount'))byId('goalKpiCount').textContent=`${goals.length} objetivo${goals.length===1?'':'s'} · ${active.length} ativo${active.length===1?'':'s'}`;
+    if(byId('goalKpiCount'))byId('goalKpiCount').textContent=`${kpiGoals.length} objetivo${kpiGoals.length===1?'':'s'} · ${active.length} ativo${active.length===1?'':'s'}`;
     const grid=byId('goalGrid');if(!grid)return;
     const signature=goalRenderSignature();
     if(signature===lastRenderedGoalSignature&&grid.childElementCount>0)return;
