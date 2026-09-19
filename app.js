@@ -157,6 +157,37 @@ function runPrumoLoginIntro(auth){
   }
 }
 
+function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
+  const body=document.body;
+  body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit');
+  body?.classList.add('caderno-splash-done');
+  if(auth){
+    auth.classList.add('hidden');
+    auth.hidden=true;
+    auth.setAttribute('aria-hidden','true');
+    auth.style.pointerEvents='none';
+  }
+  if(app){
+    app.classList.remove('auth-hidden');
+    app.hidden=false;
+    app.removeAttribute('aria-hidden');
+  }
+}
+
+function showLoginScreen(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
+  if(app){
+    app.classList.add('auth-hidden');
+    app.hidden=true;
+    app.setAttribute('aria-hidden','true');
+  }
+  if(auth){
+    auth.hidden=false;
+    auth.classList.remove('hidden');
+    auth.removeAttribute('aria-hidden');
+    auth.style.removeProperty('pointer-events');
+  }
+}
+
 async function handleSession(session){
   const nextUser=session?.user||null;
   const auth=document.getElementById('authScreen');
@@ -167,10 +198,9 @@ async function handleSession(session){
     hadAuthenticatedSession=false;
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
-    app?.classList.add('auth-hidden');
+    showLoginScreen(auth,app);
 
     if(auth){
-      auth.classList.remove('hidden');
 
       if(returningFromApp){
         auth.querySelectorAll('.prumo-login-word,.auth-box').forEach(el=>{
@@ -199,19 +229,23 @@ async function handleSession(session){
 
   currentUser=nextUser;
   hadAuthenticatedSession=true;
-  document.body?.classList.remove('prumo-login-mode');
   if(auth){
     auth.dataset.prumoIntroRunning='0';
     delete auth.dataset.prumoIntroPlayed;
     auth.classList.remove('prumo-login-intro','prumo-login-prep');
   }
-  if(!document.body?.classList.contains('caderno-splash-done'))document.body?.classList.add('prumo-app-splash');
+
+  // Once Supabase returned a valid session, always finish the splash/login
+  // transition before doing any remote-state work. This prevents an
+  // authenticated user from remaining visually trapped on the login screen.
+  showAuthenticatedApp(auth,app);
+  setSyncStatus('Carregando…');
+
   const remote=currentUser.user_metadata?.finance_state;
   if(remote&&remote.settings&&Array.isArray(remote.transactions)){state=remote}else{await pushStateToCloud()}
   selectedCardId=state.cards[0]?.id||null;
   selectedInvoiceYm=state.settings.selectedMonth;
-  auth?.classList.add('hidden');
-  app?.classList.remove('auth-hidden');
+  showAuthenticatedApp(auth,app);
   renderAll();
   setSyncStatus('Sincronizado');
 }
