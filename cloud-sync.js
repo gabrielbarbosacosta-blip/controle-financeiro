@@ -1,4 +1,6 @@
 (function(){
+  if(window.__financeCloudSyncLoaded)return;
+  window.__financeCloudSyncLoaded=true;
   let applyingRemote=false;
   let writeQueued=false;
   let localWritePending=false;
