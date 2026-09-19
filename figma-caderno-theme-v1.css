@@ -256,3 +256,12 @@ button{cursor:pointer}
   .card{padding:16px}
   .summary-strip{grid-template-columns:1fr}
 }
+
+.goal-contributor-summary{background:#f7f6f2!important;border-color:#e3e2dc!important}
+.goal-contributor-summary-title{color:#748082!important}
+.goal-contributor-summary-month,.goal-contributor-summary-empty{color:#879092!important}
+.goal-contributor-row{border-color:#e6e5df!important}
+.goal-contributor-name{color:#35424d!important}
+.goal-contributor-value{color:#7b8586!important}
+.goal-contributor-value strong{color:#44525a!important}
+.goal-contributor-value.month strong{color:#36816b!important}
