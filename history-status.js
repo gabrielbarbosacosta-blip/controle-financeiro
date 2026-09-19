@@ -13,9 +13,39 @@
       ||String(tx?.incomePlanId||'').startsWith('goal-shared-income-')
       ||/aporte compartilhado vinculado ao objetivo/i.test(String(tx?.notes||''));
   }
+  async function setGoalManagedStatus(txId,value,select){
+    const target=Array.isArray(state?.transactions)?state.transactions.find(t=>t.id===txId):null;
+    if(!target)return;
+    const previous=target.status;
+    if(select)select.disabled=true;
+    try{
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      const {data,error}=await client.rpc('finance_set_shared_transaction_status',{p_transaction_id:txId,p_status:value});
+      if(error)throw error;
+      if(!data?.ok)throw new Error(data?.detail||data?.error||'shared_status_failed');
+      if(data?.handled===false)throw new Error('shared_link_not_found');
+      try{await window.financeCloud?.refresh?.()}catch(_e){}
+      try{if(typeof renderAll==='function')renderAll()}catch(_e){}
+      try{window.financeSharedPaymentConfirmationsRefresh?.()}catch(_e){}
+      try{window.financeSharedBalancesDetailRefresh?.()}catch(_e){}
+      try{window.financeNotificationsRefresh?.()}catch(_e){}
+      if(data?.action==='payment_confirmation_requested'){
+        try{if(typeof setSyncStatus==='function')setSyncStatus('Pagamento aguardando confirmação do pagador')}catch(_e){}
+      }else if(data?.action==='received_confirmed'){
+        try{if(typeof setSyncStatus==='function')setSyncStatus('Recebimento confirmado')}catch(_e){}
+      }
+    }catch(err){
+      console.error('Falha ao atualizar lançamento gerenciado por Objetivos.',err);
+      target.status=previous;
+      if(select){select.value=previous;styleSelect(select)}
+      alert('Não foi possível atualizar o status deste lançamento agora.');
+    }finally{
+      if(select)select.disabled=false;
+    }
+  }
   function deleteTransaction(txId){if(typeof state==='undefined'||!Array.isArray(state?.transactions))return;const tx=state.transactions.find(t=>t.id===txId);if(!tx)return;if(isGoalManagedTransaction(tx)){alert('Este lançamento é gerenciado pela seção Objetivos. Para alterar ou cancelar o aporte compartilhado, acesse o objetivo correspondente.');return}if(tx.debtManaged===true&&tx.debtId){if(typeof window.deleteDebtPlan==='function')window.deleteDebtPlan(tx.debtId);else alert('Esta parcela é gerenciada pela área Despesas. Exclua a despesa por lá.');return}if(tx.incomeManaged===true&&tx.incomePlanId){if(typeof window.deleteIncomePlan==='function')window.deleteIncomePlan(tx.incomePlanId);else alert('Este lançamento é gerenciado pela área Receitas. Exclua a receita por lá.');return}const label=tx.description||'este lançamento';if(!confirm(`Excluir o lançamento "${label}"? Esta ação não poderá ser desfeita.`))return;state.transactions=state.transactions.filter(t=>t.id!==txId);if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save()}
   function mountDeleteButton(row,tx){const cells=row.querySelectorAll('td'),actionCell=cells[7];if(!actionCell||actionCell.querySelector('.history-delete-btn,.history-goal-managed'))return;actionCell.style.whiteSpace='nowrap';if(isGoalManagedTransaction(tx)){const badge=document.createElement('span');badge.className='history-goal-managed';badge.textContent='Gerenciado em Objetivos';badge.title='A exclusão deste lançamento só pode ocorrer pela gestão do objetivo.';actionCell.appendChild(badge);return}const button=document.createElement('button');button.type='button';button.className='btn small danger history-delete-btn';button.textContent='Excluir';button.style.marginLeft='6px';button.addEventListener('click',e=>{e.stopPropagation();deleteTransaction(tx.id)});actionCell.appendChild(button)}
-  function enhanceHistoryStatuses(){const bodies=[...document.querySelectorAll('[data-history-body="1"]')];if(!bodies.length||typeof state==='undefined')return;bodies.forEach(body=>body.querySelectorAll('tr').forEach(row=>{if(row.dataset.statusInteractive==='1')return;const cells=row.querySelectorAll('td'),cell=cells[5];if(!cell)return;const txId=transactionIdFromRow(row);if(txId&&Array.isArray(state?.transactions)){const tx=state.transactions.find(t=>t.id===txId);if(!tx)return;const select=buildSelect(`Status de ${tx.description||'lançamento'}`,txOptions(tx.type,tx.status),tx.status,value=>{const target=state.transactions.find(t=>t.id===txId);if(!target)return;target.status=value;if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save()});cell.innerHTML='';cell.appendChild(select);mountDeleteButton(row,tx);row.dataset.statusInteractive='1';return}const invoiceId=invoiceIdFromRow(row);if(invoiceId&&Array.isArray(state?.invoices)){const invoice=state.invoices.find(i=>i.id===invoiceId);if(!invoice)return;const current=invoice.status==='Paga'?'Paga':'Não paga',select=buildSelect('Status da fatura',['Paga','Não paga'],current,value=>{const target=state.invoices.find(i=>i.id===invoiceId);if(!target)return;if(value==='Paga'){if(target.status!=='Paga')target.lastNonPaidStatus=target.status||'Fechada';target.status='Paga'}else target.status=(target.lastNonPaidStatus&&target.lastNonPaidStatus!=='Paga')?target.lastNonPaidStatus:'Fechada';if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save()});cell.innerHTML='';cell.appendChild(select);row.dataset.statusInteractive='1'}}))}
+  function enhanceHistoryStatuses(){const bodies=[...document.querySelectorAll('[data-history-body="1"]')];if(!bodies.length||typeof state==='undefined')return;bodies.forEach(body=>body.querySelectorAll('tr').forEach(row=>{if(row.dataset.statusInteractive==='1')return;const cells=row.querySelectorAll('td'),cell=cells[5];if(!cell)return;const txId=transactionIdFromRow(row);if(txId&&Array.isArray(state?.transactions)){const tx=state.transactions.find(t=>t.id===txId);if(!tx)return;const select=buildSelect(`Status de ${tx.description||'lançamento'}`,txOptions(tx.type,tx.status),tx.status,value=>{const target=state.transactions.find(t=>t.id===txId);if(!target)return;if(isGoalManagedTransaction(target)){setGoalManagedStatus(txId,value,select);return}target.status=value;if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save()});cell.innerHTML='';cell.appendChild(select);mountDeleteButton(row,tx);row.dataset.statusInteractive='1';return}const invoiceId=invoiceIdFromRow(row);if(invoiceId&&Array.isArray(state?.invoices)){const invoice=state.invoices.find(i=>i.id===invoiceId);if(!invoice)return;const current=invoice.status==='Paga'?'Paga':'Não paga',select=buildSelect('Status da fatura',['Paga','Não paga'],current,value=>{const target=state.invoices.find(i=>i.id===invoiceId);if(!target)return;if(value==='Paga'){if(target.status!=='Paga')target.lastNonPaidStatus=target.status||'Fechada';target.status='Paga'}else target.status=(target.lastNonPaidStatus&&target.lastNonPaidStatus!=='Paga')?target.lastNonPaidStatus:'Fechada';if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save()});cell.innerHTML='';cell.appendChild(select);row.dataset.statusInteractive='1'}}))}
   const originalRenderHistory=window.renderHistory;if(typeof originalRenderHistory==='function')window.renderHistory=function(){const result=originalRenderHistory.apply(this,arguments);enhanceHistoryStatuses();return result};
   function init(){const page=document.getElementById('page-history');if(!page)return;enhanceHistoryStatuses();const observer=new MutationObserver(()=>enhanceHistoryStatuses());observer.observe(page,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
