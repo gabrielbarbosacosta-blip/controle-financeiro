@@ -75,6 +75,88 @@ function save(){
 function setSyncStatus(text,bad=false){const el=document.getElementById('syncStatus');if(!el)return;el.textContent=text;el.style.color=bad?'#fecaca':'#bfdbfe'}
 function scheduleCloudSave(){if(!currentUser)return;clearTimeout(syncTimer);setSyncStatus('Salvando…');syncTimer=setTimeout(pushStateToCloud,700)}
 async function pushStateToCloud(){if(!currentUser||remoteWriteInFlight)return;remoteWriteInFlight=true;try{const {data,error}=await sb.auth.updateUser({data:{finance_state:state,finance_updated_at:new Date().toISOString()}});if(error)throw error;currentUser=data.user||currentUser;setSyncStatus('Sincronizado')}catch(e){console.error(e);setSyncStatus('Falha ao sincronizar',true)}finally{remoteWriteInFlight=false}}
+function runPrumoLoginIntro(auth){
+  if(!auth||auth.dataset.prumoIntroRunning==='1'||auth.dataset.prumoIntroPlayed==='1')return;
+  auth.dataset.prumoIntroRunning='1';
+  const words=[
+    auth.querySelector('.prumo-login-word-1'),
+    auth.querySelector('.prumo-login-word-2'),
+    auth.querySelector('.prumo-login-word-3')
+  ];
+  const box=auth.querySelector('.auth-box');
+  const reduced=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}})();
+
+  words.forEach(el=>{
+    if(!el)return;
+    el.getAnimations?.().forEach(anim=>anim.cancel());
+    el.style.opacity='0';
+    el.style.transform='translateY(7px)';
+    el.style.filter='blur(5px)';
+  });
+  if(box){
+    box.getAnimations?.().forEach(anim=>anim.cancel());
+    box.style.opacity='0';
+    box.style.transform='translateY(12px)';
+    box.style.filter='blur(8px)';
+    box.style.pointerEvents='none';
+  }
+
+  auth.classList.remove('prumo-login-prep');
+  auth.classList.add('prumo-login-intro');
+  void auth.offsetWidth;
+
+  if(reduced){
+    words.forEach(el=>{
+      if(!el)return;
+      el.style.opacity='1';
+      el.style.transform='translateY(0)';
+      el.style.filter='blur(0)';
+    });
+    if(box){
+      box.style.opacity='1';
+      box.style.transform='translateY(0)';
+      box.style.filter='blur(0)';
+      box.style.pointerEvents='auto';
+    }
+    auth.dataset.prumoIntroRunning='0';
+    auth.dataset.prumoIntroPlayed='1';
+    return;
+  }
+
+  const easing='cubic-bezier(.22,1,.36,1)';
+  const wordFrames=[
+    {opacity:0,transform:'translateY(7px)',filter:'blur(5px)',offset:0},
+    {opacity:.66,transform:'translateY(3px)',filter:'blur(1.8px)',offset:.42},
+    {opacity:1,transform:'translateY(0)',filter:'blur(0)',offset:1}
+  ];
+  [100,950,1800].forEach((delay,i)=>{
+    const el=words[i];
+    if(!el)return;
+    el.animate(wordFrames,{duration:720,delay,easing,fill:'forwards'});
+  });
+
+  if(box){
+    const cardAnim=box.animate([
+      {opacity:0,transform:'translateY(12px)',filter:'blur(8px)',offset:0},
+      {opacity:.66,transform:'translateY(5px)',filter:'blur(2px)',offset:.42},
+      {opacity:1,transform:'translateY(0)',filter:'blur(0)',offset:1}
+    ],{duration:720,delay:2680,easing,fill:'forwards'});
+    cardAnim.finished.then(()=>{
+      box.style.opacity='1';
+      box.style.transform='translateY(0)';
+      box.style.filter='blur(0)';
+      box.style.pointerEvents='auto';
+      auth.dataset.prumoIntroRunning='0';
+      auth.dataset.prumoIntroPlayed='1';
+    }).catch(()=>{});
+  }else{
+    setTimeout(()=>{
+      auth.dataset.prumoIntroRunning='0';
+      auth.dataset.prumoIntroPlayed='1';
+    },3400);
+  }
+}
+
 async function handleSession(session){
   currentUser=session?.user||null;
   const auth=document.getElementById('authScreen');
@@ -83,23 +165,25 @@ async function handleSession(session){
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
     if(auth){
-      auth.classList.remove('prumo-login-intro');
-      auth.classList.add('prumo-login-prep');
       auth.classList.remove('hidden');
-      void auth.offsetWidth;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        if(!auth.isConnected||currentUser)return;
+      auth.classList.add('prumo-login-prep');
+      if(auth.dataset.prumoIntroPlayed!=='1'&&auth.dataset.prumoIntroRunning!=='1'){
+        requestAnimationFrame(()=>runPrumoLoginIntro(auth));
+      }else{
         auth.classList.remove('prumo-login-prep');
         auth.classList.add('prumo-login-intro');
-        try{window.dispatchEvent(new CustomEvent('prumo:login-intro-start'))}catch(e){}
-      }));
+      }
     }
     app?.classList.add('auth-hidden');
     return;
   }
   document.body?.classList.remove('prumo-login-mode');
+  if(auth){
+    auth.dataset.prumoIntroRunning='0';
+    delete auth.dataset.prumoIntroPlayed;
+    auth.classList.remove('prumo-login-intro','prumo-login-prep');
+  }
   if(!document.body?.classList.contains('caderno-splash-done'))document.body?.classList.add('prumo-app-splash');
-  auth?.classList.remove('prumo-login-intro');
   const remote=currentUser.user_metadata?.finance_state;
   if(remote&&remote.settings&&Array.isArray(remote.transactions)){state=remote}else{await pushStateToCloud()}
   selectedCardId=state.cards[0]?.id||null;
