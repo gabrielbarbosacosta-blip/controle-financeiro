@@ -169,7 +169,7 @@ body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-progress{animation
 
   <section class="page" id="page-history">
     <div class="notice" style="margin-bottom:14px">Compras de cartão não aparecem individualmente aqui. A fatura aparece como <strong>um único lançamento</strong>. Para ver as compras, abra a fatura em <strong>Cartões</strong>.</div>
-    <div class="card">
+    <div class="card history-controls-card">
       <div class="section-head"><div><h3>Lançamentos do caixa</h3><div class="muted" id="historyCount"></div></div><button class="btn primary" id="addFromHistory">+ Adicionar</button></div>
       <div class="filters">
         <div class="field"><label>Buscar</label><input id="searchFilter" placeholder="Descrição, conta ou observação"></div>
@@ -177,7 +177,23 @@ body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-progress{animation
         <div class="field"><label>Categoria</label><select id="categoryFilter"></select></div>
         <div class="field"><label>Status</label><select id="statusFilter"><option value="">Todos</option><option>Pago</option><option>Recebido</option><option>Pendente</option><option>Aberta</option><option>Fechada</option><option>Paga</option></select></div><div class="field"><label>Prazo</label><select id="deadlineFilter"><option value="">Todos</option><option value="due">A vencer</option><option value="overdue">Vencido</option></select></div>
       </div>
-      <div class="table-scroll"><table class="data-table"><thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    </div>
+
+    <div class="history-sections">
+      <section class="card history-section history-section-income" data-history-section="income">
+        <div class="history-section-head"><div><h3>Receitas</h3><div class="muted">Entradas e benefícios do mês</div></div><span class="history-section-count" id="historyIncomeCount">0</span></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead><tbody id="historyBody" data-history-body="1"></tbody></table></div>
+      </section>
+
+      <section class="card history-section history-section-expense" data-history-section="expense">
+        <div class="history-section-head"><div><h3>Despesas</h3><div class="muted">Saídas e compromissos do mês</div></div><span class="history-section-count" id="historyExpenseCount">0</span></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead><tbody id="historyExpenseBody" data-history-body="1"></tbody></table></div>
+      </section>
+
+      <section class="card history-section history-section-invoice" data-history-section="invoice">
+        <div class="history-section-head"><div><h3>Faturas</h3><div class="muted">Faturas de cartão consolidadas no caixa</div></div><span class="history-section-count" id="historyInvoiceCount">0</span></div>
+        <div class="table-scroll"><table class="data-table"><thead><tr><th>Data/Competência</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead><tbody id="historyInvoiceBody" data-history-body="1"></tbody></table></div>
+      </section>
     </div>
   </section>
 
