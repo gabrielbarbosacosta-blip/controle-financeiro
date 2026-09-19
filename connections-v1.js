@@ -78,7 +78,7 @@
       document.getElementById('connectionForm').addEventListener('submit',createConnection);
     }
 
-    document.getElementById('createConnectionBtn')?.addEventListener('click',openConnectionModal);
+    const createBtn=document.getElementById('createConnectionBtn');if(createBtn)createBtn.onclick=openConnectionModal;
   }
 
   function setFormStatus(text,bad=false){
@@ -223,8 +223,12 @@
       });
     }
     const current=select.value;
-    select.innerHTML=pickerOptions();
-    if([...select.options].some(o=>o.value===current))select.value=current;
+    const key=connections.map(x=>[x.userId,x.name,x.cpf].join(':')).join('|');
+    if(select.dataset.connectionOptionsKey!==key){
+      select.dataset.connectionOptionsKey=key;
+      select.innerHTML=pickerOptions();
+      if([...select.options].some(o=>o.value===current))select.value=current;
+    }
   }
 
   function refreshPickers(){
