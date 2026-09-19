@@ -271,6 +271,32 @@ function showLoginScreen(auth=document.getElementById('authScreen'),app=document
   }
 }
 
+function showLoginImmediately(auth){
+  if(!auth)return;
+  auth.querySelectorAll('.prumo-login-word,.auth-box').forEach(el=>{
+    try{el.getAnimations?.().forEach(animation=>animation.cancel())}catch(_e){}
+  });
+
+  auth.querySelectorAll('.prumo-login-word').forEach(el=>{
+    el.style.opacity='1';
+    el.style.transform='translateY(0)';
+    el.style.filter='blur(0)';
+  });
+
+  const box=auth.querySelector('.auth-box');
+  if(box){
+    box.style.opacity='1';
+    box.style.transform='translateY(0)';
+    box.style.filter='blur(0)';
+    box.style.pointerEvents='auto';
+  }
+
+  auth.dataset.prumoIntroRunning='0';
+  auth.dataset.prumoIntroPlayed='1';
+  auth.classList.remove('prumo-login-prep');
+  auth.classList.add('prumo-login-intro');
+}
+
 function waitForFinanceCloud(timeoutMs=2500){
   if(window.financeCloud?.activateSession)return Promise.resolve(true);
   return new Promise(resolve=>{
@@ -298,13 +324,10 @@ async function handleSession(session){
 
     if(auth){
       if(returningFromApp){
-        auth.querySelectorAll('.prumo-login-word,.auth-box').forEach(el=>{
-          try{el.getAnimations?.().forEach(animation=>animation.cancel())}catch(e){}
-        });
-        delete auth.dataset.prumoIntroPlayed;
-        auth.dataset.prumoIntroRunning='0';
-        auth.classList.remove('prumo-login-intro');
-        auth.classList.add('prumo-login-prep');
+        // Logout should reveal the existing login screen once, already settled.
+        // Replaying the intro here caused the login UI to animate over itself.
+        showLoginImmediately(auth);
+        return;
       }
 
       if(auth.dataset.prumoIntroRunning==='1')return;
@@ -313,8 +336,7 @@ async function handleSession(session){
         auth.classList.add('prumo-login-prep');
         requestAnimationFrame(()=>runPrumoLoginIntro(auth));
       }else{
-        auth.classList.remove('prumo-login-prep');
-        auth.classList.add('prumo-login-intro');
+        showLoginImmediately(auth);
       }
     }
     return;
