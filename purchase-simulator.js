@@ -51,34 +51,39 @@
     };
   }
 
-  function pendingAmount(type,ym){
+  function pendingAmount(type,ym,scenarioKey=null){
     const normalized=String(type||'').toLowerCase();
-    let total=(state.transactions||[]).filter(t=>String(t.type||'').toLowerCase()===normalized&&String(t.status||'').toLowerCase()==='pendente'&&monthOf(t.date)===ym).reduce((s,t)=>s+(Number(t.amount)||0),0);
+    let total=(state.transactions||[]).filter(t=>!scenarioKey||!window.financeSimulationScenario?.isExcluded(scenarioKey,t.id)).filter(t=>String(t.type||'').toLowerCase()===normalized&&String(t.status||'').toLowerCase()==='pendente'&&monthOf(t.date)===ym).reduce((s,t)=>s+(Number(t.amount)||0),0);
     if(normalized==='despesa'&&Array.isArray(state.cards)&&typeof cardForecast==='function'){
       total+=state.cards.filter(c=>c.active!==false).filter(c=>typeof getInvoice!=='function'||getInvoice(c.id,ym)?.status!=='Paga').reduce((s,c)=>s+(Number(cardForecast(c,ym).total)||0),0);
     }
     return round(total);
   }
 
-  function projectedSelectedClosing(){
+  function projectedSelectedClosing(scenarioKey=null){
     const ym=state.settings.selectedMonth;
     const actual=typeof actualForMonth==='function'?(Number(actualForMonth(ym).closing)||0):0;
-    return round(actual+pendingAmount('Receita',ym)-pendingAmount('Despesa',ym));
+    const scenario=window.financeSimulationScenario;
+    const adjustment=scenarioKey&&scenario?scenario.selectedAdjustment(scenarioKey,ym):0;
+    return round(actual+pendingAmount('Receita',ym,scenarioKey)-pendingAmount('Despesa',ym,scenarioKey)+adjustment);
   }
 
-  function projectionRows(){
+  function projectionRows(scenarioKey=null){
     const selected=state.settings.selectedMonth;
-    let opening=projectedSelectedClosing();
+    let opening=projectedSelectedClosing(scenarioKey);
     const rows=[];
     for(let i=1;i<=horizon();i++){
       const ym=addMonth(selected,i);
       let income=0,otherExpense=0;
       for(const tx of state.transactions||[]){
+        if(scenarioKey&&window.financeSimulationScenario?.isExcluded(scenarioKey,tx.id))continue;
         if(typeof isProjectedTxInMonth==='function'&&!isProjectedTxInMonth(tx,ym))continue;
         if(typeof isProjectedTxInMonth!=='function'&&monthOf(tx.date)!==ym)continue;
         if(tx.type==='Receita')income+=Number(tx.amount)||0;
         else if(tx.type==='Despesa')otherExpense+=Number(tx.amount)||0;
       }
+      const adj=scenarioKey&&window.financeSimulationScenario?window.financeSimulationScenario.amountsForMonth(scenarioKey,ym):{income:0,expense:0};
+      income+=Number(adj.income)||0;otherExpense+=Number(adj.expense)||0;
       const invoices=(state.cards||[]).filter(c=>c.active!==false).reduce((s,c)=>s+(typeof cardForecast==='function'?(Number(cardForecast(c,ym).total)||0):0),0);
       const expense=round(otherExpense+invoices),result=round(income-expense),closing=round(opening+result);
       rows.push({ym,opening:round(opening),income:round(income),otherExpense:round(otherExpense),invoices:round(invoices),expense,result,closing});
@@ -87,24 +92,24 @@
     return rows;
   }
 
-  function projectionRowsWithoutPurchase(purchaseId){
-    if(!purchaseId)return projectionRows();
+  function projectionRowsWithoutPurchase(purchaseId,scenarioKey=null){
+    if(!purchaseId)return projectionRows(scenarioKey);
     const original=state.purchases;
     try{
       state.purchases=original.filter(p=>p.id!==purchaseId);
-      return projectionRows();
+      return projectionRows(scenarioKey);
     }finally{
       state.purchases=original;
     }
   }
 
-  function simulatedRows(candidate){
+  function simulatedRows(candidate,scenarioKey=null){
     const original=state.purchases;
     try{
       const existingId=document.getElementById('purchaseId')?.value||null;
       const base=existingId?original.filter(p=>p.id!==existingId):original.slice();
       state.purchases=[...base,candidate];
-      return projectionRows();
+      return projectionRows(scenarioKey);
     }finally{
       state.purchases=original;
     }
@@ -117,7 +122,7 @@
     if(existing?.querySelector('#purchaseSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="purchaseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="purchaseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="purchaseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da compra</h3><div class="muted" id="purchaseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="purchaseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="purchaseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="purchaseSimCurrent">—</div><div class="muted" id="purchaseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t" id="purchaseSimWithLabel">Saldo projetado com a compra</div><div class="v" id="purchaseSimWith">—</div><div class="muted" id="purchaseSimImpact" style="margin-top:4px"></div></div></div><div id="purchaseSimulationScenario"></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="purchaseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a compra</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="purchaseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="purchaseSimulationBack">Voltar</button><button type="button" class="btn primary" id="purchaseSimulationConfirm">Cadastrar compra</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('purchaseSimulationClose').onclick=closeSimulation;
     document.getElementById('purchaseSimulationBack').onclick=closeSimulation;
@@ -200,12 +205,15 @@
     bindVertexTooltip(canvas,points);
   }
 
-  function openSimulation(){
+  function openSimulation(resetScenario=true){
     const candidate=purchaseFromForm();if(!candidate)return;
     buildModal();
+    const scenario=window.financeSimulationScenario;
+    if(resetScenario)scenario?.reset('purchase');
+    scenario?.mount('purchase',document.getElementById('purchaseSimulationScenario'),()=>openSimulation(false));
     const existingId=document.getElementById('purchaseId')?.value||null;
     const current=existingId?projectionRowsWithoutPurchase(existingId):projectionRows();
-    const simulated=simulatedRows(candidate);
+    const simulated=simulatedRows(candidate,'purchase');
     const currentFinal=current.at(-1)?.closing??projectedSelectedClosing();
     const simulatedFinal=simulated.at(-1)?.closing??currentFinal;
     const impact=round(simulatedFinal-currentFinal);
@@ -215,6 +223,7 @@
     document.getElementById('purchaseSimulationSubtitle').textContent=`${candidate.description} • ${card?.name||'Cartão'} • ${amountLabel}`;
     document.getElementById('purchaseSimCurrent').textContent=money(currentFinal);
     document.getElementById('purchaseSimWith').textContent=money(simulatedFinal);
+    const withLabel=document.getElementById('purchaseSimWithLabel');if(withLabel)withLabel.textContent=scenario?.count('purchase')?'Saldo projetado no cenário ajustado':'Saldo projetado com a compra';
     document.getElementById('purchaseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
     const currentLabel=document.getElementById('purchaseSimCurrentLabel');if(currentLabel)currentLabel.textContent=existingId?'Saldo projetado sem esta compra':'Saldo projetado atual';
     const currentLegend=document.getElementById('purchaseSimCurrentLegend');if(currentLegend)currentLegend.textContent=existingId?'Sem esta compra':'Projeção atual';
@@ -230,7 +239,7 @@
     let btn=document.getElementById('purchaseSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
     if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='purchaseSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
-    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation()};
+    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation(true)};
     buildModal();
     return true;
   }
