@@ -1,6 +1,6 @@
 const SUPABASE_URL='https://eqolnqnsyomgybyrtrzt.supabase.co';
 const SUPABASE_KEY='sb_publishable_koTIgLL07Qe1Wf-ZY81LCA_0UO310ks';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{experimental:{passkey:true}}});
 let currentUser=null;let syncTimer=null;let remoteWriteInFlight=false;let hadAuthenticatedSession=false;
 const STORAGE_KEY='controleFinanceiroWebV2';
 const V1_KEY='controleFinanceiroWebV1';
@@ -310,7 +310,109 @@ function openInvoiceFromHistory(invoiceId){const inv=state.invoices.find(i=>i.id
 function selectCard(id){selectedCardId=id;renderCards()}window.selectCard=selectCard;
 function togglePurchaseMode(){const rec=document.getElementById('purchaseMode').value==='recorrente';document.getElementById('installmentsField').style.display=rec?'none':'grid';document.getElementById('recurringEndField').style.display=rec?'grid':'none';document.getElementById('purchaseAmountLabel').textContent=rec?'Valor mensal (R$)':'Valor total da compra (R$)'}
 
-function showPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${page}`));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const titles={dashboard:['Dashboard','Caixa, gastos e projeções'],history:['Lançamentos','Fluxo de caixa consolidado'],cards:['Cartões','Faturas, compras e projeção por cartão'],projection:['Projeção geral','Saldo futuro com faturas projetadas'],settings:['Configurações','Base financeira, backup e exportação']};document.getElementById('pageTitle').textContent=titles[page][0];document.getElementById('pageSubtitle').textContent=titles[page][1];if(page==='dashboard')requestAnimationFrame(renderDashboard);if(page==='cards')requestAnimationFrame(renderCards);if(page==='projection')requestAnimationFrame(renderProjection)}
+function prumoPasskeySupported(){
+  return !!window.PublicKeyCredential
+    &&typeof sb?.auth?.signInWithPasskey==='function'
+    &&typeof sb?.auth?.registerPasskey==='function'
+    &&!!sb?.auth?.passkey;
+}
+function prumoPasskeyError(error){
+  const code=String(error?.code||'');
+  const name=String(error?.name||'');
+  if(code==='passkey_disabled')return 'Face ID / Passkey ainda não está ativado no servidor.';
+  if(code==='email_not_confirmed')return 'Confirme seu e-mail antes de cadastrar ou usar uma passkey.';
+  if(code==='too_many_passkeys')return 'Esta conta atingiu o limite de passkeys cadastradas.';
+  if(code==='webauthn_credential_exists')return 'Esta passkey já está cadastrada nesta conta.';
+  if(code==='webauthn_credential_not_found')return 'Esta passkey não está cadastrada no Prumo.';
+  if(code==='webauthn_challenge_expired')return 'A solicitação expirou. Tente novamente.';
+  if(code==='webauthn_verification_failed')return 'Não foi possível validar a passkey. Tente novamente.';
+  if(name==='NotAllowedError'||/notallowed/i.test(String(error?.message||'')))return 'Autenticação cancelada ou não autorizada no dispositivo.';
+  return String(error?.message||'Não foi possível concluir a autenticação por passkey.');
+}
+function prumoPasskeyRows(data){
+  if(Array.isArray(data))return data;
+  if(Array.isArray(data?.passkeys))return data.passkeys;
+  return [];
+}
+async function refreshPrumoPasskeys(){
+  const list=document.getElementById('passkeyList');
+  const msg=document.getElementById('passkeySettingsMsg');
+  const registerBtn=document.getElementById('registerPasskeyBtn');
+  if(!list||!msg||!registerBtn)return;
+  list.replaceChildren();
+  msg.textContent='';
+  if(!currentUser){
+    registerBtn.disabled=true;
+    msg.textContent='Entre na conta para gerenciar suas passkeys.';
+    return;
+  }
+  if(!prumoPasskeySupported()){
+    registerBtn.disabled=true;
+    msg.textContent='Este navegador não oferece suporte ao recurso de passkeys do Prumo.';
+    return;
+  }
+  registerBtn.disabled=false;
+  try{
+    const {data,error}=await sb.auth.passkey.list();
+    if(error)throw error;
+    const rows=prumoPasskeyRows(data);
+    if(!rows.length){
+      const empty=document.createElement('div');
+      empty.className='passkey-empty';
+      empty.textContent='Nenhuma passkey cadastrada.';
+      list.appendChild(empty);
+      return;
+    }
+    rows.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='passkey-item';
+
+      const copy=document.createElement('div');
+      copy.className='passkey-item-copy';
+
+      const title=document.createElement('strong');
+      title.textContent=item?.friendly_name||'Passkey';
+
+      const meta=document.createElement('small');
+      const created=item?.created_at?new Date(item.created_at):null;
+      meta.textContent=created&&!Number.isNaN(created.getTime())
+        ?`Cadastrada em ${created.toLocaleDateString('pt-BR')}`
+        :'Passkey cadastrada';
+
+      copy.append(title,meta);
+
+      const remove=document.createElement('button');
+      remove.type='button';
+      remove.className='btn small';
+      remove.textContent='Remover';
+      remove.onclick=async()=>{
+        if(!confirm('Remover esta passkey da sua conta?'))return;
+        remove.disabled=true;
+        msg.textContent='Removendo passkey…';
+        try{
+          const {error}=await sb.auth.passkey.delete({passkeyId:item.id});
+          if(error)throw error;
+          msg.textContent='Passkey removida.';
+          await refreshPrumoPasskeys();
+        }catch(error){
+          console.error('Falha ao remover passkey',error);
+          msg.textContent=prumoPasskeyError(error);
+        }finally{
+          remove.disabled=false;
+        }
+      };
+
+      row.append(copy,remove);
+      list.appendChild(row);
+    });
+  }catch(error){
+    console.error('Falha ao listar passkeys',error);
+    msg.textContent=prumoPasskeyError(error);
+  }
+}
+window.refreshPrumoPasskeys=refreshPrumoPasskeys;
+
+function showPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===`page-${page}`));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));const titles={dashboard:['Dashboard','Caixa, gastos e projeções'],history:['Lançamentos','Fluxo de caixa consolidado'],cards:['Cartões','Faturas, compras e projeção por cartão'],projection:['Projeção geral','Saldo futuro com faturas projetadas'],settings:['Configurações','Base financeira, backup e exportação']};document.getElementById('pageTitle').textContent=titles[page][0];document.getElementById('pageSubtitle').textContent=titles[page][1];if(page==='dashboard')requestAnimationFrame(renderDashboard);if(page==='cards')requestAnimationFrame(renderCards);if(page==='projection')requestAnimationFrame(renderProjection);if(page==='settings')requestAnimationFrame(refreshPrumoPasskeys)
 
 // Events
 [...document.querySelectorAll('.nav button')].forEach(b=>b.onclick=()=>showPage(b.dataset.page));document.getElementById('monthSelect').onchange=e=>{state.settings.selectedMonth=e.target.value;selectedInvoiceYm=e.target.value;renderAll()};document.getElementById('quickAdd').onclick=()=>openTxModal();document.getElementById('addFromHistory').onclick=()=>openTxModal();document.getElementById('addCardBtn').onclick=openCardModal;document.querySelectorAll('.modal-close').forEach(b=>b.onclick=()=>closeModal(b.dataset.modal));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)}));['searchFilter','typeFilter','categoryFilter','statusFilter'].forEach(id=>document.getElementById(id).addEventListener('input',renderHistory));document.getElementById('purchaseMode').onchange=togglePurchaseMode;
@@ -323,8 +425,48 @@ document.getElementById('saveSettings').onclick=()=>{state.settings.baseBalance=
 document.getElementById('backupBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`controle-financeiro-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)};
 document.getElementById('restoreFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data.settings||!Array.isArray(data.transactions)||!Array.isArray(data.cards))throw new Error();state=data;selectedCardId=state.cards[0]?.id||null;selectedInvoiceYm=state.settings.selectedMonth;renderAll();alert('Backup restaurado.')}catch(err){alert('Arquivo de backup inválido.')}};r.readAsText(f)};
 document.getElementById('csvBtn').onclick=()=>{const rows=[['Competência','Data','Tipo','Descrição','Categoria','Conta','Status','Valor']];for(const ym of allMonthOptions()){historyRowsForMonth(ym).forEach(r=>rows.push([ym,r.date,r.type,r.description,r.category,r.account,r.status,r.amount]))}const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const csv='\ufeff'+rows.map(r=>r.map(esc).join(';')).join('\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='controle-financeiro.csv';a.click();URL.revokeObjectURL(a.href)};
+document.getElementById('registerPasskeyBtn').onclick=async()=>{
+  const btn=document.getElementById('registerPasskeyBtn');
+  const msg=document.getElementById('passkeySettingsMsg');
+  if(!currentUser){msg.textContent='Entre na conta para cadastrar uma passkey.';return}
+  if(!prumoPasskeySupported()){msg.textContent='Este navegador não oferece suporte ao recurso de passkeys do Prumo.';return}
+  btn.disabled=true;
+  msg.textContent='Confirme a autenticação no seu dispositivo…';
+  try{
+    const {data,error}=await sb.auth.registerPasskey();
+    if(error)throw error;
+    msg.textContent=`${data?.friendly_name||'Passkey'} cadastrada com sucesso.`;
+    await refreshPrumoPasskeys();
+  }catch(error){
+    console.error('Falha ao cadastrar passkey',error);
+    msg.textContent=prumoPasskeyError(error);
+  }finally{
+    btn.disabled=false;
+  }
+};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('Apagar os dados desta versão e recriar a base inicial?')){state=seedData();selectedCardId=state.cards[0]?.id||null;selectedInvoiceYm=state.settings.selectedMonth;renderAll()}};
 window.addEventListener('resize',()=>{if(document.getElementById('page-dashboard').classList.contains('active'))renderDashboard();if(document.getElementById('page-projection').classList.contains('active'))renderProjection();if(document.getElementById('page-cards').classList.contains('active'))renderCards()});
+document.getElementById('authPasskey').onclick=async()=>{
+  const btn=document.getElementById('authPasskey');
+  const msg=document.getElementById('authMsg');
+  if(!prumoPasskeySupported()){
+    msg.textContent='Este navegador não oferece suporte a Face ID / Passkey.';
+    return;
+  }
+  btn.disabled=true;
+  msg.textContent='Confirme a autenticação no seu dispositivo…';
+  try{
+    const {data,error}=await sb.auth.signInWithPasskey();
+    if(error)throw error;
+    if(!data?.session)throw new Error('A autenticação não retornou uma sessão.');
+    msg.textContent='';
+  }catch(error){
+    console.error('Falha no login por passkey',error);
+    msg.textContent=prumoPasskeyError(error);
+  }finally{
+    btn.disabled=false;
+  }
+};
 document.getElementById('authLogin').onclick=async()=>{
   const email=document.getElementById('authEmail').value.trim();
   const password=document.getElementById('authPassword').value;
