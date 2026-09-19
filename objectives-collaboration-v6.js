@@ -99,19 +99,6 @@
       if(!c||String(c.contributorUserId||g.ownerUserId)!==uid){btn.remove();return}
       btn.title='Excluir seu aporte';
     });
-    card.querySelectorAll('.goal-contrib-row').forEach(row=>{
-      const btn=row.querySelector('[data-goal-contrib-delete]');
-      let c=btn?byId.get(String(btn.dataset.goalContribDelete)):null;
-      if(!c){
-        const rows=[...card.querySelectorAll('.goal-contrib-row')],idx=rows.indexOf(row);c=(g.contributions||[])[idx]||null;
-      }
-      if(!c||row.querySelector('.goal-collab-note'))return;
-      const first=row.firstElementChild;if(!first)return;
-      const note=document.createElement('div');note.className='goal-collab-note';
-      const who=String(c.contributorUserId||g.ownerUserId)===uid?'Você':(c.contributorName||'Participante');
-      note.textContent=`${who}${String(c.status||'').toLowerCase()==='pending'?' · não pago':''}`;
-      first.appendChild(note);
-    });
   }
 
   function enhanceCards(){
@@ -120,8 +107,8 @@
     const map=new Map(goals.map(g=>[String(g.id),g]));
     grid.querySelectorAll('.goal-card[data-goal-id]').forEach(card=>{
       const g=map.get(String(card.dataset.goalId));if(!g)return;
-      if(card.dataset.goalCollabVersion==='7')return;
-      card.dataset.goalCollabVersion='7';
+      if(card.dataset.goalCollabVersion==='8')return;
+      card.dataset.goalCollabVersion='8';
       const sub=card.querySelector('.goal-sub'),actions=card.querySelector('.goal-actions');
       if(g.recurringEnabled)addPill(sub,'Recorrente','recurring');
       if(!g.isOwner)addPill(sub,g.shareStatus==='pending'?'Convite pendente':g.shareRole==='contributor'?'Objetivo compartilhado · colaborador':'Objetivo compartilhado · visualização',g.shareStatus==='pending'?'pending':'shared');
