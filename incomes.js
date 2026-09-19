@@ -222,7 +222,12 @@
   }
 
   function openIncomeModal(id=null){
-    if(!ensureIncomeState())return;buildUi();
+    if(!ensureIncomeState())return;
+    if(id&&isGoalManagedIncome(id)){
+      alert('Esta receita é gerenciada pela seção Objetivos. Altere ou cancele o aporte recorrente no objetivo correspondente.');
+      return;
+    }
+    buildUi();
     const plan=id?state.incomePlans.find(p=>p.id===id):null;
     document.getElementById('incomeModalTitle').textContent=plan?'Editar receita':'Nova receita';
     document.getElementById('incomeId').value=plan?.id||'';
