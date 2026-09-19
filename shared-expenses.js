@@ -234,7 +234,7 @@
 
   function itemHtml(item,compact=false){
     const pending=item.myStatus==='pending';
-    const direct=item.sourceKind==='direct_obligation';
+    const direct=item.sourceKind==='direct_obligation'||item.sourceKind==='direct_plan_obligation';
     const role=direct?(item.isPayer?'Você é credor':'Você é devedor'):(item.isPayer?'Você paga':item.isCreator?'Criada por você':'Compartilhada com você');
     const myValue=direct?item.amount:(item.isPayer?item.amount:item.myAmount);
     const participantPills=(item.participants||[]).map(p=>direct
@@ -264,11 +264,11 @@
 
   async function respond(id,accept){
     const item=items.find(x=>String(x.id)===String(id));
-    const direct=item?.sourceKind==='direct_obligation';
+    const direct=item?.sourceKind==='direct_obligation'||item?.sourceKind==='direct_plan_obligation';
     const subject=direct?'este vínculo financeiro':'esta despesa compartilhada';
     const action=accept?'confirmar':'recusar';if(!confirm(`${accept?'Confirmar':'Recusar'} ${subject}?`))return;
     try{
-      const rpc=direct?'finance_respond_direct_obligation':'finance_respond_shared_expense';
+      const rpc=item?.sourceKind==='direct_plan_obligation'?'finance_respond_plan_obligation':direct?'finance_respond_direct_obligation':'finance_respond_shared_expense';
       const {data,error}=await sb.rpc(rpc,{p_shared_id:id,p_accept:accept});if(error)throw error;if(!data?.ok)throw new Error(data?.detail||data?.error||'respond_failed');
       if(window.financeCloud?.refresh)await window.financeCloud.refresh();
       await loadShared();
