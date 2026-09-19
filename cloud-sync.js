@@ -167,12 +167,23 @@
     }
   };
 
+  const baseHandleSession=handleSession;
+
   handleSession=async function(session){
     currentUser=session?.user||null;
     relationalReady=false;
     localWritePending=false;
     writeQueued=false;
-    if(!currentUser){setVisible(false);return}
+    if(!currentUser){
+      try{
+        await baseHandleSession(null);
+      }catch(e){
+        console.error('Falha ao restaurar tela de login:',e);
+        setVisible(false);
+      }
+      return;
+    }
+    try{hadAuthenticatedSession=true}catch(e){}
     setSyncStatus('Carregando banco relacional…');
     try{
       const cloud=await window.financeCloud.load(currentUser.id);
