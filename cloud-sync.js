@@ -29,8 +29,38 @@
 
   function setVisible(authenticated){
     const auth=document.getElementById('authScreen'),app=document.getElementById('appRoot');
-    if(auth)auth.classList.toggle('hidden',authenticated);
-    if(app)app.classList.toggle('auth-hidden',!authenticated);
+    if(authenticated){
+      if(typeof showAuthenticatedApp==='function'){
+        showAuthenticatedApp(auth,app);
+        return;
+      }
+      if(auth){
+        auth.classList.add('hidden');
+        auth.hidden=true;
+        auth.setAttribute('aria-hidden','true');
+      }
+      if(app){
+        app.classList.remove('auth-hidden');
+        app.hidden=false;
+        app.removeAttribute('aria-hidden');
+      }
+      return;
+    }
+
+    if(typeof showLoginScreen==='function'){
+      showLoginScreen(auth,app);
+      return;
+    }
+    if(auth){
+      auth.classList.remove('hidden');
+      auth.hidden=false;
+      auth.removeAttribute('aria-hidden');
+    }
+    if(app){
+      app.classList.add('auth-hidden');
+      app.hidden=true;
+      app.setAttribute('aria-hidden','true');
+    }
   }
 
   async function clearLegacyCopies(){
@@ -174,6 +204,7 @@
     relationalReady=false;
     localWritePending=false;
     writeQueued=false;
+
     if(!currentUser){
       try{
         await baseHandleSession(null);
@@ -183,33 +214,56 @@
       }
       return;
     }
+
     try{hadAuthenticatedSession=true}catch(e){}
+
+    // A camada de dados não decide mais qual tela deve aparecer.
+    // Uma sessão válida inicia/continua o fluxo canônico de splash -> app.
+    setVisible(true);
     setSyncStatus('Carregando banco relacional…');
+
     try{
       const cloud=await window.financeCloud.load(currentUser.id);
       let serverState=validFinanceState(cloud?.state)?cloud.state:null;
+
       if(!serverState){
         serverState=blankFinanceState();
         relationalReady=true;
         await window.financeCloud.save(currentUser.id,serverState);
         relationalReady=false;
       }
+
       await applyServerState(serverState,{render:false});
       selectedCardId=state.cards[0]?.id||null;
       selectedInvoiceYm=state.settings.selectedMonth;
-      setVisible(true);
+
       applyingRemote=true;
       try{if(typeof renderAll==='function')renderAll()}finally{applyingRemote=false}
+
       relationalReady=true;
       await clearLegacyCopies();
+
+      // Reafirma a sessão válida depois do carregamento dos dados.
+      setVisible(true);
       setSyncStatus('Sincronizado com banco relacional');
     }catch(e){
       relationalReady=false;
       console.error('Falha ao carregar dados financeiros relacionais:',e);
-      setVisible(false);
+
+      // Falha de dados não equivale a logout. Mantém a sessão e abre o app
+      // com o estado já disponível, exibindo apenas o erro de sincronização.
+      try{
+        applyingRemote=true;
+        if(typeof renderAll==='function')renderAll();
+      }catch(renderError){
+        console.error('Falha ao renderizar estado local após erro remoto:',renderError);
+      }finally{
+        applyingRemote=false;
+      }
+      setVisible(true);
       const msg=document.getElementById('authMsg');
-      if(msg)msg.textContent='Não foi possível carregar seus dados do servidor. Tente novamente.';
-      setSyncStatus('Falha ao carregar servidor',true);
+      if(msg)msg.textContent='';
+      setSyncStatus('Falha ao carregar dados do servidor',true);
     }
   };
 
