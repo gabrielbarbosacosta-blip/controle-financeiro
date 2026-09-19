@@ -55,12 +55,26 @@
 
   function parseInline(button,fn){const code=button?.getAttribute('onclick')||'',m=code.match(new RegExp(`${fn}\\(['\"]([^'\"]+)['\"]\\)`));return m?.[1]||null}
 
+  function goalSharedRuleKey(t){
+    if(!t)return'';
+    const values=[String(t.debtId||''),String(t.incomePlanId||''),String(t.id||'')];
+    for(const value of values){
+      const m=value.match(/^goal-shared-(?:payer|debt|income)-([a-f0-9]{32})/i)||value.match(/^gsh-(?:dtx|itx)-([a-f0-9]{32})/i);
+      if(m?.[1])return m[1].toLowerCase();
+    }
+    return'';
+  }
   function sharedReceivable(t){
     if(!t||String(t.type||'').toLowerCase()!=='receita')return false;
-    const id=String(t.id||''),d=String(t.description||''),n=String(t.notes||'');
-    return id.startsWith('shared-')&&(d.toLowerCase().startsWith('reembolso')||n.includes('Valor a receber referente à despesa compartilhada'));
+    const id=String(t.id||''),d=String(t.description||''),n=String(t.notes||''),income=String(t.incomePlanId||'');
+    return (id.startsWith('shared-')||id.startsWith('gsh-itx-')||income.startsWith('goal-shared-income-'))
+      &&(d.toLowerCase().startsWith('reembolso')||n.includes('Valor a receber referente à despesa compartilhada')||income.startsWith('goal-shared-income-'));
   }
-  function sharedExpense(t){return !!t&&String(t.type||'').toLowerCase()==='despesa'&&String(t.id||'').startsWith('shared-')}
+  function sharedExpense(t){
+    if(!t||String(t.type||'').toLowerCase()!=='despesa')return false;
+    const id=String(t.id||''),debt=String(t.debtId||'');
+    return id.startsWith('shared-')||id.startsWith('gsh-dtx-')||debt.startsWith('shared-debt-')||debt.startsWith('goal-shared-debt-')||debt.startsWith('goal-shared-payer-');
+  }
 
   function resolve(kind,id){
     const s=getState();if(!s)return null;
@@ -138,7 +152,7 @@
       const src=occurrences(e),want=isExpenseEntity(e)?'receita':'despesa',out=[],seen=new Set();
       for(const candidate of transactions().filter(t=>String(t.type||'').toLowerCase()===want)){
         let match=false;
-        for(const s of src){if(sameRelation(s,candidate)||((String(s.id||'').startsWith('shared-')||sharedExpense(s)||sharedReceivable(s))&&(String(candidate.id||'').startsWith('shared-')||sharedExpense(candidate)||sharedReceivable(candidate))&&relatedText(s,candidate))){match=true;break}}
+        for(const s of src){const sr=goalSharedRuleKey(s),cr=goalSharedRuleKey(candidate);if((sr&&cr&&sr===cr)||sameRelation(s,candidate)||((String(s.id||'').startsWith('shared-')||sharedExpense(s)||sharedReceivable(s))&&(String(candidate.id||'').startsWith('shared-')||sharedExpense(candidate)||sharedReceivable(candidate))&&relatedText(s,candidate))){match=true;break}}
         if(!match&&e.kind!=='transaction'){const n=normalize(entityName(e));if(n.length>=5&&String(candidate.id||'').startsWith('shared-')&&(baseName(candidate)===n||normalize(candidate.notes).includes(n)))match=true}
         if(match&&!seen.has(String(candidate.id))){seen.add(String(candidate.id));out.push(candidate)}
       }
