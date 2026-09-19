@@ -362,18 +362,47 @@ function scheduleAuthSessionHandling(session){
   },0);
 }
 
+function cancelPendingSignedOut(){
+  clearTimeout(authTransitionTimer);
+  authTransitionTimer=null;
+}
+
+function verifyAndHandleSignedOut(){
+  clearTimeout(authTransitionTimer);
+  authTransitionTimer=setTimeout(async()=>{
+    try{
+      const {data,error}=await sb.auth.getSession();
+      if(error)throw error;
+      if(data?.session?.user){
+        // O SIGNED_OUT era obsoleto/racing; a sessão válida sempre prevalece.
+        await processAuthSession(data.session);
+        return;
+      }
+      await processAuthSession(null);
+    }catch(error){
+      console.error('Falha ao confirmar encerramento da sessão',error);
+    }
+  },80);
+}
+
 async function initApp(){
   const {data,error}=await sb.auth.getSession();
   if(error)throw error;
   await processAuthSession(data.session);
   sb.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_IN'){
+      cancelPendingSignedOut();
       if(interactiveAuthInProgress)return;
       scheduleAuthSessionHandling(session);
       return;
     }
     if(event==='SIGNED_OUT'){
-      scheduleAuthSessionHandling(null);
+      verifyAndHandleSignedOut();
+      return;
+    }
+    if(event==='TOKEN_REFRESHED'&&session?.user){
+      cancelPendingSignedOut();
+      currentUser=session.user;
       return;
     }
     if(event==='USER_UPDATED'&&session?.user&&currentUser?.id===session.user.id){
@@ -639,6 +668,7 @@ document.getElementById('authPasskey').onclick=async()=>{
     const {data,error}=await sb.auth.signInWithPasskey();
     if(error)throw error;
     if(!data?.session)throw new Error('A autenticação não retornou uma sessão.');
+    cancelPendingSignedOut();
     msg.textContent='Carregando seus dados…';
     await processAuthSession(data.session);
     if(!document.getElementById('appRoot')?.classList.contains('auth-hidden'))msg.textContent='';
@@ -662,6 +692,7 @@ document.getElementById('authLogin').onclick=async()=>{
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error){msg.textContent=error.message;return}
     if(!data?.session){msg.textContent='A autenticação não retornou uma sessão.';return}
+    cancelPendingSignedOut();
     msg.textContent='Carregando seus dados…';
     await processAuthSession(data.session);
     if(!document.getElementById('appRoot')?.classList.contains('auth-hidden'))msg.textContent='';
