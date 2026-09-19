@@ -202,7 +202,7 @@
     const first=plan.firstMonth,last=planEndMonth(plan),span=Math.max(0,monthDiffLocal(first,last)),generated=[];
     for(let i=0;i<=span;i++){
       const ym=addMonth(first,i),previous=byMonth.get(ym);
-      if(previous&&String(previous.status||'').toLowerCase()!=='pendente'){generated.push(previous);continue}
+      if(previous&&String(previous.status||'').toLowerCase()!=='pendente'){generated.push({...previous,counterpartyCpf:plan.counterpartyCpf||null,counterpartyUserId:plan.counterpartyUserId||null,counterpartyName:plan.counterpartyName||null,counterpartyRole:plan.counterpartyCpf?'debtor':null});continue}
       generated.push({
         id:previous?.id||txUid(),date:safeDate(ym,plan.dueDay),type:'Receita',category:plan.category||'Salário',description:plan.name,account:plan.account||'',nature:plan.mode==='mensal'?'Fixa':'Extra',amount:amountForMonth(plan,ym),status:previous?.status||'Pendente',notes:[`Receita gerada automaticamente por "${plan.name}".`,plan.notes||''].filter(Boolean).join(' '),projection:true,recurring:false,installmentCurrent:null,installmentTotal:null,incomeManaged:true,incomePlanId:plan.id,incomeOccurrence:i+1,incomeOccurrenceTotal:plan.openEnded?null:span+1,incomeOpenEnded:!!plan.openEnded,counterpartyCpf:plan.counterpartyCpf||null,counterpartyUserId:plan.counterpartyUserId||null,counterpartyName:plan.counterpartyName||null,counterpartyRole:plan.counterpartyCpf?'debtor':null
       });
@@ -319,7 +319,7 @@
       const period=p.mode==='mensal'?(p.openEnded?`${monthLabel(p.firstMonth)} → Sem fim`:`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`):monthLabel(p.firstMonth);
       const progress=p.openEnded?'':`<div class="income-progress"><span style="width:${pct}%"></span></div>`;
       return `<tr>
-        <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}${p.counterpartyCpf?`<br>Devedor: ${esc(p.counterpartyName||incomeCpfMask(p.counterpartyCpf))}`:''}</div>${progress}</td>
+        <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}${p.counterpartyCpf?`<br>Devedor: ${esc(p.counterpartyName||'Pessoa externa')} · ${esc(incomeCpfMask(p.counterpartyCpf))}`:''}</div>${progress}</td>
         <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pend.length} pendente(s)</div></td>
         <td>${period}</td>
         <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
