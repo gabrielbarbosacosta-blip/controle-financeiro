@@ -233,11 +233,11 @@ body.prumo-app-splash:not(.caderno-splash-done)::after{
   box-shadow:0 0 18px rgba(221,234,172,.16);
 }
 @keyframes prumoSplashWords{
-  0%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
-  8.894%{content:'prumo';opacity:.66;filter:blur(1.8px)}
-  21.176%,35%{content:'prumo';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
-  39%{content:'prumo';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
-  40%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
+  0%{content:'prumo';color:#ddeaac;opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
+  8.894%{content:'prumo';color:#ddeaac;opacity:.66;filter:blur(1.8px)}
+  21.176%,35%{content:'prumo';color:#ddeaac;opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
+  39%{content:'prumo';color:#ddeaac;opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
+  40%{content:'sem planilha';color:#f3f7fb;opacity:0;transform:translate(-50%,calc(-58% + 7px));filter:blur(5px)}
   48.894%{content:'sem planilha';opacity:.66;filter:blur(1.8px)}
   61.176%,66%{content:'sem planilha';opacity:1;transform:translate(-50%,-58%);filter:blur(0)}
   70%{content:'sem planilha';opacity:0;transform:translate(-50%,calc(-58% - 3px));filter:blur(1.8px)}
