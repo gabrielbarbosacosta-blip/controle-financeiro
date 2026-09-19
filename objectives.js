@@ -66,7 +66,7 @@
     const page=document.createElement('section');page.className='page';page.id='page-goals';
     page.innerHTML=`
       <div class="section-head"><div><h3>Objetivos financeiros</h3><div class="muted">Transforme planos como casa, moto e reserva em metas mensuráveis.</div></div><button type="button" class="btn primary" id="goalAddBtn">+ Novo objetivo</button></div>
-      <div class="notice goals-intro"><strong>Aportes não são despesas.</strong> Nesta primeira versão, o valor reservado fica separado conceitualmente do consumo: ele compõe o patrimônio destinado ao objetivo sem reduzir artificialmente seus gastos.</div>
+      <div class="notice goals-intro"><strong>Objetivos funcionam como subcontas patrimoniais.</strong> Aportes, resgates, ajustes e estornos formam um extrato próprio; o saldo exibido é calculado a partir dessas movimentações.</div>
       <div class="goals-kpis">
         <div class="card kpi"><div class="label">Reservado</div><div class="value positive" id="goalKpiSaved">R$ 0,00</div><div class="hint">Capital já destinado</div></div>
         <div class="card kpi"><div class="label">Metas</div><div class="value" id="goalKpiTarget">R$ 0,00</div><div class="hint" id="goalKpiCount">0 objetivos</div></div>
@@ -84,7 +84,7 @@
       document.getElementById('goalForm').onsubmit=saveGoal;
     }
     if(!document.getElementById('goalContributionModal')){
-      const wrap=document.createElement('div');wrap.innerHTML=`<div class="modal-backdrop" id="goalContributionModal"><div class="modal"><form id="goalContributionForm"><div class="modal-head"><h3 id="goalContributionTitle">Registrar aporte</h3><button type="button" class="btn ghost" data-goal-close="goalContributionModal">✕</button></div><div class="modal-body"><div class="goal-modal-note">O aporte aumenta o valor reservado do objetivo, mas não cria uma despesa no fluxo de caixa.</div><input type="hidden" id="goalContributionGoalId"><div class="form-grid"><div class="field"><label>Valor do aporte (R$)</label><input id="goalContributionAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Data</label><input id="goalContributionDate" type="date" required></div><div class="field full"><label>Observação</label><textarea id="goalContributionNotes" rows="3" placeholder="Ex.: Aporte do salário de setembro"></textarea></div></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-close="goalContributionModal">Cancelar</button><button class="btn primary" type="submit">Registrar aporte</button></div></form></div></div>`;document.body.appendChild(wrap.firstElementChild);
+      const wrap=document.createElement('div');wrap.innerHTML=`<div class="modal-backdrop" id="goalContributionModal"><div class="modal"><form id="goalContributionForm"><div class="modal-head"><h3 id="goalContributionTitle">Registrar aporte</h3><button type="button" class="btn ghost" data-goal-close="goalContributionModal">✕</button></div><div class="modal-body"><div class="goal-modal-note">O aporte registra uma saída na conta de origem e uma entrada no objetivo. O saldo do objetivo será recalculado pelo extrato.</div><input type="hidden" id="goalContributionGoalId"><div class="form-grid"><div class="field"><label>Valor do aporte (R$)</label><input id="goalContributionAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Data</label><input id="goalContributionDate" type="date" required></div><div class="field full"><label>Observação</label><textarea id="goalContributionNotes" rows="3" placeholder="Ex.: Aporte do salário de setembro"></textarea></div></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-close="goalContributionModal">Cancelar</button><button class="btn primary" type="submit">Registrar aporte</button></div></form></div></div>`;document.body.appendChild(wrap.firstElementChild);
       document.getElementById('goalContributionForm').onsubmit=addContribution;
     }
     if(!document.getElementById('goalContributionHistoryModal')){
@@ -140,27 +140,32 @@
   }
 
   function contributionTypeLabel(c){
-    if(c?.eventType==='redemption'||String(c?.contributionType||'')==='redemption')return 'Resgate';
-    return String(c?.contributionType||'extra')==='recurring'?'Recorrente':'Extra';
+    const kind=String(c?.movementKind||'');
+    if(kind==='opening_balance')return 'Saldo inicial';
+    if(kind==='withdrawal')return 'Resgate';
+    if(kind==='refund')return 'Reembolso';
+    if(kind==='reversal')return 'Estorno';
+    if(kind==='adjustment_in'||kind==='adjustment_out')return 'Ajuste';
+    if(String(c?.contributionType||'extra')==='recurring')return 'Recorrente';
+    return 'Aporte';
   }
   function contributionStatusLabel(c){
-    if(c?.eventType==='redemption')return 'Concluído';
-    return String(c?.status||'').toLowerCase()==='paid'?'Pago':'Pendente';
+    return String(c?.status||'').toLowerCase()==='paid'?'Concluído':'Pendente';
   }
   function contributionRowHtml(c,history=false){
-    const type=contributionTypeLabel(c),redemption=type==='Resgate',status=contributionStatusLabel(c);
+    const type=contributionTypeLabel(c),kind=String(c?.movementKind||'contribution'),negative=Number(c?.signedAmount)<0||['withdrawal','refund','reversal','adjustment_out'].includes(kind),status=contributionStatusLabel(c);
     const person=c.contributorName||'Participante';
-    const own=!redemption&&String(c.contributorUserId||'')===String(getUserId()||'');
-    const personText=redemption?'Restituído a '+person:(status==='Pago'?'Pago por '+person:'Responsável: '+person);
-    const scopeText=redemption?'Reembolso':(c.isShared?'Compartilhado':'Individual');
-    const chipClass=redemption?'redemption':type==='Recorrente'?'recurring':'';
-    return `<div class="goal-contrib-row" data-goal-contribution-row="${esc(c.id)}"><div class="goal-contrib-row-main"><div class="goal-contrib-row-top"><strong>${esc(type)}</strong><span class="goal-contrib-date">${esc(dateLabel(c.date))}</span></div><div class="goal-contrib-meta"><span class="goal-contrib-chip ${chipClass}">${esc(type)}</span><span class="goal-contrib-chip">${esc(personText)}</span><span class="goal-contrib-chip ${!redemption&&c.isShared?'shared':''}">${esc(scopeText)}</span><span class="goal-contrib-chip ${redemption?'redemption':status==='Pago'?'paid':'pending'}">${esc(status)}</span></div>${c.notes?`<div class="note">${esc(c.notes)}</div>`:''}</div><div class="goal-contrib-value ${redemption?'redemption':''}">${redemption?'-':'+'} ${money(c.amount)}</div>${own?`<button type="button" class="goal-contrib-delete" title="Excluir aporte" data-goal-contrib-delete="${esc(c.id)}" ${history?'data-goal-history-delete="1"':''}>×</button>`:''}</div>`;
+    const own=kind==='contribution'&&!c.isShared&&!c.isReversed&&String(c.contributorUserId||'')===String(getUserId()||'')&&String(c.status||'').toLowerCase()==='paid';
+    const personText=kind==='refund'?'Restituído a '+person:kind==='opening_balance'?'Saldo existente na criação':(status==='Concluído'?'Movimentado por '+person:'Responsável: '+person);
+    const scopeText=c.isShared?'Compartilhado':'Objetivo';
+    const chipClass=negative?'redemption':type==='Recorrente'?'recurring':'';
+    return `<div class="goal-contrib-row" data-goal-contribution-row="${esc(c.id)}"><div class="goal-contrib-row-main"><div class="goal-contrib-row-top"><strong>${esc(type)}</strong><span class="goal-contrib-date">${esc(dateLabel(c.date))}</span></div><div class="goal-contrib-meta"><span class="goal-contrib-chip ${chipClass}">${esc(type)}</span><span class="goal-contrib-chip">${esc(personText)}</span><span class="goal-contrib-chip ${c.isShared?'shared':''}">${esc(scopeText)}</span><span class="goal-contrib-chip ${negative?'redemption':status==='Concluído'?'paid':'pending'}">${esc(status)}</span></div>${c.notes?`<div class="note">${esc(c.notes)}</div>`:''}</div><div class="goal-contrib-value ${negative?'redemption':''}">${negative?'-':'+'} ${money(c.amount)}</div>${own?`<button type="button" class="goal-contrib-delete" title="Estornar aporte" aria-label="Estornar aporte" data-goal-contrib-delete="${esc(c.id)}" ${history?'data-goal-history-delete="1"':''}>↶</button>`:''}</div>`;
   }
 
   function contribHtml(g){
     const all=Array.isArray(g.contributions)?g.contributions:[];
     const list=all.slice(0,3);
-    return `<div class="goal-contribs"><div class="goal-contrib-head"><div class="goal-contrib-title">Últimos aportes e resgates</div><button type="button" class="goal-contrib-all" data-goal-contrib-all="${esc(g.id)}">Ver todos${all.length?` (${all.length})`:''}</button></div><div class="goal-contrib-list">${list.length?list.map(c=>contributionRowHtml(c)).join(''):'<div class="goal-contrib-empty">Nenhuma movimentação registrada ainda.</div>'}</div></div>`;
+    return `<div class="goal-contribs"><div class="goal-contrib-head"><div class="goal-contrib-title">Últimas movimentações</div><button type="button" class="goal-contrib-all" data-goal-contrib-all="${esc(g.id)}">Ver todos${all.length?` (${all.length})`:''}</button></div><div class="goal-contrib-list">${list.length?list.map(c=>contributionRowHtml(c)).join(''):'<div class="goal-contrib-empty">Nenhuma movimentação registrada ainda.</div>'}</div></div>`;
   }
 
   function openContributionHistory(id){
@@ -214,7 +219,11 @@
     document.getElementById('goalName').value=g?.name||'';
     document.getElementById('goalType').value=g?.type||'house';
     document.getElementById('goalTarget').value=g?.targetAmount??'';
-    document.getElementById('goalInitial').value=g?.initialAmount??0;
+    const initial=document.getElementById('goalInitial');
+    initial.value=g?.initialAmount??0;
+    initial.disabled=!!g;
+    const initialHelp=initial.parentElement?.querySelector('small');
+    if(initialHelp)initialHelp.textContent=g?'O saldo inicial é uma movimentação histórica e não pode ser editado. Use Ajustar saldo.':'Valor existente antes de cadastrar movimentações no sistema.';
     document.getElementById('goalTargetMonth').value=g?.targetMonth||addMonth(currentYm(),12);
     document.getElementById('goalMonthly').value=g?.plannedMonthly??0;
     document.getElementById('goalPriority').value=String(g?.priority||2);
@@ -263,9 +272,19 @@
   }
 
   async function deleteContribution(id,button){
-    if(!confirm('Excluir este aporte do histórico?'))return;if(button)button.disabled=true;
-    try{const {data,error}=await getSb().rpc('finance_delete_goal_contribution',{p_contribution_id:id});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'delete_contribution_failed');await loadGoals()}
-    catch(e){console.error('Falha ao excluir aporte.',e);alert('Não foi possível excluir o aporte agora.')}
+    if(!confirm('Estornar este aporte? O lançamento original será preservado e uma movimentação inversa será registrada.'))return;if(button)button.disabled=true;
+    try{
+      const {data,error}=await getSb().rpc('finance_delete_goal_contribution',{p_contribution_id:id});
+      if(error)throw error;
+      if(!data?.ok){
+        if(data?.error==='shared_contribution_requires_shared_flow')throw new Error('Este aporte é compartilhado e deve ser tratado pelo fluxo de compartilhamentos.');
+        if(data?.error==='already_reversed')throw new Error('Este aporte já foi estornado.');
+        throw new Error(data?.detail||data?.error||'reverse_contribution_failed');
+      }
+      await loadGoals();
+      try{if(typeof setSyncStatus==='function')setSyncStatus('Aporte estornado')}catch(_e){}
+    }
+    catch(e){console.error('Falha ao estornar aporte.',e);alert(e.message||'Não foi possível estornar o aporte agora.')}
     finally{if(button)button.disabled=false}
   }
 
