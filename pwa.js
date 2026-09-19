@@ -39,8 +39,17 @@
 
   async function register(){
     ensureHead();
+    const host=String(location.hostname||'').toLowerCase();
+    const localHost=host==='localhost'||host==='127.0.0.1'||host==='::1'||/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
     if('serviceWorker' in navigator){
-      try{const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});registration.update().catch(()=>{})}catch(error){console.warn('Falha ao registrar PWA.',error)}
+      if(localHost){
+        try{
+          const registrations=await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(registration=>registration.unregister()));
+        }catch(error){console.warn('Falha ao limpar service worker local.',error)}
+      }else{
+        try{const registration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});registration.update().catch(()=>{})}catch(error){console.warn('Falha ao registrar PWA.',error)}
+      }
     }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureInstallUi,{once:true});else ensureInstallUi();
   }
