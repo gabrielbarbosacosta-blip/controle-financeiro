@@ -338,9 +338,18 @@
     renderIncomePage();
   }
 
+  function isGoalManagedIncome(id){
+    try{if(window.financeGoalManagedProtection?.isIncomePlan?.(id))return true}catch(_e){}
+    return String(id||'').startsWith('goal-shared-income-');
+  }
+
   function deleteIncome(id){
     if(!ensureIncomeState())return;
     const plan=state.incomePlans.find(p=>p.id===id);if(!plan)return;
+    if(isGoalManagedIncome(id)){
+      alert('Esta receita é gerenciada pela seção Objetivos. Altere ou cancele o aporte recorrente no objetivo correspondente.');
+      return;
+    }
     if(!confirm(`Excluir a receita "${plan.name}" e todos os lançamentos vinculados?`))return;
     state.incomePlans=state.incomePlans.filter(p=>p.id!==id);
     state.transactions=state.transactions.filter(t=>!(t.incomeManaged===true&&t.incomePlanId===id));
@@ -365,7 +374,7 @@
         <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
         <td class="num">${money(currentValue)}${hasVersions?'<div class="income-sub">valor vigente</div>':''}</td>
         <td class="num"><strong>${p.openEnded?'Recorrente':money(remaining)}</strong></td>
-        <td><div class="income-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">Painel</button><button class="btn small danger" onclick="deleteIncomePlan('${p.id}')">Excluir</button></div></td>
+        <td><div class="income-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">Painel</button>${isGoalManagedIncome(p.id)?'<span class="goal-managed-plan-label">Gerenciado em Objetivos</span>':`<button class="btn small danger" onclick="deleteIncomePlan('${p.id}')">Excluir</button>`}</div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma receita cadastrada.</td></tr>';
   }
