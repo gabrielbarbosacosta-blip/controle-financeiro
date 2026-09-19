@@ -235,14 +235,15 @@
   function itemHtml(item,compact=false){
     const pending=item.myStatus==='pending';
     const direct=item.sourceKind==='direct_obligation'||item.sourceKind==='direct_plan_obligation';
-    const role=direct?(item.isPayer?'Você é credor':'Você é devedor'):(item.isPayer?'Você paga':item.isCreator?'Criada por você':'Compartilhada com você');
+    const recurringRule=item.sourceKind==='goal_recurring_rule';
+    const role=recurringRule?(item.isPayer?'Você propôs esta recorrência':'Sua confirmação é necessária'):direct?(item.isPayer?'Você é credor':'Você é devedor'):(item.isPayer?'Você paga':item.isCreator?'Criada por você':'Compartilhada com você');
     const myValue=direct?item.amount:(item.isPayer?item.amount:item.myAmount);
     const participantPills=(item.participants||[]).map(p=>direct
       ?`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${p.isPayer?'credor':'devedor'} · ${esc(statusLabel(p.status))}</span>`
       :`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${Number(p.percentage).toFixed(0)}% · ${esc(statusLabel(p.status))}${p.isPayer?' · pagador':''}</span>`
     ).join('');
-    const context=direct?`Vínculo por CPF · ${role}`:`Pagador: ${item.payerName} · ${role}`;
-    const acceptLabel=direct?'Confirmar vínculo':'Confirmar';
+    const context=recurringRule?`Regra mensal · Pagador: ${item.payerName} · ${role}`:direct?`Vínculo por CPF · ${role}`:`Pagador: ${item.payerName} · ${role}`;
+    const acceptLabel=recurringRule?'Confirmar recorrência':direct?'Confirmar vínculo':'Confirmar';
     return `<div class="shared-item" data-shared-id="${esc(item.id)}"><div class="shared-item-head"><div><div class="shared-item-title">${esc(item.description)}</div><div class="shared-item-sub">${esc(item.category||'Outros')} · ${esc(fmtDateSafe(item.date))}<br>${esc(context)}</div></div><div class="shared-item-value">${money(myValue)}</div></div>${compact?'':`<div>${participantPills}</div>`}${pending?`<div class="shared-item-actions"><button class="btn small primary" data-share-accept="${esc(item.id)}">${acceptLabel}</button><button class="btn small danger" data-share-reject="${esc(item.id)}">Recusar</button></div>`:''}</div>`;
   }
 
@@ -265,7 +266,8 @@
   async function respond(id,accept){
     const item=items.find(x=>String(x.id)===String(id));
     const direct=item?.sourceKind==='direct_obligation'||item?.sourceKind==='direct_plan_obligation';
-    const subject=direct?'este vínculo financeiro':'esta despesa compartilhada';
+    const recurringRule=item?.sourceKind==='goal_recurring_rule';
+    const subject=recurringRule?'esta recorrência compartilhada':direct?'este vínculo financeiro':'esta despesa compartilhada';
     const action=accept?'confirmar':'recusar';if(!confirm(`${accept?'Confirmar':'Recusar'} ${subject}?`))return;
     try{
       const rpc=item?.sourceKind==='direct_plan_obligation'?'finance_respond_plan_obligation':direct?'finance_respond_direct_obligation':'finance_respond_shared_expense';
@@ -273,8 +275,8 @@
       if(window.financeCloud?.refresh)await window.financeCloud.refresh();
       await loadShared();
       try{await window.financeDirectObligationsRefresh?.()}catch(_e){}
-      try{if(typeof setSyncStatus==='function')setSyncStatus(direct?`Vínculo financeiro ${accept?'confirmado':'recusado'}`:`Despesa ${accept?'confirmada':'recusada'}`)}catch(e){}
-    }catch(e){console.error(`Falha ao ${action} compartilhamento.`,e);alert(`Não foi possível ${action} ${direct?'este vínculo':'esta despesa'}.`)}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(recurringRule?`Recorrência ${accept?'confirmada':'recusada'}`:direct?`Vínculo financeiro ${accept?'confirmado':'recusado'}`:`Despesa ${accept?'confirmada':'recusada'}`)}catch(e){}
+    }catch(e){console.error(`Falha ao ${action} compartilhamento.`,e);alert(`Não foi possível ${action} ${recurringRule?'esta recorrência':direct?'este vínculo':'esta despesa'}.`)}
   }
 
   async function loadShared(){
