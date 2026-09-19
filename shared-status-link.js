@@ -12,8 +12,10 @@
   }
   function isSharedManagedTx(tx){
     if(!tx)return false;
-    if(String(tx.id||'').startsWith('shared-'))return true;
-    if(tx.debtManaged===true&&String(tx.debtId||'').startsWith('shared-debt-'))return true;
+    const id=String(tx.id||''),debtId=String(tx.debtId||''),incomePlanId=String(tx.incomePlanId||'');
+    if(id.startsWith('shared-'))return true;
+    if(tx.debtManaged===true&&(debtId.startsWith('shared-debt-')||debtId.startsWith('goal-shared-debt-')))return true;
+    if(tx.incomeManaged===true&&incomePlanId.startsWith('goal-shared-income-'))return true;
     return false;
   }
   async function refreshAll(){
