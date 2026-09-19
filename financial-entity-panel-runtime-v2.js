@@ -156,7 +156,9 @@
         if(!match&&e.kind!=='transaction'){const n=normalize(entityName(e));if(n.length>=5&&String(candidate.id||'').startsWith('shared-')&&(baseName(candidate)===n||normalize(candidate.notes).includes(n)))match=true}
         if(match&&!seen.has(String(candidate.id))){seen.add(String(candidate.id));out.push(candidate)}
       }
-      return out.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+      const sorted=out.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+      const ruleKey=goalSharedRuleKey(e.item);
+      return ruleKey&&e.kind!=='transaction'?sorted.filter(t=>ymOf(t.date)===selectedMonth()):sorted;
     }catch(err){return[]}
   }
 
