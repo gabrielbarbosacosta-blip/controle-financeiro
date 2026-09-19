@@ -335,7 +335,14 @@ function renderCardDetail(){
  document.getElementById('invoiceMonthLocal').onchange=e=>{selectedInvoiceYm=e.target.value;renderCards()};requestAnimationFrame(()=>drawLineChart('cardProjectionChart',proj.map(r=>({label:fmtMonth(r.ym),value:r.total}))))
 }
 function renderProjection(){
- const rows=projectionFrom(state.settings.selectedMonth);document.getElementById('projOpening').textContent=fmtMoney(rows[0]?.opening||actualForMonth(state.settings.selectedMonth).closing);const lowest=Math.min(...rows.map(r=>r.closing));document.getElementById('projLowest').textContent=fmtMoney(lowest);document.getElementById('projLowest').className='v '+(lowest<0?'negative':'');document.getElementById('projCardsTotal').textContent=fmtMoney(rows.reduce((s,r)=>s+r.invoices,0));document.getElementById('projEnd').textContent=fmtMoney(rows.at(-1)?.closing||0);document.getElementById('projectionBody').innerHTML=rows.map(r=>`<tr><td>${fmtMonth(r.ym)}</td><td class="num">${fmtMoney(r.opening)}</td><td class="num positive">${fmtMoney(r.income)}</td><td class="num">${fmtMoney(r.otherExpense)}</td><td class="num">${fmtMoney(r.invoices)}</td><td class="num ${r.result<0?'negative':'positive'}">${fmtMoney(r.result)}</td><td class="num ${r.closing<0?'negative':''}"><strong>${fmtMoney(r.closing)}</strong></td></tr>`).join('');drawLineChart('projectionChartLarge',rows.map(r=>({label:fmtMonth(r.ym),value:r.closing})))
+ const rows=projectionFrom(state.settings.selectedMonth),opening=rows[0]?.opening??actualForMonth(state.settings.selectedMonth).closing,lowest=Math.min(...rows.map(r=>r.closing)),cardsTotal=rows.reduce((s,r)=>s+r.invoices,0),ending=rows.at(-1)?.closing||0;
+ const openingEl=document.getElementById('projOpening'),lowestEl=document.getElementById('projLowest'),cardsEl=document.getElementById('projCardsTotal'),endEl=document.getElementById('projEnd');
+ openingEl.textContent=fmtMoney(opening);openingEl.className='v '+(opening<0?'negative':'positive');
+ lowestEl.textContent=fmtMoney(lowest);lowestEl.className='v '+(lowest<0?'negative':'positive');
+ cardsEl.textContent=fmtMoney(cardsTotal);cardsEl.className='v negative';
+ endEl.textContent=fmtMoney(ending);endEl.className='v '+(ending<0?'negative':'positive');
+ document.getElementById('projectionBody').innerHTML=rows.map(r=>`<tr><td>${fmtMonth(r.ym)}</td><td class="num ${r.opening<0?'negative':'positive'}">${fmtMoney(r.opening)}</td><td class="num positive">${fmtMoney(r.income)}</td><td class="num negative">${fmtMoney(r.otherExpense)}</td><td class="num negative">${fmtMoney(r.invoices)}</td><td class="num ${r.result<0?'negative':'positive'}">${fmtMoney(r.result)}</td><td class="num ${r.closing<0?'negative':'positive'}"><strong>${fmtMoney(r.closing)}</strong></td></tr>`).join('');
+ drawLineChart('projectionChartLarge',rows.map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
