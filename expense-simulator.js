@@ -45,10 +45,11 @@
     return plan.installmentAmount;
   }
 
-  function pendingAmount(type,ym,excludeDebtId=null){
+  function pendingAmount(type,ym,excludeDebtId=null,scenarioKey=null){
     const normalized=String(type||'').toLowerCase();
     let total=(state.transactions||[]).filter(t=>{
       if(excludeDebtId&&t.debtManaged===true&&t.debtId===excludeDebtId)return false;
+      if(scenarioKey&&window.financeSimulationScenario?.isExcluded(scenarioKey,t.id))return false;
       return String(t.type||'').toLowerCase()===normalized&&String(t.status||'').toLowerCase()==='pendente'&&monthOf(t.date)===ym;
     }).reduce((s,t)=>s+(Number(t.amount)||0),0);
     if(normalized==='despesa'&&Array.isArray(state.cards)&&typeof cardForecast==='function'){
@@ -62,33 +63,39 @@
     return (state.transactions||[]).filter(t=>t.debtManaged===true&&t.debtId===debtId&&monthOf(t.date)===ym&&String(t.status||'').toLowerCase()!=='pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
   }
 
-  function projectedSelectedClosing(excludeDebtId=null){
+  function projectedSelectedClosing(excludeDebtId=null,scenarioKey=null){
     const ym=state.settings.selectedMonth;
     const actual=typeof actualForMonth==='function'?(Number(actualForMonth(ym).closing)||0):0;
     const restored=excludeDebtId?settledExistingExpense(excludeDebtId,ym):0;
-    return round(actual+restored+pendingAmount('Receita',ym)-pendingAmount('Despesa',ym,excludeDebtId));
+    const scenario=window.financeSimulationScenario;
+    const skip=excludeDebtId?(tx=>tx.debtManaged===true&&tx.debtId===excludeDebtId):null;
+    const adjustment=scenarioKey&&scenario?scenario.selectedAdjustment(scenarioKey,ym,skip):0;
+    return round(actual+restored+pendingAmount('Receita',ym,excludeDebtId,scenarioKey)-pendingAmount('Despesa',ym,excludeDebtId,scenarioKey)+adjustment);
   }
 
-  function monthFlows(ym,excludeDebtId=null){
+  function monthFlows(ym,excludeDebtId=null,scenarioKey=null){
     let income=0,otherExpense=0;
     for(const tx of state.transactions||[]){
       if(excludeDebtId&&tx.debtManaged===true&&tx.debtId===excludeDebtId)continue;
+      if(scenarioKey&&window.financeSimulationScenario?.isExcluded(scenarioKey,tx.id))continue;
       if(typeof isProjectedTxInMonth==='function'&&!isProjectedTxInMonth(tx,ym))continue;
       if(typeof isProjectedTxInMonth!=='function'&&monthOf(tx.date)!==ym)continue;
       if(tx.type==='Receita')income+=Number(tx.amount)||0;
       else if(tx.type==='Despesa')otherExpense+=Number(tx.amount)||0;
     }
+    const adj=scenarioKey&&window.financeSimulationScenario?window.financeSimulationScenario.amountsForMonth(scenarioKey,ym):{income:0,expense:0};
+    income+=Number(adj.income)||0;otherExpense+=Number(adj.expense)||0;
     const invoices=(state.cards||[]).filter(c=>c.active!==false).reduce((s,c)=>s+(typeof cardForecast==='function'?(Number(cardForecast(c,ym).total)||0):0),0);
     return{income:round(income),otherExpense:round(otherExpense),invoices:round(invoices)};
   }
 
-  function buildProjection(plan,withCandidate,excludeExisting=false){
+  function buildProjection(plan,withCandidate,excludeExisting=false,scenarioKey=null){
     const selected=state.settings.selectedMonth,replaceId=(withCandidate||excludeExisting)?plan.id:null,count=horizon();
-    let opening=projectedSelectedClosing(replaceId);
+    let opening=projectedSelectedClosing(replaceId,scenarioKey);
     if(withCandidate)opening=round(opening-candidateAmount(plan,selected));
     const rows=[];
     for(let i=1;i<=count;i++){
-      const ym=addMonth(selected,i),flows=monthFlows(ym,replaceId),candidate=withCandidate?candidateAmount(plan,ym):0;
+      const ym=addMonth(selected,i),flows=monthFlows(ym,replaceId,scenarioKey),candidate=withCandidate?candidateAmount(plan,ym):0;
       const otherExpense=round(flows.otherExpense+candidate),expense=round(otherExpense+flows.invoices),result=round(flows.income-expense),closing=round(opening+result);
       rows.push({ym,opening:round(opening),income:flows.income,otherExpense,invoices:flows.invoices,expense,result,closing,candidate});
       opening=closing;
@@ -101,7 +108,7 @@
     if(existing?.querySelector('#expenseSimulationComparisonChart'))return;
     if(existing)existing.remove();
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="modal-backdrop" id="expenseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da despesa</h3><div class="muted" id="expenseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="expenseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="expenseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="expenseSimCurrent">—</div><div class="muted" id="expenseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t">Saldo projetado com a despesa</div><div class="v" id="expenseSimWith">—</div><div class="muted" id="expenseSimImpact" style="margin-top:4px"></div></div></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="expenseSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="expenseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a despesa</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="expenseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="expenseSimulationBack">Voltar</button><button type="button" class="btn primary" id="expenseSimulationConfirm">Cadastrar despesa</button></div></div></div>`;
+    wrap.innerHTML=`<div class="modal-backdrop" id="expenseSimulationModal" style="z-index:1300"><div class="modal" style="max-width:1180px;width:min(1180px,96vw)"><div class="modal-head"><div><h3>Simulação da despesa</h3><div class="muted" id="expenseSimulationSubtitle"></div></div><button type="button" class="btn ghost" id="expenseSimulationClose">✕</button></div><div class="modal-body"><div class="summary-strip" style="margin-bottom:14px"><div class="mini"><div class="t" id="expenseSimCurrentLabel">Saldo projetado atual</div><div class="v" id="expenseSimCurrent">—</div><div class="muted" id="expenseSimCurrentMonth" style="margin-top:4px"></div></div><div class="mini"><div class="t" id="expenseSimWithLabel">Saldo projetado com a despesa</div><div class="v" id="expenseSimWith">—</div><div class="muted" id="expenseSimImpact" style="margin-top:4px"></div></div></div><div id="expenseSimulationScenario"></div><div class="card"><div class="section-head"><div><h3>Comparação da projeção</h3><div class="muted" id="expenseSimulationHorizonLabel">As duas linhas estão no mesmo gráfico e na mesma escala.</div></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#60a5fa;border-radius:999px;display:inline-block"></span><span id="expenseSimCurrentLegend">Projeção atual</span></span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:3px;background:#f59e0b;border-radius:999px;display:inline-block"></span>Com a despesa</span></div></div><div class="chart-wrap small" style="min-height:340px"><canvas id="expenseSimulationComparisonChart"></canvas></div></div></div><div class="modal-foot"><button type="button" class="btn" id="expenseSimulationBack">Voltar</button><button type="button" class="btn primary" id="expenseSimulationConfirm">Cadastrar despesa</button></div></div></div>`;
     document.body.appendChild(wrap.firstElementChild);
     document.getElementById('expenseSimulationClose').onclick=closeSimulation;
     document.getElementById('expenseSimulationBack').onclick=closeSimulation;
@@ -134,20 +141,24 @@
     }
   }
 
-  function openSimulation(){
+  function openSimulation(resetScenario=true){
     const plan=planFromForm();if(!plan)return;
     buildModal();
+    const scenario=window.financeSimulationScenario;
+    if(resetScenario)scenario?.reset('expense');
+    scenario?.mount('expense',document.getElementById('expenseSimulationScenario'),()=>openSimulation(false));
     const editing=!!plan.id;
-    const current=buildProjection(plan,false,editing),simulated=buildProjection(plan,true);
+    const current=buildProjection(plan,false,editing),simulated=buildProjection(plan,true,false,'expense');
     const currentFinal=current.at(-1)?.closing??projectedSelectedClosing(editing?plan.id:null),simulatedFinal=simulated.at(-1)?.closing??currentFinal,impact=round(simulatedFinal-currentFinal),endMonth=simulated.at(-1)?.ym||state.settings.selectedMonth;
     const range=plan.openEnded?'sem data final':`${plan.firstInstallment}/${plan.totalInstallments}`;
     document.getElementById('expenseSimulationSubtitle').textContent=`${plan.name} • ${money(plan.installmentAmount)} por mês • ${range}`;
     document.getElementById('expenseSimCurrent').textContent=money(currentFinal);
     document.getElementById('expenseSimWith').textContent=money(simulatedFinal);
+    const withLabel=document.getElementById('expenseSimWithLabel');if(withLabel)withLabel.textContent=scenario?.count('expense')?'Saldo projetado no cenário ajustado':'Saldo projetado com a despesa';
     document.getElementById('expenseSimCurrentMonth').textContent=`ao fim de ${monthLabel(endMonth)}`;
     const currentLabel=document.getElementById('expenseSimCurrentLabel');if(currentLabel)currentLabel.textContent=editing?'Saldo projetado sem esta despesa':'Saldo projetado atual';
     const currentLegend=document.getElementById('expenseSimCurrentLegend');if(currentLegend)currentLegend.textContent=editing?'Sem esta despesa':'Projeção atual';
-    const horizonLabel=document.getElementById('expenseSimulationHorizonLabel');if(horizonLabel)horizonLabel.textContent=editing?`Projeção sem esta despesa e projeção com a despesa editada nos próximos ${horizon()} meses, na mesma escala.`:`Projeção atual e projeção com a despesa nos próximos ${horizon()} meses, na mesma escala.`;
+    const horizonLabel=document.getElementById('expenseSimulationHorizonLabel');if(horizonLabel)horizonLabel.textContent=scenario?.count('expense')?`Projeção atual comparada ao cenário ajustado nos próximos ${horizon()} meses.`:(editing?`Projeção sem esta despesa e projeção com a despesa editada nos próximos ${horizon()} meses, na mesma escala.`:`Projeção atual e projeção com a despesa nos próximos ${horizon()} meses, na mesma escala.`);
     const impactEl=document.getElementById('expenseSimImpact');impactEl.textContent=`Impacto: ${impact>=0?'+':''}${money(impact)}`;impactEl.style.color=impact<0?'#fca5a5':'#86efac';
     document.getElementById('expenseSimulationModal').classList.add('open');
     requestAnimationFrame(()=>requestAnimationFrame(()=>drawComparisonChart(current,simulated,editing)));
@@ -160,7 +171,7 @@
     let btn=document.getElementById('expenseSimulateBtn');
     const save=foot.querySelector('button[type="submit"]');if(!save)return false;
     if(!btn){btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='expenseSimulateBtn';btn.textContent='Simular';foot.insertBefore(btn,save)}
-    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation()};buildModal();return true;
+    btn.onclick=e=>{e?.stopImmediatePropagation();openSimulation(true)};buildModal();return true;
   }
 
   function init(){let tries=0;const timer=setInterval(()=>{tries++;if(install()||tries>120)clearInterval(timer)},100)}
