@@ -86,10 +86,12 @@
       }
     }
 
-    for(const inv of invoices){
-      if(String(inv.ym)!==ym||String(inv.status)==='Paga')continue;
-      const card=cards.find(c=>String(c.id)===String(inv.cardId));
-      const amount=invoiceTotalSafe(inv.cardId,ym);
+    for(const card of cards){
+      if(card?.active===false)continue;
+      const inv=invoices.find(i=>String(i.cardId)===String(card.id)&&String(i.ym)===ym);
+      if(String(inv?.status||'Aberta')==='Paga')continue;
+      const amount=invoiceTotalSafe(card.id,ym);
+      if(amount<=0)continue;
       const d=invoiceDueDateSafe(card,ym);
       unpaidInvoicesAll+=amount;
       if(d<today)overdue+=amount;
