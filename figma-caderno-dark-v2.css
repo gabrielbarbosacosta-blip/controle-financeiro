@@ -119,6 +119,18 @@ body,.app{background:var(--bg)!important;color:var(--text)!important}
   padding:clamp(28px,5vw,72px) clamp(28px,7vw,110px);
   overflow:hidden;
 }
+.auth-screen.prumo-login-prep .prumo-login-word{
+  opacity:0!important;
+  transform:translateY(7px)!important;
+  filter:blur(5px)!important;
+  animation:none!important;
+}
+.auth-screen.prumo-login-prep .auth-box{
+  opacity:0!important;
+  transform:translateY(12px)!important;
+  filter:blur(8px)!important;
+  pointer-events:none!important;
+}
 .prumo-login-story{
   position:relative;
   min-height:220px;
