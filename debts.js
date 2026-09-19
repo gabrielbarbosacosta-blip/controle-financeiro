@@ -34,6 +34,7 @@
       .debt-progress{height:7px;background:#172033;border-radius:999px;overflow:hidden;margin-top:7px}.debt-progress span{display:block;height:100%;background:#60a5fa;border-radius:999px}
       .debt-name{font-weight:750}.pfp-name-button{appearance:none;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.pfp-name-button:hover,.pfp-name-button:focus-visible{color:#8fc2ff;text-decoration:underline;text-underline-offset:3px;outline:none}.debt-sub{font-size:12px;color:#94a3b8;margin-top:3px}.debt-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-debts .summary-strip{margin-bottom:14px}
+      .debt-counterparty-box{grid-column:1/-1;padding:11px 12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:#0b1424}.debt-counterparty-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:9px}.debt-counterparty-state{grid-column:1/-1;min-height:14px;font-size:10px;color:var(--muted)}.debt-counterparty-state.ok{color:#86efac}.debt-counterparty-state.warn{color:#fde68a}.debt-counterparty-state.bad{color:#fca5a5}@media(max-width:620px){.debt-counterparty-row{grid-template-columns:1fr}.debt-counterparty-row .btn{width:100%}}
     `;
     document.head.appendChild(style);
   }
@@ -90,6 +91,7 @@
             <div class="field"><label>Parcela que inicia neste cadastro</label><input id="debtFirstInstallment" type="number" min="1" step="1" value="1" required><small class="muted">Ex.: despesa em 7/108: informe 7.</small></div>
             <div class="field"><label>Mês dessa parcela</label><input id="debtFirstMonth" type="month" required></div>
             <div class="field"><label>Dia do vencimento</label><input id="debtDueDay" type="number" min="1" max="31" value="10" required></div>
+            <div class="debt-counterparty-box"><label class="toggle"><input type="checkbox" id="debtCounterpartyEnabled"> Informar credor por CPF</label><div class="debt-counterparty-row" id="debtCounterpartyRow" style="display:none"><div class="field"><label>CPF do credor</label><input id="debtCounterpartyCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div><button type="button" class="btn small" id="debtCounterpartyLookup">Buscar CPF</button><div class="debt-counterparty-state" id="debtCounterpartyState"></div></div></div>
             <div class="field full"><label>Observação</label><textarea id="debtNotes" rows="3"></textarea></div>
           </div></div>
           <div class="modal-foot"><button type="button" class="btn" id="debtCancel">Cancelar</button><button class="btn primary" type="submit">Salvar despesa e gerar parcelas</button></div>
@@ -99,6 +101,9 @@
       document.getElementById('debtCancel').addEventListener('click',closeDebtModal);
       document.getElementById('debtModal').addEventListener('click',e=>{if(e.target.id==='debtModal')closeDebtModal()});
       document.getElementById('debtOpenEnded').addEventListener('change',toggleOpenEndedFields);
+      document.getElementById('debtCounterpartyEnabled').addEventListener('change',toggleDebtCounterparty);
+      document.getElementById('debtCounterpartyCpf').addEventListener('input',e=>{e.target.value=debtCpfMask(e.target.value);e.target.dataset.userId='';e.target.dataset.personName='';setDebtCounterpartyState('')});
+      document.getElementById('debtCounterpartyLookup').addEventListener('click',lookupDebtCounterparty);
       document.getElementById('debtForm').addEventListener('submit',saveDebtFromForm);
     }
   }
@@ -111,6 +116,25 @@
     total.disabled=!!open;
     total.required=!open;
     if(field)field.style.opacity=open?'.45':'1';
+  }
+
+  function debtCpfDigits(v){return String(v||'').replace(/\D/g,'').slice(0,11)}
+  function debtCpfMask(v){return debtCpfDigits(v).replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2')}
+  function setDebtCounterpartyState(text,kind=''){const el=document.getElementById('debtCounterpartyState');if(!el)return;el.textContent=text;el.className=('debt-counterparty-state '+kind).trim()}
+  function toggleDebtCounterparty(){const on=!!document.getElementById('debtCounterpartyEnabled')?.checked,row=document.getElementById('debtCounterpartyRow');if(row)row.style.display=on?'grid':'none'}
+  async function lookupDebtCounterparty(){
+    const input=document.getElementById('debtCounterpartyCpf'),cpf=debtCpfDigits(input?.value);
+    if(cpf.length!==11){setDebtCounterpartyState('Informe os 11 dígitos do CPF.','bad');return}
+    setDebtCounterpartyState('Buscando…');
+    try{
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      const {data,error}=await client.rpc('finance_find_profile_by_cpf',{p_cpf:cpf});if(error)throw error;
+      const uid=(typeof currentUser!=='undefined'?currentUser?.id:window.currentUser?.id)||'';
+      if(data?.found&&String(data.userId||'')===String(uid)){setDebtCounterpartyState('Use o CPF de outra pessoa.','bad');return}
+      input.dataset.userId=data?.found?String(data.userId||''):'';
+      input.dataset.personName=data?.found?(data.nickname||data.fullName||'Pessoa cadastrada'):'';
+      setDebtCounterpartyState(data?.found?('✓ '+input.dataset.personName+' · usuário do Prumo'):'CPF não encontrado no Prumo. Será mantido como credor externo.',data?.found?'ok':'warn');
+    }catch(e){console.error('Falha ao buscar credor por CPF.',e);setDebtCounterpartyState('Não foi possível consultar este CPF agora.','bad')}
   }
 
   function categoryOptions(selected='Dívidas'){
