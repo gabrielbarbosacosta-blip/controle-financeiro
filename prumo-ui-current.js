@@ -266,6 +266,7 @@
   }
 
   function startSplashRelease(){
+    if(window.__prumoSplashManagedByApp===true)return;
     const started=performance.now();
     const MIN_VISIBLE=3450;
     const SETTLE_AFTER_READY=520;
