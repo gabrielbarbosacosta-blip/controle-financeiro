@@ -271,20 +271,32 @@ function showLoginScreen(auth=document.getElementById('authScreen'),app=document
   }
 }
 
+function waitForFinanceCloud(timeoutMs=2500){
+  if(window.financeCloud?.activateSession)return Promise.resolve(true);
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=value=>{if(done)return;done=true;clearTimeout(timer);window.removeEventListener('finance:cloud-ready',onReady);resolve(value)};
+    const onReady=()=>finish(!!window.financeCloud?.activateSession);
+    const timer=setTimeout(()=>finish(!!window.financeCloud?.activateSession),timeoutMs);
+    window.addEventListener('finance:cloud-ready',onReady,{once:true});
+  });
+}
+
 async function handleSession(session){
   const nextUser=session?.user||null;
   const auth=document.getElementById('authScreen');
   const app=document.getElementById('appRoot');
+
   if(!nextUser){
     const returningFromApp=hadAuthenticatedSession;
     currentUser=null;
     hadAuthenticatedSession=false;
+    try{window.financeCloud?.deactivateSession?.()}catch(_e){}
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
     showLoginScreen(auth,app);
 
     if(auth){
-
       if(returningFromApp){
         auth.querySelectorAll('.prumo-login-word,.auth-box').forEach(el=>{
           try{el.getAnimations?.().forEach(animation=>animation.cancel())}catch(e){}
@@ -295,9 +307,7 @@ async function handleSession(session){
         auth.classList.add('prumo-login-prep');
       }
 
-      if(auth.dataset.prumoIntroRunning==='1'){
-        return;
-      }
+      if(auth.dataset.prumoIntroRunning==='1')return;
 
       if(auth.dataset.prumoIntroPlayed!=='1'){
         auth.classList.add('prumo-login-prep');
@@ -318,19 +328,31 @@ async function handleSession(session){
     auth.classList.remove('prumo-login-intro','prumo-login-prep');
   }
 
-  // Once Supabase returned a valid session, always finish the splash/login
-  // transition before doing any remote-state work. This prevents an
-  // authenticated user from remaining visually trapped on the login screen.
+  // app.js is the only owner of auth visibility from this point forward.
   showAuthenticatedApp(auth,app);
-  setSyncStatus('Carregando…');
+  setSyncStatus('Carregando banco relacional…');
 
-  const remote=currentUser.user_metadata?.finance_state;
-  if(remote&&remote.settings&&Array.isArray(remote.transactions)){state=remote}else{await pushStateToCloud()}
-  selectedCardId=state.cards[0]?.id||null;
-  selectedInvoiceYm=state.settings.selectedMonth;
-  showAuthenticatedApp(auth,app);
-  renderAll();
-  setSyncStatus('Sincronizado');
+  try{
+    await waitForFinanceCloud();
+    if(window.financeCloud?.activateSession){
+      await window.financeCloud.activateSession(currentUser.id);
+    }else{
+      throw new Error('finance_cloud_unavailable');
+    }
+
+    selectedCardId=state.cards[0]?.id||null;
+    selectedInvoiceYm=state.settings.selectedMonth;
+    renderAll();
+    showAuthenticatedApp(auth,app);
+    setSyncStatus('Sincronizado com banco relacional');
+  }catch(error){
+    console.error('Falha ao preparar sessão autenticada:',error);
+
+    // Data-loading errors never invalidate a valid Supabase session.
+    try{renderAll()}catch(_e){}
+    showAuthenticatedApp(auth,app);
+    setSyncStatus('Falha ao carregar dados do servidor',true);
+  }
 }
 let authTransitionTimer=null;
 let interactiveAuthInProgress=false;
