@@ -82,9 +82,11 @@
     const rows=sharedReceivables(month);
     let plans=[],managed=[];
     try{plans=Array.isArray(state?.incomePlans)?state.incomePlans:[];managed=(Array.isArray(state?.transactions)?state.transactions:[]).filter(t=>t.incomeManaged===true)}catch(e){}
-    const all=[...managed,...rows],pending=all.filter(t=>String(t.status||'').toLowerCase()==='pendente');
+    const standaloneRows=rows.filter(t=>t.incomeManaged!==true),byId=new Map();
+    [...managed,...standaloneRows].forEach(t=>byId.set(String(t.id||''),t));
+    const all=[...byId.values()],pending=all.filter(t=>String(t.status||'').toLowerCase()==='pendente');
     const count=document.getElementById('incomePlanCount'),pc=document.getElementById('incomePendingCount'),pt=document.getElementById('incomePendingTotal'),nd=document.getElementById('incomeNextDue');
-    if(count)count.textContent=String(plans.length+rows.length);
+    if(count)count.textContent=String(plans.length+standaloneRows.length);
     if(pc)pc.textContent=String(pending.length);
     if(pt)pt.textContent=money(pending.reduce((s,t)=>s+(Number(t.amount)||0),0));
     if(nd){const next=[...pending].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))[0];nd.textContent=next?`${monthLabelSafe(String(next.date||'').slice(0,7))} • ${money(next.amount)}`:'—'}
