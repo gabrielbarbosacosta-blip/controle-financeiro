@@ -4,3 +4,12 @@ html.caderno-stable #page-projection .summary-strip .mini .v.positive,
 html.caderno-stable #page-projection .data-table td.positive{color:#91d6b9!important}
 html.caderno-stable #page-projection .summary-strip .mini .v.negative,
 html.caderno-stable #page-projection .data-table td.negative{color:#ef8a81!important}
+
+html.caderno-stable .goal-contributor-summary{background:#0a1524!important;border-color:#22344b!important}
+html.caderno-stable .goal-contributor-summary-title{color:#8293a8!important}
+html.caderno-stable .goal-contributor-summary-month,html.caderno-stable .goal-contributor-summary-empty{color:#71839a!important}
+html.caderno-stable .goal-contributor-row{border-color:#1f3047!important}
+html.caderno-stable .goal-contributor-name{color:#e6edf5!important}
+html.caderno-stable .goal-contributor-value{color:#7f90a5!important}
+html.caderno-stable .goal-contributor-value strong{color:#dce6f2!important}
+html.caderno-stable .goal-contributor-value.month strong{color:#91d6b9!important}
