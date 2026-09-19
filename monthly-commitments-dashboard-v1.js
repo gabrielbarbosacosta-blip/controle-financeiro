@@ -15,7 +15,7 @@
     const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
       #monthlyCommitmentsCard{margin-top:14px;margin-bottom:14px}
       .monthly-commitments-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-      .monthly-commitment-metric{padding:13px 14px;border:1px solid #23334a;border-radius:12px;background:#0d1929;min-width:0}
+      .monthly-commitment-metric{padding:13px 14px;border:1px solid #23334a;border-radius:12px;background:#0d1929;min-width:0}.monthly-commitment-metric[data-history-filter]{cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease}.monthly-commitment-metric[data-history-filter]:hover{border-color:#3b5472;background:#101f32;transform:translateY(-1px)}
       .monthly-commitment-metric .k{font-size:9px;font-weight:760;color:#91a1b4;letter-spacing:.02em}
       .monthly-commitment-metric .v{font:800 18px 'DM Mono',monospace;letter-spacing:-.04em;margin-top:6px;color:#eef3f8;white-space:nowrap}
       .monthly-commitment-metric .h{font-size:9px;color:#71839a;margin-top:5px;line-height:1.35}
@@ -119,7 +119,12 @@
       card=document.createElement('div');
       card.className='card';
       card.id='monthlyCommitmentsCard';
-      card.innerHTML=`<div class="section-head"><div><h3>Compromissos do mês</h3><div class="muted" id="monthlyCommitmentsSubtitle">Valores pendentes dentro da competência selecionada.</div></div></div><div class="monthly-commitments-grid"><div class="monthly-commitment-metric due"><div class="k">A vencer</div><div class="v" id="monthlyDueValue">—</div><div class="h">Despesas e faturas ainda não vencidas</div></div><div class="monthly-commitment-metric receive"><div class="k">A receber</div><div class="v" id="monthlyReceivableValue">—</div><div class="h">Receitas pendentes no mês</div></div><div class="monthly-commitment-metric overdue"><div class="k">Vencido</div><div class="v" id="monthlyOverdueValue">—</div><div class="h">Despesas e faturas em atraso</div></div><div class="monthly-commitment-metric forecast" id="monthlyForecastMetric"><div class="k">Saldo previsto</div><div class="v" id="monthlyForecastValue">—</div><div class="h">Saldo após pendências do mês</div></div></div><div class="monthly-commitment-foot"><span id="monthlyCommitmentsContext"></span><span id="monthlyNextDue"></span></div>`;
+      card.innerHTML=`<div class="section-head"><div><h3>Compromissos do mês</h3><div class="muted" id="monthlyCommitmentsSubtitle">Valores pendentes dentro da competência selecionada.</div></div></div><div class="monthly-commitments-grid"><div class="monthly-commitment-metric due" data-history-filter="due" role="button" tabindex="0" aria-label="Ver lançamentos a vencer"><div class="k">A vencer</div><div class="v" id="monthlyDueValue">—</div><div class="h">Despesas e faturas ainda não vencidas</div></div><div class="monthly-commitment-metric receive" data-history-filter="receivable" role="button" tabindex="0" aria-label="Ver valores a receber"><div class="k">A receber</div><div class="v" id="monthlyReceivableValue">—</div><div class="h">Receitas pendentes no mês</div></div><div class="monthly-commitment-metric overdue" data-history-filter="overdue" role="button" tabindex="0" aria-label="Ver lançamentos vencidos"><div class="k">Vencido</div><div class="v" id="monthlyOverdueValue">—</div><div class="h">Despesas e faturas em atraso</div></div><div class="monthly-commitment-metric forecast" id="monthlyForecastMetric"><div class="k">Saldo previsto</div><div class="v" id="monthlyForecastValue">—</div><div class="h">Saldo após pendências do mês</div></div></div><div class="monthly-commitment-foot"><span id="monthlyCommitmentsContext"></span><span id="monthlyNextDue"></span></div>`;
+      card.querySelectorAll('[data-history-filter]').forEach(metric=>{
+        const open=()=>openHistoryFilter(metric.dataset.historyFilter);
+        metric.addEventListener('click',open);
+        metric.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
+      });
       const shared=document.getElementById('sharedDashboardCard');
       if(shared)page.insertBefore(card,shared);
       else page.appendChild(card);
@@ -128,6 +133,22 @@
       if(shared&&card.nextElementSibling!==shared)page.insertBefore(card,shared);
     }
     return card;
+  }
+
+  function openHistoryFilter(filter){
+    try{
+      if(typeof showPage==='function')showPage('history');
+      else document.querySelector('.nav button[data-page="history"]')?.click();
+      const search=document.getElementById('searchFilter'),type=document.getElementById('typeFilter'),category=document.getElementById('categoryFilter'),status=document.getElementById('statusFilter'),deadline=document.getElementById('deadlineFilter');
+      if(search)search.value='';if(category)category.value='';
+      if(filter==='receivable'){
+        if(type)type.value='Receita';if(status)status.value='Pendente';if(deadline)deadline.value='';
+      }else{
+        if(type)type.value='';if(status)status.value='';if(deadline)deadline.value=filter;
+      }
+      if(typeof renderHistory==='function')renderHistory();
+      setTimeout(()=>document.getElementById('historyBody')?.closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'}),40);
+    }catch(e){console.warn('Falha ao abrir lançamentos filtrados.',e)}
   }
 
   function render(){
