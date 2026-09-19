@@ -163,12 +163,17 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
 (function(){
   const originalCreateClient=window.supabase.createClient.bind(window.supabase);
   window.supabase.createClient=function(url,key,options){
-    const proxied=/\.supabase\.co\/?$/.test(String(url||''))?`${window.location.origin}/supabase`:url;
-    return originalCreateClient(proxied,key,options);
+    const host=String(window.location.hostname||'').toLowerCase();
+    const isLocalHost=host==='localhost'||host==='127.0.0.1'||host==='::1';
+    const isPrivateIpv4=/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+    const isLocal=window.location.protocol==='file:'||isLocalHost||isPrivateIpv4;
+    const isSupabase=/\.supabase\.co\/?$/.test(String(url||''));
+    const resolved=isSupabase&&!isLocal?`${window.location.origin}/supabase`:url;
+    return originalCreateClient(resolved,key,options);
   };
 })();
 </script>
-<script src="app.js?v=20260918-loginwaapi1"></script>
+<script src="app.js?v=20260918-localauth1"></script>
 <script src="cloud-sync.js"></script>
 <script src="csv-import.js"></script>
 <script src="sync-icon.js"></script>
@@ -183,7 +188,7 @@ body.caderno-splash-exit:not(.caderno-splash-done)::after{content:'';position:fi
 <script src="projected-closing.js"></script>
 <script src="purchase-management.js"></script>
 <script src="purchase-simulator.js"></script>
-<script src="history-status.js?v=20260918-loginwaapi1"></script>
+<script src="history-status.js?v=20260918-localauth1"></script>
 <script src="financial-entity-panel-runtime-v2.js?v=20260918-financialpanel1"></script>
 </body>
 </html>
