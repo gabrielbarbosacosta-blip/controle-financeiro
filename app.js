@@ -215,7 +215,31 @@ async function handleSession(session){
   renderAll();
   setSyncStatus('Sincronizado');
 }
-async function initApp(){const {data}=await sb.auth.getSession();await handleSession(data.session);sb.auth.onAuthStateChange(async(_event,session)=>{await handleSession(session)})}
+let authTransitionTimer=null;
+function scheduleAuthSessionHandling(session){
+  clearTimeout(authTransitionTimer);
+  authTransitionTimer=setTimeout(()=>{
+    Promise.resolve(handleSession(session)).catch(error=>{
+      console.error('Falha ao processar mudança de sessão',error);
+      const msg=document.getElementById('authMsg');
+      if(msg&&!session)msg.textContent='Não foi possível atualizar a sessão.';
+    });
+  },0);
+}
+async function initApp(){
+  const {data,error}=await sb.auth.getSession();
+  if(error)throw error;
+  await handleSession(data.session);
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN'||event==='SIGNED_OUT'){
+      scheduleAuthSessionHandling(session);
+      return;
+    }
+    if(event==='USER_UPDATED'&&session?.user&&currentUser?.id===session.user.id){
+      currentUser=session.user;
+    }
+  });
+}
 
 function getCard(id){return state.cards.find(c=>c.id===id)}
 function getInvoice(cardId,ym){return state.invoices.find(i=>i.cardId===cardId&&i.ym===ym)}
@@ -477,8 +501,8 @@ document.getElementById('authLogin').onclick=async()=>{
   try{
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error){msg.textContent=error.message;return}
-    msg.textContent='';
-    await handleSession(data.session);
+    if(!data?.session){msg.textContent='A autenticação não retornou uma sessão.';return}
+    msg.textContent='Carregando seus dados…';
   }catch(error){
     console.error('Falha no login',error);
     msg.textContent='Não foi possível conectar ao serviço de autenticação.';
@@ -491,8 +515,6 @@ document.getElementById('logoutBtn').onclick=async()=>{
   const {error}=await sb.auth.signOut();
   if(error){
     console.error('Falha ao sair da conta',error);
-    return;
   }
-  if(currentUser)await handleSession(null);
 };
 initApp();
