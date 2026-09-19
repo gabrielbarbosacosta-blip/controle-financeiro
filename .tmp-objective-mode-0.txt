@@ -1,0 +1,57 @@
+(function(){
+  if(window.__objectiveContributionModesV1Loaded)return;
+  window.__objectiveContributionModesV1Loaded=true;
+
+  const STYLE_ID='objective-contribution-modes-v1-style';
+  let activeGoalId='';
+  let activeKind='';
+  let participantRows=[];
+  let loadingParticipants=false;
+  let submitting=false;
+  let observer=null;
+
+  function getSb(){try{return sb}catch(e){return window.sb||null}}
+  function getUserId(){try{return currentUser?.id||''}catch(e){return window.currentUser?.id||''}}
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
+  const money=v=>typeof fmtMoney==='function'?fmtMoney(v):new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
+  function currentYm(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+  function goalCard(id){return [...document.querySelectorAll('.goal-card[data-goal-id]')].find(card=>String(card.dataset.goalId)===String(id))||null}
+  function goalName(id){return goalCard(id)?.querySelector('.goal-title')?.textContent?.trim()||'Objetivo'}
+
+  function injectStyles(){
+    if(document.getElementById(STYLE_ID))return;
+    const s=document.createElement('style');s.id=STYLE_ID;s.textContent=`
+      .goal-mode-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .goal-mode-option{appearance:none;text-align:left;padding:15px;border:1px solid #2a3d57;border-radius:14px;background:#0e1a2b;color:#e8eef6;cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+      .goal-mode-option:hover{border-color:#46617f;background:#112238;transform:translateY(-1px)}
+      .goal-mode-option strong{display:block;font-size:13px;font-weight:850}
+      .goal-mode-option span{display:block;margin-top:5px;color:#8fa0b5;font-size:10px;line-height:1.45}
+      .goal-mode-option.shared strong{color:#ddeaac}
+      .goal-share-intro{padding:11px 12px;border:1px solid #2b4059;border-radius:12px;background:#0f1d30;color:#a9b8c9;font-size:11px;line-height:1.5;margin-bottom:13px}
+      .goal-share-intro strong{color:#e6edf5}
+      .goal-share-participants{display:grid;gap:8px;margin-top:12px}
+      .goal-share-person{display:grid;grid-template-columns:minmax(0,1fr) 110px 96px;gap:9px;align-items:center;padding:10px 11px;border:1px solid #263951;border-radius:12px;background:#0c1828}
+      .goal-share-person.disabled{opacity:.55}
+      .goal-share-person-main{min-width:0}.goal-share-person-name{font-size:11px;font-weight:800;color:#e4ebf3}.goal-share-person-sub{font-size:9px;color:#8293a8;margin-top:3px}
+      .goal-share-person-check{display:flex;align-items:center;gap:7px;font-size:10px;color:#9eb0c3}.goal-share-person-check input{accent-color:#ddeaac}
+      .goal-share-percent label{display:block;font-size:9px;color:#7f91a6;margin-bottom:4px}.goal-share-percent input{width:100%}
+      .goal-share-amount{text-align:right}.goal-share-amount strong{display:block;font-size:11px;color:#eef3f8}.goal-share-amount span{display:block;font-size:9px;color:#8293a8;margin-top:3px}
+      .goal-share-total{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;padding:9px 11px;border-radius:11px;background:#101d2e;border:1px solid #263951;font-size:10px;color:#8fa0b5}
+      .goal-share-total strong{font-size:11px;color:#e6edf5}.goal-share-total.bad strong{color:#ef8a81}.goal-share-total.ok strong{color:#91d6b9}
+      .goal-share-message{min-height:14px;margin-top:9px;font-size:10px;color:#8fa0b5}.goal-share-message.bad{color:#ef8a81}.goal-share-message.ok{color:#91d6b9}
+      .goal-shared-recurring-disable{margin-right:auto}
+      @media(max-width:650px){.goal-mode-options{grid-template-columns:1fr}.goal-share-person{grid-template-columns:minmax(0,1fr) 95px}.goal-share-amount{grid-column:2;text-align:left}}
+    `;document.head.appendChild(s);
+  }
+
+  function ensureModals(){
+    if(!document.getElementById('goalModeChoiceModal')){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="modal-backdrop" id="goalModeChoiceModal"><div class="modal"><div class="modal-head"><h3 id="goalModeChoiceTitle">Aporte</h3><button type="button" class="btn ghost" data-goal-mode-close="goalModeChoiceModal">✕</button></div><div class="modal-body"><div class="goal-modal-note" id="goalModeChoiceLead"></div><div class="goal-mode-options"><button type="button" class="goal-mode-option" data-goal-mode-choice="individual"><strong id="goalModeIndividualTitle">Individual</strong><span id="goalModeIndividualText"></span></button><button type="button" class="goal-mode-option shared" data-goal-mode-choice="shared"><strong id="goalModeSharedTitle">Compartilhado</strong><span id="goalModeSharedText"></span></button></div></div></div></div>`;
+      document.body.appendChild(wrap.firstElementChild);
+    }
+    if(!document.getElementById('goalSharedContributionModal')){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="modal-backdrop" id="goalSharedContributionModal"><div class="modal"><form id="goalSharedContributionForm"><div class="modal-head"><h3 id="goalSharedContributionTitle">Aporte extra compartilhado</h3><button type="button" class="btn ghost" data-goal-mode-close="goalSharedContributionModal">✕</button></div><div class="modal-body"><div class="goal-share-intro"><strong>Você paga o valor total.</strong> O objetivo recebe o aporte uma única vez. A parte das outras pessoas vira reembolso em <strong>Compartilhamentos → Acertos por pessoa</strong>.</div><input type="hidden" id="goalSharedContributionGoalId"><div class="form-grid"><div class="field"><label>Valor total do aporte (R$)</label><input id="goalSharedContributionAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Data</label><input id="goalSharedContributionDate" type="date" required></div><div class="field"><label>Conta de origem</label><input id="goalSharedContributionAccount" placeholder="Ex.: Banco do Brasil"></div><div class="field full"><label>Observação</label><textarea id="goalSharedContributionNotes" rows="2" placeholder="Opcional"></textarea></div></div><div class="goal-share-participants" id="goalSharedContributionParticipants"></div><div class="goal-share-total" id="goalSharedContributionTotal"></div><div class="goal-share-message" id="goalSharedContributionMsg"></div></div><div class="modal-foot"><button type="button" class="btn" data-goal-mode-close="goalSharedContributionModal">Cancelar</button><button class="btn primary" type="submit">Registrar aporte compartilhado</button></div></form></div></div>`;
+      document.body.appendChild(wrap.firstElementChild);
+    }
