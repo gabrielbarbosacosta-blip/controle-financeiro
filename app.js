@@ -253,7 +253,7 @@ function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=doc
   }
 }
 
-function showLoginScreen(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
+function showLoginScreen(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot'),{reveal=true}={}){
   clearTimeout(authenticatedSplashReleaseTimer);
   clearTimeout(authenticatedSplashExitTimer);
   document.documentElement?.classList.remove('prumo-current-ui-ready');
@@ -263,12 +263,20 @@ function showLoginScreen(auth=document.getElementById('authScreen'),app=document
     app.hidden=true;
     app.setAttribute('aria-hidden','true');
   }
-  if(auth){
+  if(auth&&reveal){
     auth.hidden=false;
     auth.classList.remove('hidden');
     auth.removeAttribute('aria-hidden');
     auth.style.removeProperty('pointer-events');
   }
+}
+
+function revealPreparedLogin(auth){
+  if(!auth)return;
+  auth.hidden=false;
+  auth.classList.remove('hidden');
+  auth.removeAttribute('aria-hidden');
+  auth.style.removeProperty('pointer-events');
 }
 
 function showLoginImmediately(auth){
@@ -314,29 +322,49 @@ async function handleSession(session){
   const app=document.getElementById('appRoot');
 
   if(!nextUser){
+    const alreadyVisibleSignedOut=
+      !currentUser&&
+      auth&&!auth.hidden&&!auth.classList.contains('hidden')&&
+      app?.classList.contains('auth-hidden');
+
+    if(alreadyVisibleSignedOut)return;
+
     const returningFromApp=hadAuthenticatedSession;
     currentUser=null;
     hadAuthenticatedSession=false;
     try{window.financeCloud?.deactivateSession?.()}catch(_e){}
     document.body?.classList.remove('prumo-app-splash','caderno-splash-exit');
     document.body?.classList.add('caderno-splash-done','prumo-login-mode');
-    showLoginScreen(auth,app);
+
+    // Prepare the complete login layout while it is still hidden.
+    // This prevents a visible flex -> grid relayout after logout.
+    if(auth){
+      auth.hidden=true;
+      auth.classList.add('hidden');
+      auth.setAttribute('aria-hidden','true');
+      auth.style.pointerEvents='none';
+    }
+    showLoginScreen(auth,app,{reveal:false});
 
     if(auth){
       if(returningFromApp){
-        // Logout should reveal the existing login screen once, already settled.
-        // Replaying the intro here caused the login UI to animate over itself.
         showLoginImmediately(auth);
+        revealPreparedLogin(auth);
         return;
       }
 
-      if(auth.dataset.prumoIntroRunning==='1')return;
+      if(auth.dataset.prumoIntroRunning==='1'){
+        revealPreparedLogin(auth);
+        return;
+      }
 
       if(auth.dataset.prumoIntroPlayed!=='1'){
         auth.classList.add('prumo-login-prep');
+        revealPreparedLogin(auth);
         requestAnimationFrame(()=>runPrumoLoginIntro(auth));
       }else{
         showLoginImmediately(auth);
+        revealPreparedLogin(auth);
       }
     }
     return;
