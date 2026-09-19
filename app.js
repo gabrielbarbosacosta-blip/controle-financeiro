@@ -303,7 +303,25 @@ document.getElementById('restoreFile').onchange=e=>{const f=e.target.files[0];if
 document.getElementById('csvBtn').onclick=()=>{const rows=[['Competência','Data','Tipo','Descrição','Categoria','Conta','Status','Valor']];for(const ym of allMonthOptions()){historyRowsForMonth(ym).forEach(r=>rows.push([ym,r.date,r.type,r.description,r.category,r.account,r.status,r.amount]))}const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const csv='\ufeff'+rows.map(r=>r.map(esc).join(';')).join('\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='controle-financeiro.csv';a.click();URL.revokeObjectURL(a.href)};
 document.getElementById('resetBtn').onclick=()=>{if(confirm('Apagar os dados desta versão e recriar a base inicial?')){state=seedData();selectedCardId=state.cards[0]?.id||null;selectedInvoiceYm=state.settings.selectedMonth;renderAll()}};
 window.addEventListener('resize',()=>{if(document.getElementById('page-dashboard').classList.contains('active'))renderDashboard();if(document.getElementById('page-projection').classList.contains('active'))renderProjection();if(document.getElementById('page-cards').classList.contains('active'))renderCards()});
-document.getElementById('authLogin').onclick=async()=>{const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,msg=document.getElementById('authMsg');msg.textContent='Entrando…';const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){msg.textContent=error.message;return}msg.textContent='';await handleSession(data.session)};
+document.getElementById('authLogin').onclick=async()=>{
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const msg=document.getElementById('authMsg');
+  const btn=document.getElementById('authLogin');
+  msg.textContent='Entrando…';
+  if(btn)btn.disabled=true;
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error){msg.textContent=error.message;return}
+    msg.textContent='';
+    await handleSession(data.session);
+  }catch(error){
+    console.error('Falha no login',error);
+    msg.textContent='Não foi possível conectar ao serviço de autenticação.';
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+};
 document.getElementById('authSignup').onclick=async()=>{const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,msg=document.getElementById('authMsg');if(password.length<6){msg.textContent='Use uma senha com pelo menos 6 caracteres.';return}msg.textContent='Criando conta…';const {data,error}=await sb.auth.signUp({email,password});if(error){msg.textContent=error.message;return}if(data.session){msg.textContent='';await handleSession(data.session)}else msg.textContent='Conta criada. Confirme o e-mail enviado pelo Supabase e depois entre.'};
 document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();currentUser=null;await handleSession(null)};
 initApp();
