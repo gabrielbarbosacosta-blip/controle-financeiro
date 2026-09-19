@@ -209,8 +209,43 @@ function scheduleAuthenticatedSplashRelease(auth=document.getElementById('authSc
   },wait);
 }
 
+function authenticatedUiAlreadyOpen(userId=currentUser?.id){
+  const auth=document.getElementById('authScreen');
+  const app=document.getElementById('appRoot');
+  const body=document.body;
+  return !!(
+    userId&&currentUser?.id===userId&&
+    app&&!app.hidden&&!app.classList.contains('auth-hidden')&&
+    auth&&(auth.hidden||auth.classList.contains('hidden'))&&
+    body?.classList.contains('caderno-splash-done')&&
+    !body.classList.contains('prumo-login-mode')&&
+    !body.classList.contains('prumo-app-splash')&&
+    !body.classList.contains('caderno-splash-exit')
+  );
+}
+
 function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
   const body=document.body,root=document.documentElement;
+
+  // Returning to the tab or receiving a repeated SIGNED_IN must never replay
+  // the splash when this same authenticated UI is already active.
+  if(authenticatedUiAlreadyOpen()){
+    clearTimeout(authenticatedSplashReleaseTimer);
+    clearTimeout(authenticatedSplashExitTimer);
+    root?.classList.add('prumo-current-ui-ready');
+    if(auth){
+      auth.classList.add('hidden');
+      auth.hidden=true;
+      auth.setAttribute('aria-hidden','true');
+      auth.style.pointerEvents='none';
+    }
+    if(app){
+      app.classList.remove('auth-hidden');
+      app.hidden=false;
+      app.removeAttribute('aria-hidden');
+    }
+    return;
+  }
   if(auth){
     auth.classList.add('hidden');
     auth.hidden=true;
@@ -464,6 +499,10 @@ async function initApp(){
   sb.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_IN'){
       cancelPendingSignedOut();
+      if(session?.user&&authenticatedUiAlreadyOpen(session.user.id)){
+        currentUser=session.user;
+        return;
+      }
       if(interactiveAuthInProgress)return;
       scheduleAuthSessionHandling(session);
       return;
