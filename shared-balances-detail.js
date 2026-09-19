@@ -158,7 +158,7 @@
       if(e.direction!==side||!e.transactionId)return false;
       const status=String(e.status||'').toLowerCase();
       if(side==='pay')return status==='pendente';
-      return !isSettled(status);
+      return !isSettled(status)&&status!=='aguardando confirmação';
     });
   }
 
