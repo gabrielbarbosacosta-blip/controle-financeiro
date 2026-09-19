@@ -40,7 +40,7 @@
   function ensureModals(){
     if(!document.getElementById('goalRecurringModal')){
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="modal-backdrop" id="goalRecurringModal"><div class="modal"><form id="goalRecurringForm"><div class="modal-head"><h3 id="goalRecurringTitle">Despesa recorrente do objetivo</h3><button type="button" class="btn ghost" data-goal-collab-close="goalRecurringModal">✕</button></div><div class="modal-body"><div class="goal-recurring-summary">O sistema criará <strong>uma despesa pendente por mês</strong> em <strong>Despesa → Objetivos</strong>. Cada competência pode ser paga separadamente; ao marcar como paga, o valor passa a compor o total reservado do objetivo.</div><input type="hidden" id="goalRecurringGoalId"><div class="form-grid"><div class="field"><label>Valor mensal (R$)</label><input id="goalRecurringAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Primeiro mês</label><input id="goalRecurringStart" type="month" required></div><div class="field"><label>Último mês (opcional)</label><input id="goalRecurringEnd" type="month"><small class="muted">Sem preencher, usa o prazo do objetivo; se também não houver prazo, projeta 24 meses.</small></div><div class="field"><label>Conta de origem</label><input id="goalRecurringAccount" placeholder="Ex.: Banco do Brasil"></div></div></div><div class="modal-foot"><button type="button" class="btn danger goal-recurring-danger" id="goalRecurringDisable">Desativar recorrência</button><button type="button" class="btn" data-goal-collab-close="goalRecurringModal">Cancelar</button><button class="btn primary" type="submit">Cadastrar recorrência</button></div></form></div></div>`;
+      wrap.innerHTML=`<div class="modal-backdrop" id="goalRecurringModal"><div class="modal"><form id="goalRecurringForm"><div class="modal-head"><h3 id="goalRecurringTitle">Aporte recorrente individual</h3><button type="button" class="btn ghost" data-goal-collab-close="goalRecurringModal">✕</button></div><div class="modal-body"><div class="goal-recurring-summary">O sistema criará <strong>um aporte pendente por mês</strong> em <strong>Despesa → Objetivos</strong>. Cada competência pode ser paga separadamente; ao marcar como paga, o valor passa a compor o total reservado do objetivo.</div><input type="hidden" id="goalRecurringGoalId"><div class="form-grid"><div class="field"><label>Valor mensal (R$)</label><input id="goalRecurringAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Primeiro mês</label><input id="goalRecurringStart" type="month" required></div><div class="field"><label>Último mês (opcional)</label><input id="goalRecurringEnd" type="month"><small class="muted">Sem preencher, usa o prazo do objetivo; se também não houver prazo, projeta 24 meses.</small></div><div class="field"><label>Conta de origem</label><input id="goalRecurringAccount" placeholder="Ex.: Banco do Brasil"></div></div></div><div class="modal-foot"><button type="button" class="btn danger goal-recurring-danger" id="goalRecurringDisable">Desativar recorrência</button><button type="button" class="btn" data-goal-collab-close="goalRecurringModal">Cancelar</button><button class="btn primary" type="submit">Cadastrar recorrência</button></div></form></div></div>`;
       document.body.appendChild(wrap.firstElementChild);
       document.getElementById('goalRecurringForm').addEventListener('submit',saveRecurring);
       document.getElementById('goalRecurringDisable').addEventListener('click',disableRecurring);
@@ -128,7 +128,7 @@
 
       if(g.isOwner){
         if(actions){
-          const recurring=button(g.recurringEnabled?'↻ Editar recorrência':'↻ Despesa recorrente','data-goal-recurring',g.id);
+          const recurring=button('↻ Aporte recorrente','data-goal-recurring',g.id);
           const share=button('Compartilhar','data-goal-share',g.id);
           actions.insertBefore(recurring,actions.querySelector('[data-goal-edit]')||null);
           actions.insertBefore(share,actions.querySelector('[data-goal-edit]')||null);
@@ -158,7 +158,7 @@
   function openRecurring(id){
     ensureModals();const g=goalById(id);if(!g||!g.isOwner)return;
     document.getElementById('goalRecurringGoalId').value=id;
-    document.getElementById('goalRecurringTitle').textContent=`Despesa recorrente · ${g.name}`;
+    document.getElementById('goalRecurringTitle').textContent=`Aporte recorrente individual · ${g.name}`;
     document.getElementById('goalRecurringAmount').value=Number(g.plannedMonthly)||'';
     document.getElementById('goalRecurringStart').value=g.recurringStartMonth||ym();
     document.getElementById('goalRecurringEnd').value=g.recurringEndMonth||g.targetMonth||'';
@@ -171,18 +171,22 @@
     e.preventDefault();if(busy)return;busy=true;const btn=e.submitter;if(btn)btn.disabled=true;
     const id=document.getElementById('goalRecurringGoalId').value,amount=Number(document.getElementById('goalRecurringAmount').value)||0,start=document.getElementById('goalRecurringStart').value,end=document.getElementById('goalRecurringEnd').value,account=document.getElementById('goalRecurringAccount').value.trim();
     try{
+      const sharedOff=await getSb().rpc('finance_disable_goal_shared_recurring_rule',{p_goal_id:id});
+      if(sharedOff.error)throw sharedOff.error;if(sharedOff.data?.ok===false)throw new Error(sharedOff.data.error||'shared_disable_failed');
       const {data,error}=await getSb().rpc('finance_set_goal_recurring_plan',{p_goal_id:id,p_enabled:true,p_amount:amount,p_start_month:start?`${start}-01`:null,p_end_month:end?`${end}-01`:null,p_account:account});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'recurring_failed');
       closeModal('goalRecurringModal');await refreshGoals(true);statusText('Recorrência do objetivo cadastrada');
-    }catch(err){console.error('Falha ao cadastrar recorrência.',err);alert('Não foi possível cadastrar a despesa recorrente do objetivo.')}
+    }catch(err){console.error('Falha ao cadastrar recorrência.',err);alert('Não foi possível cadastrar o aporte recorrente do objetivo.')}
     finally{busy=false;if(btn)btn.disabled=false}
   }
 
   async function disableRecurring(){
     if(busy)return;const id=document.getElementById('goalRecurringGoalId').value,g=goalById(id);if(!g)return;
-    if(!confirm('Desativar as despesas recorrentes futuras deste objetivo? Aportes já pagos serão preservados.'))return;
+    if(!confirm('Desativar os aportes recorrentes futuros deste objetivo? Aportes já pagos serão preservados.'))return;
     busy=true;const btn=document.getElementById('goalRecurringDisable');btn.disabled=true;
     try{
+      const sharedOff=await getSb().rpc('finance_disable_goal_shared_recurring_rule',{p_goal_id:id});
+      if(sharedOff.error)throw sharedOff.error;if(sharedOff.data?.ok===false)throw new Error(sharedOff.data.error||'shared_disable_failed');
       const {data,error}=await getSb().rpc('finance_set_goal_recurring_plan',{p_goal_id:id,p_enabled:false,p_amount:Number(g.plannedMonthly)||0,p_start_month:null,p_end_month:null,p_account:g.recurringAccount||''});
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'disable_failed');
       closeModal('goalRecurringModal');await refreshGoals(true);statusText('Recorrência do objetivo desativada');
