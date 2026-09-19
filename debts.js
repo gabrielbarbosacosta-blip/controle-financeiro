@@ -83,7 +83,7 @@
           <div class="modal-body"><div class="notice" style="margin-bottom:14px">Para cobranças contínuas, marque <strong>Sem data final</strong>. O sistema manterá automaticamente os próximos ${OPEN_HORIZON} meses na projeção.</div><div class="form-grid">
             <input type="hidden" id="debtId">
             <div class="field"><label>Nome da despesa</label><input id="debtName" required placeholder="Ex.: CDC PREVI"></div>
-            <div class="field"><label>Credor / conta</label><input id="debtAccount" placeholder="Ex.: Banco do Brasil"></div>
+            <div class="field"><label>Conta / instituição</label><input id="debtAccount" placeholder="Ex.: Banco do Brasil"></div>
             <div class="field"><label>Categoria</label><select id="debtCategory"></select></div>
             <div class="field"><label>Valor de cada parcela (R$)</label><input id="debtInstallmentAmount" type="number" min="0" step="0.01" required></div>
             <div class="field" id="debtTotalField"><label>Total de parcelas</label><input id="debtTotalInstallments" type="number" min="1" step="1" required></div>
@@ -267,7 +267,7 @@
       counterpartyName:document.getElementById('debtCounterpartyEnabled').checked?(document.getElementById('debtCounterpartyCpf').dataset.personName||null):null,
       counterpartyRole:document.getElementById('debtCounterpartyEnabled').checked?'creditor':null
     };
-    if(debt.counterpartyCpf&&debt.counterpartyCpf.length!==11){alert('Informe um CPF válido para o credor.');return}
+    if(document.getElementById('debtCounterpartyEnabled').checked&&debt.counterpartyCpf.length!==11){alert('Informe um CPF válido para o credor.');return}
     const idx=state.debts.findIndex(d=>d.id===id);
     if(idx>=0)state.debts[idx]=debt;else state.debts.push(debt);
     syncDebtTransactions(debt);
@@ -303,7 +303,7 @@
       const progress=d.openEnded?'':`<div class="debt-progress"><span style="width:${pct}%"></span></div>`;
       const nextLabel=next?`${monthLabel(String(next.date).slice(0,7))}<div class="debt-sub">parcela ${next.debtInstallmentNumber}/${d.openEnded?'∞':d.totalInstallments}</div>`:(d.openEnded?'—':'Quitada');
       return `<tr>
-        <td><button type="button" class="debt-name pfp-name-button pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">${esc(d.name)}</button><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}${d.counterpartyCpf?`<br>Credor: ${esc(d.counterpartyName||debtCpfMask(d.counterpartyCpf))}`:''}</div>${progress}</td>
+        <td><button type="button" class="debt-name pfp-name-button pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">${esc(d.name)}</button><div class="debt-sub">${esc(d.account||'Conta não informada')} • ${esc(d.category||'Dívidas')}${d.openEnded?' • sem data final':''}${d.counterpartyCpf?`<br>Credor: ${esc(d.counterpartyName||'Pessoa externa')} · ${esc(debtCpfMask(d.counterpartyCpf))}`:''}</div>${progress}</td>
         <td>${parcelInfo}</td>
         <td>${monthLabel(d.firstMonth)}</td>
         <td>${nextLabel}</td>
