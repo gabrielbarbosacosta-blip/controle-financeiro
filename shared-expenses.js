@@ -242,7 +242,7 @@
       ?`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${p.isPayer?'credor':'devedor'} · ${esc(statusLabel(p.status))}</span>`
       :`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${Number(p.percentage).toFixed(0)}% · ${esc(statusLabel(p.status))}${p.isPayer?' · pagador':''}</span>`
     ).join('');
-    const context=recurringRule?`Regra mensal · Pagador: ${item.payerName} · ${role}`:direct?`Vínculo por CPF · ${role}`:`Pagador: ${item.payerName} · ${role}`;
+    const context=recurringRule?`Regra mensal · Pagador: ${item.payerName} · ${role} · após o aceite, o Prumo cria os planos recorrentes em Despesas/Receitas`:direct?`Vínculo por CPF · ${role}`:`Pagador: ${item.payerName} · ${role}`;
     const acceptLabel=recurringRule?'Confirmar recorrência':direct?'Confirmar vínculo':'Confirmar';
     return `<div class="shared-item" data-shared-id="${esc(item.id)}"><div class="shared-item-head"><div><div class="shared-item-title">${esc(item.description)}</div><div class="shared-item-sub">${esc(item.category||'Outros')} · ${esc(fmtDateSafe(item.date))}<br>${esc(context)}</div></div><div class="shared-item-value">${money(myValue)}</div></div>${compact?'':`<div>${participantPills}</div>`}${pending?`<div class="shared-item-actions"><button class="btn small primary" data-share-accept="${esc(item.id)}">${acceptLabel}</button><button class="btn small danger" data-share-reject="${esc(item.id)}">Recusar</button></div>`:''}</div>`;
   }
