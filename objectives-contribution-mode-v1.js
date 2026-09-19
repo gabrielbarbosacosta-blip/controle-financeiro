@@ -59,7 +59,7 @@
 
     if(!document.getElementById('goalSharedRecurringModal')){
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="modal-backdrop" id="goalSharedRecurringModal"><div class="modal"><form id="goalSharedRecurringForm"><div class="modal-head"><h3 id="goalSharedRecurringTitle">Aporte recorrente compartilhado</h3><button type="button" class="btn ghost" data-goal-mode-close="goalSharedRecurringModal">✕</button></div><div class="modal-body"><div class="goal-shared-info">A ocorrência mensal nasce como <strong>pendente</strong>. Quando você marcar o aporte como <strong>Pago</strong>, o objetivo recebe o valor integral e os reembolsos daquela competência são gerados automaticamente.</div><div class="goal-shared-payer"><strong>Você paga o valor total de cada competência.</strong><br>Os demais participantes ficam responsáveis apenas pelas parcelas definidas abaixo.</div><input type="hidden" id="goalSharedRecurringGoalId"><div class="form-grid"><div class="field"><label>Valor recorrente total (R$)</label><input id="goalSharedRecurringAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Primeiro mês</label><input id="goalSharedRecurringStart" type="month" required></div><div class="field"><label>Último mês (opcional)</label><input id="goalSharedRecurringEnd" type="month"></div><div class="field"><label>Conta de origem</label><input id="goalSharedRecurringAccount" placeholder="Ex.: Banco do Brasil"></div></div><div class="goal-split-head"><strong>Divisão mensal</strong><button type="button" class="btn small" data-goal-split-equal="goalSharedRecurringSplit">Dividir igualmente</button></div><div class="goal-split-list" id="goalSharedRecurringSplit"></div><div class="goal-split-summary"><span>Total da divisão</span><strong id="goalSharedRecurringSplitTotal">0%</strong></div><div class="goal-shared-error" id="goalSharedRecurringError"></div></div><div class="modal-foot"><button type="button" class="btn danger" id="goalSharedRecurringDisable" style="margin-right:auto;display:none">Desativar recorrência</button><button type="button" class="btn" data-goal-mode-close="goalSharedRecurringModal">Cancelar</button><button class="btn primary" type="submit">Salvar recorrência</button></div></form></div></div>`;
+      wrap.innerHTML=`<div class="modal-backdrop" id="goalSharedRecurringModal"><div class="modal"><form id="goalSharedRecurringForm"><div class="modal-head"><h3 id="goalSharedRecurringTitle">Aporte recorrente compartilhado</h3><button type="button" class="btn ghost" data-goal-mode-close="goalSharedRecurringModal">✕</button></div><div class="modal-body"><div class="goal-shared-info" id="goalSharedRecurringInfo">Ao salvar, a regra recorrente será enviada aos demais participantes para <strong>confirmação</strong>. Os lançamentos mensais só serão criados depois que todos aceitarem.</div><div class="goal-shared-payer"><strong>Você paga o valor total de cada competência.</strong><br>Os demais participantes ficam responsáveis apenas pelas parcelas definidas abaixo.</div><input type="hidden" id="goalSharedRecurringGoalId"><div class="form-grid"><div class="field"><label>Valor recorrente total (R$)</label><input id="goalSharedRecurringAmount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Primeiro mês</label><input id="goalSharedRecurringStart" type="month" required></div><div class="field"><label>Último mês (opcional)</label><input id="goalSharedRecurringEnd" type="month"></div><div class="field"><label>Conta de origem</label><input id="goalSharedRecurringAccount" placeholder="Ex.: Banco do Brasil"></div></div><div class="goal-split-head"><strong>Divisão mensal</strong><button type="button" class="btn small" data-goal-split-equal="goalSharedRecurringSplit">Dividir igualmente</button></div><div class="goal-split-list" id="goalSharedRecurringSplit"></div><div class="goal-split-summary"><span>Total da divisão</span><strong id="goalSharedRecurringSplitTotal">0%</strong></div><div class="goal-shared-error" id="goalSharedRecurringError"></div></div><div class="modal-foot"><button type="button" class="btn danger" id="goalSharedRecurringDisable" style="margin-right:auto;display:none">Desativar recorrência</button><button type="button" class="btn" data-goal-mode-close="goalSharedRecurringModal">Cancelar</button><button class="btn primary" type="submit">Salvar recorrência</button></div></form></div></div>`;
       document.body.appendChild(wrap.firstElementChild);
     }
 
@@ -268,7 +268,18 @@
     document.getElementById('goalSharedRecurringAccount').value=existing?.account||g?.recurringAccount||'';
     const ok=renderSplit('goalSharedRecurringSplit',goalId,existing?.participants||[]);
     const disable=document.getElementById('goalSharedRecurringDisable');
-    if(disable)disable.style.display=existing?.enabled?'inline-flex':'none';
+    const info=document.getElementById('goalSharedRecurringInfo');
+    const approval=existing?.approvalStatus||'';
+    if(disable){
+      disable.style.display=existing&&(approval==='pending'||existing.enabled)?'inline-flex':'none';
+      disable.textContent=approval==='pending'?'Cancelar solicitação':'Desativar recorrência';
+    }
+    if(info){
+      if(approval==='pending')info.innerHTML='<strong>Aguardando confirmação.</strong> Nenhum lançamento mensal foi criado ainda. A recorrência será ativada automaticamente quando todos os participantes aceitarem.';
+      else if(approval==='accepted'&&existing?.enabled)info.innerHTML='<strong>Recorrência confirmada e ativa.</strong> Os lançamentos mensais foram gerados para os participantes conforme a divisão cadastrada.';
+      else if(approval==='rejected')info.innerHTML='<strong>Solicitação recusada.</strong> Ajuste a divisão ou os dados e salve novamente para enviar uma nova confirmação.';
+      else info.innerHTML='Ao salvar, a regra recorrente será enviada aos demais participantes para <strong>confirmação</strong>. Os lançamentos mensais só serão criados depois que todos aceitarem.';
+    }
     if(!ok)document.getElementById('goalSharedRecurringError').textContent='Adicione pelo menos um colaborador com permissão para aportar.';
     openModal('goalSharedRecurringModal');
   }
@@ -327,7 +338,7 @@
       });
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'shared_goal_recurring_failed');
       closeModal('goalSharedRecurringModal');await refreshEverything();
-      try{if(typeof setSyncStatus==='function')setSyncStatus('Aporte recorrente compartilhado salvo')}catch(_e){}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(data?.approvalStatus==='pending'?'Recorrência enviada para confirmação':'Aporte recorrente compartilhado salvo')}catch(_e){}
     }catch(err){console.error('Falha ao salvar aporte recorrente compartilhado.',err);msg.textContent='Não foi possível salvar a recorrência compartilhada agora.'}
     finally{busy=false;if(btn)btn.disabled=false}
   }
@@ -335,7 +346,8 @@
   async function disableSharedRecurring(){
     if(busy)return;
     const goalId=document.getElementById('goalSharedRecurringGoalId').value;
-    if(!confirm('Desativar os aportes recorrentes compartilhados futuros? Aportes já pagos e reembolsos históricos serão preservados.'))return;
+    const cancelRequest=document.getElementById('goalSharedRecurringDisable')?.textContent==='Cancelar solicitação';
+    if(!confirm(cancelRequest?'Cancelar esta solicitação de recorrência? Nenhum lançamento mensal será criado.':'Desativar os aportes recorrentes compartilhados futuros? Aportes já pagos e reembolsos históricos serão preservados.'))return;
     busy=true;const btn=document.getElementById('goalSharedRecurringDisable');if(btn)btn.disabled=true;
     try{
       const {data,error}=await getSb().rpc('finance_set_goal_shared_recurring_plan',{
@@ -343,7 +355,7 @@
       });
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'disable_failed');
       closeModal('goalSharedRecurringModal');await refreshEverything();
-      try{if(typeof setSyncStatus==='function')setSyncStatus('Recorrência compartilhada desativada')}catch(_e){}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(cancelRequest?'Solicitação de recorrência cancelada':'Recorrência compartilhada desativada')}catch(_e){}
     }catch(err){console.error('Falha ao desativar recorrência compartilhada.',err);alert('Não foi possível desativar a recorrência compartilhada agora.')}
     finally{busy=false;if(btn)btn.disabled=false}
   }
