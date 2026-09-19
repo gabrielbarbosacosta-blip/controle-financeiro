@@ -242,7 +242,45 @@
   }
   function closeDebtModal(){document.getElementById('debtModal')?.classList.remove('open')}
 
-  function saveDebtFromForm(e){
+  async function syncDebtPlanObligation(debt,{persistFirst=false,silent=false}={}){
+    if(!debt?.counterpartyCpf)return null;
+    try{
+      if(persistFirst&&window.financeCloud?.save&&typeof currentUser!=='undefined'&&currentUser?.id){
+        await window.financeCloud.save(currentUser.id,state);
+      }
+      const client=typeof sb!=='undefined'?sb:window.sb;
+      const {data,error}=await client.rpc('finance_upsert_plan_obligation',{
+        p_plan_kind:'debt',
+        p_plan_id:String(debt.id),
+        p_plan_data:debt,
+        p_counterparty_cpf:debt.counterpartyCpf
+      });
+      if(error)throw error;
+      if(!data?.ok)throw new Error(data?.detail||data?.error||'plan_obligation_failed');
+      if(data?.linked){
+        debt.counterpartyUserId=data.counterpartyUserId||debt.counterpartyUserId||null;
+        debt.counterpartyName=data.counterpartyName||debt.counterpartyName||null;
+        syncDebtTransactions(debt);
+        if(!silent)try{if(typeof setSyncStatus==='function')setSyncStatus(data.status==='accepted'?'Vínculo com credor confirmado':'Despesa salva · aguardando confirmação do credor')}catch(_e){}
+      }else if(!silent){
+        try{if(typeof setSyncStatus==='function')setSyncStatus('Despesa salva · credor externo vinculado')}catch(_e){}
+      }
+      try{await window.financeSharedExpensesRefresh?.()}catch(_e){}
+      return data;
+    }catch(err){
+      console.error('Falha ao criar pendência para o credor.',err);
+      if(!silent)alert('A despesa foi salva, mas não foi possível gerar a pendência de confirmação para o credor agora.');
+      return null;
+    }
+  }
+
+  async function syncExistingDebtPlanObligations(){
+    if(!ensureDebtState())return;
+    const items=(state.debts||[]).filter(d=>d?.counterpartyCpf);
+    for(const debt of items)await syncDebtPlanObligation(debt,{persistFirst:false,silent:true});
+  }
+
+  async function saveDebtFromForm(e){
     e.preventDefault();
     if(!ensureDebtState())return;
     const id=document.getElementById('debtId').value||debtUid();
@@ -271,6 +309,7 @@
     const idx=state.debts.findIndex(d=>d.id===id);
     if(idx>=0)state.debts[idx]=debt;else state.debts.push(debt);
     syncDebtTransactions(debt);
+    if(debt.counterpartyCpf)await syncDebtPlanObligation(debt,{persistFirst:true});
     closeDebtModal();
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
     renderDebtPage();
@@ -330,6 +369,7 @@
     if(!ensureDebtState())return;
     buildUi();
     extendOpenEndedDebts();
+    setTimeout(syncExistingDebtPlanObligations,600);
     const month=document.getElementById('monthSelect');
     if(month)month.addEventListener('change',()=>setTimeout(()=>{if(extendOpenEndedDebts()&&document.getElementById('page-debts')?.classList.contains('active'))renderDebtPage()},0));
   }
