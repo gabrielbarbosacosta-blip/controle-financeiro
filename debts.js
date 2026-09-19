@@ -220,6 +220,10 @@
 
   function openDebtModal(id=null){
     if(!ensureDebtState())return;
+    if(id&&isGoalManagedDebt(id)){
+      alert('Esta despesa é gerenciada pela seção Objetivos. Altere ou cancele o aporte recorrente no objetivo correspondente.');
+      return;
+    }
     buildUi();
     const debt=id?state.debts.find(d=>d.id===id):null;
     document.getElementById('debtModalTitle').textContent=debt?'Editar despesa':'Nova despesa';
