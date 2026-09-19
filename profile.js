@@ -319,10 +319,10 @@
         return;
       }
       if(event==='SIGNED_OUT'){
-        profile=null;
-        signedAvatarUrl='';
+        // Do not mutate the visible profile card during logout.
+        // The app shell is about to be hidden; changing avatar/name here causes
+        // a visible flash from the photo to the email/initials.
         loadedProfileUserId=null;
-        updateVisuals();
       }
     });
   }
