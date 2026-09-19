@@ -225,7 +225,7 @@
   function ensureDashboard(){
     const page=document.getElementById('page-dashboard');if(!page||document.getElementById('sharedDashboardCard'))return;
     const card=document.createElement('div');card.className='card shared-dashboard';card.id='sharedDashboardCard';
-    card.innerHTML=`<div class="section-head"><div><h3>Compartilhamentos pendentes</h3><div class="muted">Despesas aguardando sua confirmação</div></div><button type="button" class="btn small" id="sharedDashboardOpen">Ver todos</button></div><div class="shared-list" id="sharedDashboardList"></div>`;
+    card.innerHTML=`<div class="section-head"><div><h3>Pendências entre pessoas</h3><div class="muted">Despesas compartilhadas e vínculos por CPF aguardando sua confirmação</div></div><button type="button" class="btn small" id="sharedDashboardOpen">Ver todos</button></div><div class="shared-list" id="sharedDashboardList"></div>`;
     page.appendChild(card);document.getElementById('sharedDashboardOpen').onclick=openSharingPage;
   }
 
@@ -234,10 +234,16 @@
 
   function itemHtml(item,compact=false){
     const pending=item.myStatus==='pending';
-    const role=item.isPayer?'Você paga':item.isCreator?'Criada por você':'Compartilhada com você';
-    const myValue=item.isPayer?item.amount:item.myAmount;
-    const participantPills=(item.participants||[]).map(p=>`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${Number(p.percentage).toFixed(0)}% · ${esc(statusLabel(p.status))}${p.isPayer?' · pagador':''}</span>`).join('');
-    return `<div class="shared-item" data-shared-id="${esc(item.id)}"><div class="shared-item-head"><div><div class="shared-item-title">${esc(item.description)}</div><div class="shared-item-sub">${esc(item.category||'Outros')} · ${esc(fmtDateSafe(item.date))}<br>Pagador: ${esc(item.payerName)} · ${esc(role)}</div></div><div class="shared-item-value">${money(myValue)}</div></div>${compact?'':`<div>${participantPills}</div>`}${pending?`<div class="shared-item-actions"><button class="btn small primary" data-share-accept="${esc(item.id)}">Confirmar</button><button class="btn small danger" data-share-reject="${esc(item.id)}">Recusar</button></div>`:''}</div>`;
+    const direct=item.sourceKind==='direct_obligation';
+    const role=direct?(item.isPayer?'Você é credor':'Você é devedor'):(item.isPayer?'Você paga':item.isCreator?'Criada por você':'Compartilhada com você');
+    const myValue=direct?item.amount:(item.isPayer?item.amount:item.myAmount);
+    const participantPills=(item.participants||[]).map(p=>direct
+      ?`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${p.isPayer?'credor':'devedor'} · ${esc(statusLabel(p.status))}</span>`
+      :`<span class="shared-pill ${esc(p.status)}">${esc(p.nickname||p.fullName)} · ${Number(p.percentage).toFixed(0)}% · ${esc(statusLabel(p.status))}${p.isPayer?' · pagador':''}</span>`
+    ).join('');
+    const context=direct?`Vínculo por CPF · ${role}`:`Pagador: ${item.payerName} · ${role}`;
+    const acceptLabel=direct?'Confirmar vínculo':'Confirmar';
+    return `<div class="shared-item" data-shared-id="${esc(item.id)}"><div class="shared-item-head"><div><div class="shared-item-title">${esc(item.description)}</div><div class="shared-item-sub">${esc(item.category||'Outros')} · ${esc(fmtDateSafe(item.date))}<br>${esc(context)}</div></div><div class="shared-item-value">${money(myValue)}</div></div>${compact?'':`<div>${participantPills}</div>`}${pending?`<div class="shared-item-actions"><button class="btn small primary" data-share-accept="${esc(item.id)}">${acceptLabel}</button><button class="btn small danger" data-share-reject="${esc(item.id)}">Recusar</button></div>`:''}</div>`;
   }
 
   function bindResponseButtons(root=document){
@@ -257,13 +263,18 @@
   }
 
   async function respond(id,accept){
-    const action=accept?'confirmar':'recusar';if(!confirm(`${accept?'Confirmar':'Recusar'} esta despesa compartilhada?`))return;
+    const item=items.find(x=>String(x.id)===String(id));
+    const direct=item?.sourceKind==='direct_obligation';
+    const subject=direct?'este vínculo financeiro':'esta despesa compartilhada';
+    const action=accept?'confirmar':'recusar';if(!confirm(`${accept?'Confirmar':'Recusar'} ${subject}?`))return;
     try{
-      const {data,error}=await sb.rpc('finance_respond_shared_expense',{p_shared_id:id,p_accept:accept});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'respond_failed');
+      const rpc=direct?'finance_respond_direct_obligation':'finance_respond_shared_expense';
+      const {data,error}=await sb.rpc(rpc,{p_shared_id:id,p_accept:accept});if(error)throw error;if(!data?.ok)throw new Error(data?.detail||data?.error||'respond_failed');
       if(window.financeCloud?.refresh)await window.financeCloud.refresh();
       await loadShared();
-      try{if(typeof setSyncStatus==='function')setSyncStatus(`Despesa ${accept?'confirmada':'recusada'}`)}catch(e){}
-    }catch(e){console.error(`Falha ao ${action} compartilhamento.`,e);alert(`Não foi possível ${action} esta despesa.`)}
+      try{await window.financeDirectObligationsRefresh?.()}catch(_e){}
+      try{if(typeof setSyncStatus==='function')setSyncStatus(direct?`Vínculo financeiro ${accept?'confirmado':'recusado'}`:`Despesa ${accept?'confirmada':'recusada'}`)}catch(e){}
+    }catch(e){console.error(`Falha ao ${action} compartilhamento.`,e);alert(`Não foi possível ${action} ${direct?'este vínculo':'esta despesa'}.`)}
   }
 
   async function loadShared(){
