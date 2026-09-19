@@ -148,14 +148,14 @@
       const host=card.querySelector('[data-goal-contributor-summary]');
       if(!goal||!host)return;
       const people=(participants.get(goalId)||[])
-        .filter(p=>!p.isOwner&&p.role==='contributor')
+        .filter(p=>p.isOwner||p.role==='contributor')
         .map(p=>({...p,totals:collaboratorContribution(goal,p.userId,month)}));
       const signature=JSON.stringify([month,people.map(p=>[p.userId,p.name,p.totals.month,p.totals.period])]);
       if(host.dataset.summarySignature===signature)return;
       host.dataset.summarySignature=signature;
       host.innerHTML=`<div class="goal-contributor-summary-title">Colaboradores</div><div class="goal-contributor-summary-month">${esc(month)}</div>${
         people.length
-          ? `<div class="goal-contributor-list">${people.map(p=>`<div class="goal-contributor-row"><div class="goal-contributor-name" title="${esc(p.name||'Colaborador')}">${esc(p.name||'Colaborador')}</div><div class="goal-contributor-values"><div class="goal-contributor-value month"><span>No mês</span><strong>${money(p.totals.month)}</strong></div><div class="goal-contributor-value"><span>No período</span><strong>${money(p.totals.period)}</strong></div></div></div>`).join('')}</div>`
+          ? `<div class="goal-contributor-list">${people.map(p=>`<div class="goal-contributor-row"><div class="goal-contributor-name" title="${esc((p.name||'Participante')+(p.isOwner?' · Proprietário':''))}">${esc(p.name||'Participante')}${p.isOwner?' <span class="goal-contributor-owner">Proprietário</span>':''}</div><div class="goal-contributor-values"><div class="goal-contributor-value month"><span>No mês</span><strong>${money(p.totals.month)}</strong></div><div class="goal-contributor-value"><span>No período</span><strong>${money(p.totals.period)}</strong></div></div></div>`).join('')}</div>`
           : '<div class="goal-contributor-summary-empty">Nenhum colaborador com permissão de aporte.</div>'
       }`;
     });
