@@ -216,23 +216,47 @@ async function handleSession(session){
   setSyncStatus('Sincronizado');
 }
 let authTransitionTimer=null;
+let interactiveAuthInProgress=false;
+let authSessionWork=null;
+let authSessionWorkKey=null;
+
+function processAuthSession(session){
+  const key=session?.user?.id||'signed-out';
+  if(authSessionWork&&authSessionWorkKey===key)return authSessionWork;
+  const run=Promise.resolve().then(()=>handleSession(session));
+  authSessionWorkKey=key;
+  authSessionWork=run.finally(()=>{
+    if(authSessionWork===run||authSessionWorkKey===key){
+      authSessionWork=null;
+      authSessionWorkKey=null;
+    }
+  });
+  return authSessionWork;
+}
+
 function scheduleAuthSessionHandling(session){
   clearTimeout(authTransitionTimer);
   authTransitionTimer=setTimeout(()=>{
-    Promise.resolve(handleSession(session)).catch(error=>{
+    processAuthSession(session).catch(error=>{
       console.error('Falha ao processar mudança de sessão',error);
       const msg=document.getElementById('authMsg');
-      if(msg&&!session)msg.textContent='Não foi possível atualizar a sessão.';
+      if(msg)msg.textContent=session?'Não foi possível carregar seus dados.':'Não foi possível atualizar a sessão.';
     });
   },0);
 }
+
 async function initApp(){
   const {data,error}=await sb.auth.getSession();
   if(error)throw error;
-  await handleSession(data.session);
+  await processAuthSession(data.session);
   sb.auth.onAuthStateChange((event,session)=>{
-    if(event==='SIGNED_IN'||event==='SIGNED_OUT'){
+    if(event==='SIGNED_IN'){
+      if(interactiveAuthInProgress)return;
       scheduleAuthSessionHandling(session);
+      return;
+    }
+    if(event==='SIGNED_OUT'){
+      scheduleAuthSessionHandling(null);
       return;
     }
     if(event==='USER_UPDATED'&&session?.user&&currentUser?.id===session.user.id){
@@ -478,16 +502,20 @@ document.getElementById('authPasskey').onclick=async()=>{
     return;
   }
   btn.disabled=true;
+  interactiveAuthInProgress=true;
   msg.textContent='Confirme a autenticação no seu dispositivo…';
   try{
     const {data,error}=await sb.auth.signInWithPasskey();
     if(error)throw error;
     if(!data?.session)throw new Error('A autenticação não retornou uma sessão.');
-    msg.textContent='';
+    msg.textContent='Carregando seus dados…';
+    await processAuthSession(data.session);
+    if(!document.getElementById('appRoot')?.classList.contains('auth-hidden'))msg.textContent='';
   }catch(error){
     console.error('Falha no login por passkey',error);
     msg.textContent=prumoPasskeyError(error);
   }finally{
+    interactiveAuthInProgress=false;
     btn.disabled=false;
   }
 };
@@ -498,19 +526,44 @@ document.getElementById('authLogin').onclick=async()=>{
   const btn=document.getElementById('authLogin');
   msg.textContent='Entrando…';
   if(btn)btn.disabled=true;
+  interactiveAuthInProgress=true;
   try{
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error){msg.textContent=error.message;return}
     if(!data?.session){msg.textContent='A autenticação não retornou uma sessão.';return}
     msg.textContent='Carregando seus dados…';
+    await processAuthSession(data.session);
+    if(!document.getElementById('appRoot')?.classList.contains('auth-hidden'))msg.textContent='';
   }catch(error){
     console.error('Falha no login',error);
     msg.textContent='Não foi possível conectar ao serviço de autenticação.';
   }finally{
+    interactiveAuthInProgress=false;
     if(btn)btn.disabled=false;
   }
 };
-document.getElementById('authSignup').onclick=async()=>{const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,msg=document.getElementById('authMsg');if(password.length<6){msg.textContent='Use uma senha com pelo menos 6 caracteres.';return}msg.textContent='Criando conta…';const {data,error}=await sb.auth.signUp({email,password});if(error){msg.textContent=error.message;return}if(data.session){msg.textContent='';await handleSession(data.session)}else msg.textContent='Conta criada. Confirme o e-mail enviado pelo Supabase e depois entre.'};
+document.getElementById('authSignup').onclick=async()=>{
+  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,msg=document.getElementById('authMsg');
+  if(password.length<6){msg.textContent='Use uma senha com pelo menos 6 caracteres.';return}
+  msg.textContent='Criando conta…';
+  interactiveAuthInProgress=true;
+  try{
+    const {data,error}=await sb.auth.signUp({email,password});
+    if(error){msg.textContent=error.message;return}
+    if(data.session){
+      msg.textContent='Carregando seus dados…';
+      await processAuthSession(data.session);
+      if(!document.getElementById('appRoot')?.classList.contains('auth-hidden'))msg.textContent='';
+    }else{
+      msg.textContent='Conta criada. Confirme o e-mail enviado pelo Supabase e depois entre.';
+    }
+  }catch(error){
+    console.error('Falha ao criar conta',error);
+    msg.textContent='Não foi possível criar a conta.';
+  }finally{
+    interactiveAuthInProgress=false;
+  }
+};
 document.getElementById('logoutBtn').onclick=async()=>{
   const {error}=await sb.auth.signOut();
   if(error){
