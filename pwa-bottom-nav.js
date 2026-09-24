@@ -38,19 +38,32 @@
     style.id='prumo-bottom-nav-style';
     style.textContent=`
       .prumo-bottom-nav{
-        display:none;position:fixed!important;left:50%!important;
-        bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+        display:none!important;
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483000!important;
+        pointer-events:none!important;
+        margin:0!important;
+        padding:0!important;
+        width:auto!important;height:auto!important;
+        transform:none!important;
+        contain:layout style;
+      }
+      .prumo-bottom-nav-shell{
+        position:absolute!important;
+        left:50%!important;
+        bottom:calc(26px + env(safe-area-inset-bottom,0px))!important;
         transform:translate3d(-50%,0,0)!important;
-        width:min(94vw,520px);height:72px;z-index:2147483000!important;
-        margin:0!important;inset-block-start:auto!important;right:auto!important;top:auto!important;
-        isolation:isolate;contain:layout paint style;will-change:transform;
+        width:min(94vw,520px);height:72px;
         padding:7px 8px;
+        pointer-events:auto!important;
         border:1px solid rgba(72,96,126,.52);
         border-radius:24px;
         background:rgba(9,19,33,.96);
         box-shadow:0 18px 48px rgba(0,0,0,.42);
         -webkit-backdrop-filter:blur(20px) saturate(1.25);
         backdrop-filter:blur(20px) saturate(1.25);
+        isolation:isolate;
       }
       .prumo-bottom-nav-viewport{
         width:100%;height:100%;overflow-x:auto;overflow-y:hidden;position:relative;
@@ -98,7 +111,7 @@
         .modal-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
       }
       @media(max-width:420px){
-        .prumo-bottom-nav{width:calc(100vw - 20px)}
+        .prumo-bottom-nav-shell{width:calc(100vw - 20px)}
         .prumo-bottom-nav-item{flex-basis:68px;width:68px;min-width:68px}
       }
       @media(min-width:901px){.prumo-bottom-nav{display:none!important}}
@@ -165,9 +178,14 @@
     sourceNav=document.querySelector('.sidebar .nav');if(!sourceNav)return false;
     injectStyles();
     root=document.createElement('nav');root.className='prumo-bottom-nav';root.setAttribute('aria-label','Navegação principal');
+    const shell=document.createElement('div');shell.className='prumo-bottom-nav-shell';
     viewport=document.createElement('div');viewport.className='prumo-bottom-nav-viewport';
     track=document.createElement('div');track.className='prumo-bottom-nav-track';
-    viewport.appendChild(track);root.appendChild(viewport);document.body.appendChild(root);
+    viewport.appendChild(track);shell.appendChild(viewport);root.appendChild(shell);document.body.appendChild(root);
+
+    // Reinforce viewport anchoring on iOS/PWA even if page CSS changes later.
+    Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'2147483000',pointerEvents:'none',transform:'none'});
+    Object.assign(shell.style,{position:'absolute',left:'50%',bottom:'calc(26px + env(safe-area-inset-bottom, 0px))',transform:'translate3d(-50%,0,0)',pointerEvents:'auto'});
 
     viewport.addEventListener('pointerdown',event=>{
       if(event.pointerType==='mouse'&&event.button!==0)return;
