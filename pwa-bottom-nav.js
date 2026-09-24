@@ -42,7 +42,7 @@
         display:none!important;
         position:fixed!important;
         inset:0!important;
-        z-index:2147483000!important;
+        z-index:20!important;
         pointer-events:none!important;
         margin:0!important;
         padding:0!important;
@@ -136,16 +136,6 @@
         opacity:0!important;
         pointer-events:none!important;
       }
-      body:has(.modal-backdrop.open) .prumo-bottom-nav,
-      body:has(.profile-dropdown.open) .prumo-bottom-nav,
-      body:has([role="dialog"].open) .prumo-bottom-nav,
-      body:has(.drawer.open) .prumo-bottom-nav,
-      body:has(.sheet.open) .prumo-bottom-nav{
-        display:none!important;
-        visibility:hidden!important;
-        opacity:0!important;
-        pointer-events:none!important;
-      }
       @media(max-width:900px){
         .prumo-bottom-nav{display:block!important;visibility:visible!important;opacity:1!important}
         .prumo-bottom-nav[aria-hidden="true"]{display:none!important;visibility:hidden!important;opacity:0!important}
@@ -229,10 +219,7 @@
     const appVisible=!!(app&&!app.hidden&&!app.classList.contains('auth-hidden'));
     const authVisible=!!(auth&&!auth.hidden&&!auth.classList.contains('hidden'));
     const splashActive=!!document.body?.classList.contains('prumo-app-splash')&&!document.body?.classList.contains('caderno-splash-done');
-    const overlayOpen=!!document.querySelector(
-      '.modal-backdrop.open, .profile-dropdown.open, [role="dialog"].open, .drawer.open, .sheet.open'
-    );
-    const show=appVisible&&!authVisible&&!splashActive&&!overlayOpen;
+    const show=appVisible&&!authVisible&&!splashActive;
     const visible=show&&window.matchMedia(MOBILE_QUERY).matches;
     const shell=root.querySelector('.prumo-bottom-nav-shell');
     const animator=root.querySelector('.prumo-bottom-nav-animator');
@@ -321,7 +308,7 @@
     viewport.appendChild(track);animator.appendChild(viewport);shell.appendChild(animator);root.appendChild(shell);document.body.appendChild(root);
 
     // Reinforce viewport anchoring on iOS/PWA even if page CSS changes later.
-    Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'2147483000',pointerEvents:'none',transform:'none'});
+    Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'20',pointerEvents:'none',transform:'none'});
     Object.assign(shell.style,{position:'absolute',left:'50%',bottom:'calc(26px + env(safe-area-inset-bottom, 0px))',transform:'translate3d(-50%,0,0)',pointerEvents:'auto'});
 
     viewport.addEventListener('pointerdown',event=>{
