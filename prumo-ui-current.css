@@ -645,7 +645,16 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
 .history-goal-managed{margin-left:6px}
 
 /* Keep participants beside the goal icon, including cached avatar scripts. */
-#goalGrid .goal-card.goal-has-participant-avatars .goal-head{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;padding:14px 14px 11px!important}
+#goalGrid .goal-card.goal-has-participant-avatars .goal-head{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;padding:14px 58px 11px 14px!important}
 #goalGrid .goal-card .goal-head>.goal-icon{grid-column:1;grid-row:1}
 #goalGrid .goal-card.goal-has-participant-avatars .goal-title-wrap{grid-column:1 / -1;grid-row:2;min-width:0}
 #goalGrid .goal-card .goal-participant-stack{position:static!important;inset:auto!important;grid-column:2;grid-row:1;display:flex!important;justify-content:flex-start!important;justify-self:start!important;align-items:center;min-width:0;margin:0!important;transform:none!important}
+
+#goalGrid .goal-card .goal-head{position:relative;padding-right:58px!important}
+#goalGrid .goal-card .goal-settings-button{position:absolute;right:12px;top:14px;width:34px;height:34px;padding:6px!important;display:grid;place-items:center;border-radius:9px;z-index:3}
+#goalGrid .goal-card .goal-settings-button:focus-visible{outline:2px solid #ddeaac;outline-offset:2px}
+#goalGrid .goal-card .goal-actions :is([data-goal-edit],[data-goal-recurring],[data-goal-share],[data-goal-toggle],[data-goal-adjust],[data-goal-share-leave],[data-goal-delete]){display:none!important}
+.goal-settings-panel{position:fixed;z-index:10000;width:250px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:6px;border:1px solid #30445e;border-radius:12px;background:#101d2e;color:#e7edf5;box-shadow:0 12px 32px #0006}
+.goal-settings-item{display:block;width:100%;padding:11px 12px;border:0;border-radius:7px;background:transparent;color:inherit;text-align:left;font:inherit;font-size:12px;cursor:pointer}
+.goal-settings-item:hover,.goal-settings-item:focus-visible{background:#23334a;outline:none}
+.goal-settings-item.danger{color:#f2a29c}.goal-settings-item:disabled{opacity:.5;cursor:default}

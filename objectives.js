@@ -184,7 +184,7 @@
 
   function cardHtml(g){
     const p=projection(g),type=TYPES[g.type]||TYPES.other,status=statusInfo(g,p),priority=PRIORITIES[Number(g.priority)||2]||'Média';
-    return `<article class="goal-card" data-goal-id="${esc(g.id)}"><div class="goal-head"><div class="goal-icon">${type.icon}</div><div class="goal-title-wrap"><div class="goal-title">${esc(g.name)}</div><div class="goal-sub"><span>${esc(type.label)}</span><span class="goal-pill ${status.key}">${status.label}</span><span class="goal-pill">Prioridade ${esc(priority.toLowerCase())}</span></div></div></div><div class="goal-body"><div class="goal-money-line"><div><div class="goal-saved">${money(p.saved)}</div><div class="muted" style="font-size:10px">reservados</div></div><div class="goal-target">Meta<br><strong>${money(p.target)}</strong></div></div><div class="goal-progress"><span style="width:${p.percent.toFixed(2)}%"></span></div><div class="goal-progress-meta"><span>${p.percent.toFixed(1).replace('.',',')}%</span><span>Faltam ${money(p.remaining)}</span></div><div class="goal-metrics"><div class="goal-metric"><div class="k">Aporte planejado</div><div class="v">${p.monthly>0?money(p.monthly)+'/mês':'Não definido'}</div></div><div class="goal-metric"><div class="k">Prazo</div><div class="v">${g.targetMonth?esc(monthLabel(g.targetMonth)):'Sem prazo'}</div></div><div class="goal-metric"><div class="k">Previsão</div><div class="v">${p.remaining<=0?'Atingida':p.forecast?esc(monthLabel(p.forecast)):'—'}</div></div></div><div class="goal-health">${healthHtml(g,p)}</div>${g.notes?`<div class="muted" style="font-size:10px;margin-top:9px">${esc(g.notes)}</div>`:''}</div>${contribHtml(g)}<div class="goal-actions"><button type="button" class="btn small primary" data-goal-contribute="${esc(g.id)}">+ Aporte extra</button><button type="button" class="btn small" data-goal-edit="${esc(g.id)}">Editar</button>${p.remaining>0?`<button type="button" class="btn small" data-goal-toggle="${esc(g.id)}" data-goal-status="${g.status==='paused'?'active':'paused'}">${g.status==='paused'?'Retomar':'Pausar'}</button>`:''}<button type="button" class="btn small danger" data-goal-delete="${esc(g.id)}">Excluir</button></div></article>`;
+    return `<article class="goal-card" data-goal-id="${esc(g.id)}"><div class="goal-head">${g.shareStatus!=='pending'?`<button type="button" class="btn ghost goal-settings-button" data-goal-settings aria-label="Configurações do objetivo" aria-expanded="false" title="Configurações do objetivo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/><circle cx="12" cy="12" r="3"/></svg></button>`:''}<div class="goal-icon">${type.icon}</div><div class="goal-title-wrap"><div class="goal-title">${esc(g.name)}</div><div class="goal-sub"><span>${esc(type.label)}</span><span class="goal-pill ${status.key}">${status.label}</span><span class="goal-pill">Prioridade ${esc(priority.toLowerCase())}</span></div></div></div><div class="goal-body"><div class="goal-money-line"><div><div class="goal-saved">${money(p.saved)}</div><div class="muted" style="font-size:10px">reservados</div></div><div class="goal-target">Meta<br><strong>${money(p.target)}</strong></div></div><div class="goal-progress"><span style="width:${p.percent.toFixed(2)}%"></span></div><div class="goal-progress-meta"><span>${p.percent.toFixed(1).replace('.',',')}%</span><span>Faltam ${money(p.remaining)}</span></div><div class="goal-metrics"><div class="goal-metric"><div class="k">Aporte planejado</div><div class="v">${p.monthly>0?money(p.monthly)+'/mês':'Não definido'}</div></div><div class="goal-metric"><div class="k">Prazo</div><div class="v">${g.targetMonth?esc(monthLabel(g.targetMonth)):'Sem prazo'}</div></div><div class="goal-metric"><div class="k">Previsão</div><div class="v">${p.remaining<=0?'Atingida':p.forecast?esc(monthLabel(p.forecast)):'—'}</div></div></div><div class="goal-health">${healthHtml(g,p)}</div>${g.notes?`<div class="muted" style="font-size:10px;margin-top:9px">${esc(g.notes)}</div>`:''}</div>${contribHtml(g)}<div class="goal-actions"><button type="button" class="btn small primary" data-goal-contribute="${esc(g.id)}">+ Aporte extra</button><button type="button" class="btn small" data-goal-edit="${esc(g.id)}">Editar</button>${p.remaining>0?`<button type="button" class="btn small" data-goal-toggle="${esc(g.id)}" data-goal-status="${g.status==='paused'?'active':'paused'}">${g.status==='paused'?'Retomar':'Pausar'}</button>`:''}<button type="button" class="btn small danger" data-goal-delete="${esc(g.id)}">Excluir</button></div></article>`;
   }
 
   function goalRenderSignature(){
@@ -306,8 +306,45 @@
     finally{if(button)button.disabled=false}
   }
 
+
+  function initSettingsMenu(){
+    let panel=null,trigger=null;
+    const options=[['data-goal-edit','Editar objetivo'],['data-goal-recurring','Gerenciar contribuição mensal'],['data-goal-share','Gerenciar participantes'],['data-goal-toggle',null],['data-goal-adjust','Ajustar saldo'],['data-goal-share-leave','Sair do objetivo'],['data-goal-delete','Excluir objetivo']];
+    function close(restore=false){
+      panel?.remove();panel=null;
+      trigger?.setAttribute('aria-expanded','false');
+      if(restore&&trigger?.isConnected)trigger.focus();
+      trigger=null;
+    }
+    document.addEventListener('click',e=>{
+      const button=e.target.closest?.('[data-goal-settings]');
+      if(!button){if(panel&&!panel.contains(e.target))close();return}
+      if(trigger===button){close(true);return}
+      close();trigger=button;
+      const card=button.closest('.goal-card');
+      panel=document.createElement('div');panel.className='goal-settings-panel';
+      panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Configurações do objetivo');
+      for(const [attr,label] of options){
+        const source=card.querySelector('['+attr+']');if(!source)continue;
+        const item=document.createElement('button');item.type='button';
+        item.className='goal-settings-item'+(attr==='data-goal-delete'?' danger':'');
+        item.textContent=label||source.textContent;item.disabled=source.disabled;
+        item.onclick=()=>{close();if(source.isConnected)source.click()};panel.appendChild(item);
+      }
+      if(!panel.childElementCount){panel.textContent='Nenhuma configuração disponível.'}
+      document.body.appendChild(panel);button.setAttribute('aria-expanded','true');
+      const rect=button.getBoundingClientRect();
+      panel.style.left=Math.max(8,Math.min(rect.right-panel.offsetWidth,innerWidth-panel.offsetWidth-8))+'px';
+      panel.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-panel.offsetHeight-8))+'px';
+      panel.querySelector('button')?.focus();
+    });
+    document.addEventListener('keydown',e=>{if(!panel)return;if(e.key==='Escape'){e.preventDefault();close(true)}else if(e.key==='Tab'){const items=[...panel.querySelectorAll('button:not(:disabled)')];if(!items.length)return;const i=items.indexOf(document.activeElement);e.preventDefault();items[(i+(e.shiftKey?-1:1)+items.length)%items.length].focus()}});
+    window.addEventListener('resize',()=>close());
+    window.addEventListener('scroll',e=>{if(panel&&!panel.contains(e.target))close()},true);
+  }
+
   function init(){
-    if(initialized)return;initialized=true;injectStyles();ensureNav();ensurePage();ensureModals();
+    if(initialized)return;initialized=true;initSettingsMenu();injectStyles();ensureNav();ensurePage();ensureModals();
     document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('goalModal');closeModal('goalContributionModal');closeModal('goalContributionHistoryModal')}});
     window.addEventListener('focus',()=>{if(document.getElementById('page-goals')?.classList.contains('active'))loadGoals()});
     let tries=0;const ready=setInterval(()=>{tries++;ensureNav();ensurePage();if(getSb()&&getUserId()){clearInterval(ready);loadGoals()}else if(tries>300)clearInterval(ready)},100);

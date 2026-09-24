@@ -191,7 +191,7 @@
   window.__cadernoStabilityV3Loaded=true;
   const VERSION='20260918-stability28-longer-splash-exit';
   const PROFILE_SKINS=['profile-panel-current.js?v=20260919-current1'];
-  const FEATURE_SCRIPTS=['profile-avatar-performance-v1.js?v=20260917-avatarperf1','goal-participant-avatars-v7.js?v=20260924-goalavatars-left3','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2','kpi-countup-v1.js?v=20260918-kpicount3'];
+  const FEATURE_SCRIPTS=['profile-avatar-performance-v1.js?v=20260917-avatarperf1','goal-participant-avatars-v7.js?v=20260924-goalsettings4','goal-recurring-terminology-v1.js?v=20260916-goalterms2','goal-recurring-participants-v2.js?v=20260916-goalsharedrecurring1','goal-effective-metrics-v1.js?v=20260916-goaleffective1','goal-extra-delete-v1.js?v=20260916-goalextra2','kpi-countup-v1.js?v=20260918-kpicount3'];
   let moving=false;
 
   function ensureThemeLink(){
@@ -200,7 +200,7 @@
       link=document.createElement('link');
       link.id='prumo-ui-current';
       link.rel='stylesheet';
-      link.href='prumo-ui-current.css?v=20260924-goalavatars-left3';
+      link.href='prumo-ui-current.css?v=20260924-goalsettings4';
       document.head.appendChild(link);
     }
     return link;
