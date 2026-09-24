@@ -643,3 +643,9 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
   white-space:nowrap;
 }
 .history-goal-managed{margin-left:6px}
+
+/* Keep participants beside the goal icon, including cached avatar scripts. */
+#goalGrid .goal-card.goal-has-participant-avatars .goal-head{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;padding:14px 14px 11px!important}
+#goalGrid .goal-card .goal-head>.goal-icon{grid-column:1;grid-row:1}
+#goalGrid .goal-card.goal-has-participant-avatars .goal-title-wrap{grid-column:1 / -1;grid-row:2;min-width:0}
+#goalGrid .goal-card .goal-participant-stack{position:static!important;inset:auto!important;grid-column:2;grid-row:1;display:flex!important;justify-content:flex-start!important;justify-self:start!important;align-items:center;min-width:0;margin:0!important;transform:none!important}
