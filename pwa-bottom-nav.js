@@ -43,10 +43,10 @@
         transform:translateX(-50%);
         width:min(94vw,520px);height:72px;z-index:24;
         padding:7px 8px;
-        border:1px solid rgba(92,116,143,.36);
+        border:1px solid rgba(72,96,126,.52);
         border-radius:24px;
-        background:rgba(247,248,244,.97);
-        box-shadow:0 16px 46px rgba(0,0,0,.28);
+        background:rgba(9,19,33,.96);
+        box-shadow:0 18px 48px rgba(0,0,0,.42);
         -webkit-backdrop-filter:blur(20px) saturate(1.25);
         backdrop-filter:blur(20px) saturate(1.25);
       }
@@ -63,7 +63,7 @@
         scroll-snap-align:center;
         border:0;border-radius:18px;padding:5px 4px 4px;
         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-        background:transparent;color:#687585;
+        background:transparent;color:#9aabc0;
         -webkit-tap-highlight-color:transparent;
         transition:background .18s ease,color .18s ease,transform .18s ease;
       }
@@ -79,14 +79,14 @@
         text-align:center;font-size:9px;font-weight:700;line-height:1.15;letter-spacing:-.01em;
       }
       .prumo-bottom-nav-item[aria-current="page"]{
-        background:#e7efd4;color:#284034;
+        background:#18263a;color:#f3f6fb;
       }
       .prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon{
-        color:#58784e;
+        color:#ddeaac;
       }
       .prumo-bottom-nav-item[aria-current="page"]::after{
         content:'';position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
-        width:20px;height:2px;border-radius:999px;background:#819d5d;
+        width:20px;height:2px;border-radius:999px;background:#ddeaac;
       }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
       @media(max-width:900px){
