@@ -26,13 +26,14 @@
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      .goal-card.goal-has-participant-avatars .goal-head{position:relative;padding-right:138px}
-      .goal-participant-stack{position:absolute;top:11px;right:13px;display:flex;align-items:center;justify-content:flex-end;min-height:42px;z-index:2}
-      .goal-participant-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 40px;margin-left:-10px;border:2px solid #0d1929;background:#19263a;color:#ddeaac;font-size:11px;font-weight:850;letter-spacing:.02em;box-shadow:0 3px 10px rgba(0,0,0,.28)}
+      .goal-card.goal-has-participant-avatars .goal-head{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;padding:14px 14px 11px}
+      .goal-card.goal-has-participant-avatars .goal-title-wrap{grid-column:1 / -1;min-width:0}
+      .goal-participant-stack{position:static;display:flex;align-items:center;justify-content:flex-start;min-height:42px;grid-column:2;grid-row:1;min-width:0}
+      .goal-participant-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;flex:0 0 40px;margin-left:-10px;border:2px solid #0d1929;background:#19263a;color:#ddeaac;font-size:11px;font-weight:850;letter-spacing:.02em;box-shadow:none}
       .goal-participant-avatar:first-child{margin-left:0}
       .goal-participant-avatar img{width:100%;height:100%;object-fit:cover;display:block}
       .goal-participant-more{background:#101d2e;color:#aab7c8;border-color:#23334a}
-      .goal-participant-stack:hover .goal-participant-avatar{margin-left:-5px;transition:margin-left .16s ease}
+      .goal-participant-stack:hover .goal-participant-avatar{margin-left:-10px}
       .goal-participant-stack:hover .goal-participant-avatar:first-child{margin-left:0}
       .goal-participant-recurring{margin-top:12px;padding:10px 11px;border:1px solid #22344b;border-radius:11px;background:#101d2e}
       .goal-participant-recurring-title{font-size:9px;color:#8395aa;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
@@ -41,7 +42,7 @@
       .goal-participant-recurring-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .goal-participant-recurring-value{color:#ddeaac;font-weight:820;white-space:nowrap}
       .goal-participant-recurring-value.zero{color:#718399;font-weight:700}
-      @media(max-width:620px){.goal-card.goal-has-participant-avatars .goal-head{padding-right:116px}.goal-participant-avatar{width:34px;height:34px;flex-basis:34px}.goal-participant-stack{top:12px;right:11px;min-height:36px}.goal-participant-recurring-row{align-items:flex-start}.goal-participant-recurring-value{text-align:right}}
+      @media(max-width:620px){.goal-participant-avatar{width:34px;height:34px;flex-basis:34px}.goal-participant-stack{min-height:36px}.goal-participant-recurring-row{align-items:flex-start}.goal-participant-recurring-value{text-align:right}}
     `;
     document.head.appendChild(style);
   }
@@ -120,7 +121,8 @@
       more.title=`Mais ${participants.length-visible.length} participante(s)`;
       stack.appendChild(more);
     }
-    head.appendChild(stack);
+    const icon=head.querySelector('.goal-icon');
+    if(icon)icon.after(stack);else head.prepend(stack);
     renderRecurringSummary(card,participants);
   }
 
