@@ -1,4 +1,4 @@
-const CACHE='prumo-pwa-v72-20260924-installedicon1';
+const CACHE='prumo-pwa-v73-20260924-profileindicator1';
 const SHELL=['/','/index.html','/prumo-ui-current.css','/prumo-ui-current.js','/profile-panel-current.js','/app.js','/history-status.js','/debts.js','/incomes.js','/financial-entity-panel-runtime-v2.js','/kpi-countup-v1.js','/profile-avatar-performance-v1.js','/pwa.js','/pwa-bottom-nav.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
