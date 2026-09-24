@@ -141,6 +141,18 @@
     document.head.appendChild(style);
   }
 
+  function syncVisibility(){
+    if(!root)return;
+    const app=document.getElementById('appRoot');
+    const auth=document.getElementById('authScreen');
+    const appVisible=!!(app&&!app.hidden&&!app.classList.contains('auth-hidden'));
+    const authVisible=!!(auth&&!auth.hidden&&!auth.classList.contains('hidden'));
+    const splashActive=!!document.body?.classList.contains('prumo-app-splash')&&!document.body?.classList.contains('caderno-splash-done');
+    const show=appVisible&&!authVisible&&!splashActive;
+    root.style.display=show&&window.matchMedia(MOBILE_QUERY).matches?'block':'none';
+    root.setAttribute('aria-hidden',show?'false':'true');
+  }
+
   function buttons(){return sourceNav?Array.from(sourceNav.querySelectorAll('button[data-page]')):[]}
   function currentIndex(){const list=buttons(),i=list.findIndex(btn=>btn.classList.contains('active'));return i>=0?i:0}
 
@@ -223,9 +235,22 @@
     });
     sourceObserver.observe(sourceNav,{childList:true,subtree:true,attributes:true,attributeFilter:['data-page']});
     sourceNav.addEventListener('click',event=>{if(event.target.closest('button[data-page]'))requestAnimationFrame(()=>syncActive({center:true}))});
-    window.addEventListener('resize',()=>{if(window.matchMedia(MOBILE_QUERY).matches)syncActive({center:true,behavior:'auto'})},{passive:true});
+    const visibilityObserver=new MutationObserver(()=>syncVisibility());
+    const app=document.getElementById('appRoot');
+    const auth=document.getElementById('authScreen');
+    if(app)visibilityObserver.observe(app,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+    if(auth)visibilityObserver.observe(auth,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+    visibilityObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
 
-    rebuild();return true;
+    window.addEventListener('resize',()=>{
+      syncVisibility();
+      if(window.matchMedia(MOBILE_QUERY).matches)syncActive({center:true,behavior:'auto'});
+    },{passive:true});
+
+    window.addEventListener('caderno:splash-done',syncVisibility);
+    rebuild();
+    syncVisibility();
+    return true;
   }
 
   function boot(){
