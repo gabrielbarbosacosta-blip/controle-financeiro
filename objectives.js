@@ -325,7 +325,14 @@
       panel=document.createElement('div');panel.className='goal-settings-panel';
       panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Configurações do objetivo');
       for(const [attr,label] of options){
-        const source=card.querySelector('['+attr+']');if(!source)continue;
+        const source=card.querySelector('['+attr+']');
+        if(!source&&attr==='data-goal-recurring'&&goals.find(g=>String(g.id)===String(card.dataset.goalId))?.canContribute){
+          const item=document.createElement('button');item.type='button';item.className='goal-settings-item';
+          item.textContent='Gerenciar contribuição mensal';
+          item.onclick=()=>{close();window.openGoalRecurringChoice?.(card.dataset.goalId)};
+          panel.appendChild(item);continue;
+        }
+        if(!source)continue;
         const item=document.createElement('button');item.type='button';
         item.className='goal-settings-item'+(attr==='data-goal-delete'?' danger':'');
         item.textContent=label||source.textContent;item.disabled=source.disabled;

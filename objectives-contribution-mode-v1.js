@@ -265,13 +265,21 @@
           setTimeout(()=>{const title=document.getElementById('goalContributionTitle');if(title)title.textContent=`Aporte extra individual · ${g?.name||'Objetivo'}`},20);
         }
       }else{
+        const modal=document.getElementById('goalRecurringModal');
+        if(!g?.canContribute||!modal){console.warn('Formulário de recorrência individual indisponível.',goalId);return}
         individualRecurringGoalId=goalId;
-        if(triggerOriginal(goalId,'[data-goal-recurring]')){
-          setTimeout(()=>{
-            const title=document.getElementById('goalRecurringTitle');if(title)title.textContent=`Aporte recorrente individual · ${g?.name||'Objetivo'}`;
-            const note=document.querySelector('#goalRecurringModal .goal-recurring-summary');if(note)note.innerHTML='O sistema criará <strong>uma ocorrência pendente por mês</strong> somente para você. Ao marcar como paga, ela passa a compor o valor reservado do objetivo.';
-          },20);
-        }
+        document.getElementById('goalRecurringGoalId').value=goalId;
+        document.getElementById('goalRecurringTitle').textContent=`Aporte recorrente individual · ${g.name||'Objetivo'}`;
+        document.getElementById('goalRecurringAmount').value=Number(g.recurringAmount)||Number(g.plannedMonthly)||'';
+        document.getElementById('goalRecurringStart').value=g.recurringStartMonth||currentYm();
+        document.getElementById('goalRecurringEnd').value=g.recurringEndMonth||g.targetMonth||'';
+        document.getElementById('goalRecurringAccount').value=g.recurringAccount||'';
+        const disable=document.getElementById('goalRecurringDisable');
+        if(disable)disable.style.display=g.recurringEnabled?'inline-flex':'none';
+        const note=modal.querySelector('.goal-recurring-summary');
+        if(note)note.innerHTML='O sistema criará <strong>uma ocorrência pendente por mês</strong> somente para você. Ao marcar como paga, ela passa a compor o valor reservado do objetivo.';
+        openModal('goalRecurringModal');
+        setTimeout(()=>document.getElementById('goalRecurringAmount')?.focus(),60);
       }
       return;
     }
@@ -426,13 +434,16 @@
     if(amount<=0||!start){alert('Informe valor e primeiro mês.');return}
     busy=true;if(btn)btn.disabled=true;
     try{
+      const shared=sharedRecurring.get(String(goalId));
+      if(shared&&String(shared.payerUserId)===String(getUserId())){
+        const off=await getSb().rpc('finance_disable_goal_shared_recurring_rule',{p_goal_id:goalId});
+        if(off.error)throw off.error;if(!off.data?.ok)throw new Error(off.data?.error||'mode_switch_failed');
+      }
       const {data,error}=await getSb().rpc('finance_set_goal_recurring_plan',{
         p_goal_id:goalId,p_enabled:true,p_amount:amount,p_start_month:`${start}-01`,
         p_end_month:end?`${end}-01`:null,p_account:account
       });
       if(error)throw error;if(!data?.ok)throw new Error(data?.error||'recurring_failed');
-      const off=await getSb().rpc('finance_disable_goal_shared_recurring_rule',{p_goal_id:goalId});
-      if(off.error)throw off.error;if(!off.data?.ok)throw new Error(off.data?.error||'mode_switch_failed');
       individualRecurringGoalId='';closeModal('goalRecurringModal');await refreshEverything();
       try{if(typeof setSyncStatus==='function')setSyncStatus('Aporte recorrente individual salvo')}catch(_e){}
     }catch(err){console.error('Falha ao salvar aporte recorrente individual.',err);alert('Não foi possível salvar o aporte recorrente individual agora.')}
