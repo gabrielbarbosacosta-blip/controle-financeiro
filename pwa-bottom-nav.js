@@ -38,10 +38,12 @@
     style.id='prumo-bottom-nav-style';
     style.textContent=`
       .prumo-bottom-nav{
-        display:none;position:fixed;left:50%;
-        bottom:calc(10px + env(safe-area-inset-bottom,0px));
-        transform:translateX(-50%);
-        width:min(94vw,520px);height:72px;z-index:24;
+        display:none;position:fixed!important;left:50%!important;
+        bottom:calc(10px + env(safe-area-inset-bottom,0px))!important;
+        transform:translate3d(-50%,0,0)!important;
+        width:min(94vw,520px);height:72px;z-index:2147483000!important;
+        margin:0!important;inset-block-start:auto!important;right:auto!important;top:auto!important;
+        isolation:isolate;contain:layout paint style;will-change:transform;
         padding:7px 8px;
         border:1px solid rgba(72,96,126,.52);
         border-radius:24px;
@@ -51,7 +53,7 @@
         backdrop-filter:blur(20px) saturate(1.25);
       }
       .prumo-bottom-nav-viewport{
-        width:100%;height:100%;overflow-x:auto;overflow-y:hidden;
+        width:100%;height:100%;overflow-x:auto;overflow-y:hidden;position:relative;
         scrollbar-width:none;scroll-snap-type:x proximity;scroll-behavior:smooth;
         overscroll-behavior-x:contain;touch-action:pan-x;
       }
@@ -90,7 +92,7 @@
       }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
       @media(max-width:900px){
-        .prumo-bottom-nav{display:block}
+        .prumo-bottom-nav{display:block!important;visibility:visible!important;opacity:1!important}
         .sidebar .nav{display:none!important}
         .main{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
         .modal-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
