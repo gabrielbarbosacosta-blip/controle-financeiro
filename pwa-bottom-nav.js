@@ -155,19 +155,31 @@
     if(!shell)return;
     const reduced=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_e){return false}})();
     menuAnimated=true;
-    if(reduced)return;
+
+    const finish=()=>{
+      shell.style.removeProperty('opacity');
+      shell.style.removeProperty('filter');
+      shell.style.setProperty('transform','translate3d(-50%,0,0)','important');
+    };
+
+    if(reduced){
+      finish();
+      return;
+    }
 
     try{
       shell.getAnimations?.().forEach(a=>a.cancel());
-      shell.animate([
+
+      const shellAnim=shell.animate([
         {opacity:0,transform:'translate3d(-50%,18px,0) scale(.97)',filter:'blur(6px)'},
         {opacity:.78,transform:'translate3d(-50%,-2px,0) scale(1.008)',filter:'blur(1px)',offset:.72},
         {opacity:1,transform:'translate3d(-50%,0,0) scale(1)',filter:'blur(0)'}
       ],{
         duration:520,
         easing:'cubic-bezier(.22,1,.36,1)',
-        fill:'none'
+        fill:'forwards'
       });
+      shellAnim.finished.then(finish).catch(finish);
 
       const items=Array.from(track?.querySelectorAll('.prumo-bottom-nav-item')||[]);
       items.slice(0,8).forEach((item,index)=>{
@@ -195,7 +207,7 @@
           easing:'cubic-bezier(.22,1,.36,1)'
         });
       }
-    }catch(_e){}
+    }catch(_e){finish()}
   }
 
   function syncVisibility(){
@@ -207,15 +219,24 @@
     const splashActive=!!document.body?.classList.contains('prumo-app-splash')&&!document.body?.classList.contains('caderno-splash-done');
     const show=appVisible&&!authVisible&&!splashActive;
     const visible=show&&window.matchMedia(MOBILE_QUERY).matches;
+    const shell=root.querySelector('.prumo-bottom-nav-shell');
+
+    if(visible&&!lastVisible&&!menuAnimated&&shell){
+      // Prepare the first visible frame so the menu cannot flash before animation.
+      shell.style.setProperty('opacity','0','important');
+      shell.style.setProperty('filter','blur(6px)','important');
+      shell.style.setProperty('transform','translate3d(-50%,18px,0) scale(.97)','important');
+    }
+
     root.style.setProperty('display',visible?'block':'none','important');
     root.style.setProperty('visibility',visible?'visible':'hidden','important');
     root.style.setProperty('opacity',visible?'1':'0','important');
-    root.style.setProperty('pointer-events',visible?'none':'none','important');
-    const shell=root.querySelector('.prumo-bottom-nav-shell');
+    root.style.setProperty('pointer-events','none','important');
     if(shell) shell.style.setProperty('pointer-events',visible?'auto':'none','important');
     root.setAttribute('aria-hidden',visible?'false':'true');
+
     if(visible&&!lastVisible){
-      requestAnimationFrame(()=>requestAnimationFrame(playLoadAnimation));
+      requestAnimationFrame(playLoadAnimation);
     }
     lastVisible=visible;
   }
