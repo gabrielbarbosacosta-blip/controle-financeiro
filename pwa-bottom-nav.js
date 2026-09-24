@@ -103,6 +103,25 @@
         content:'';position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
         width:20px;height:2px;border-radius:999px;background:#ddeaac;
       }
+      .prumo-bottom-nav-item[data-page="dashboard"]{
+        position:sticky!important;
+        left:0!important;
+        z-index:6;
+        background:#091321;
+        box-shadow:10px 0 16px -14px rgba(0,0,0,.95);
+      }
+      .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
+        background:#18263a;
+      }
+      .prumo-bottom-nav-item[data-page="dashboard"]::before{
+        content:'';
+        position:absolute;
+        right:-3px;
+        top:9px;
+        bottom:9px;
+        width:1px;
+        background:rgba(91,113,140,.34);
+      }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
       @media(max-width:900px){
         .prumo-bottom-nav{display:block!important;visibility:visible!important;opacity:1!important}
