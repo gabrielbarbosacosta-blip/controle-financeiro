@@ -249,7 +249,8 @@
     root.style.setProperty('opacity',visible?'1':'0','important');
     root.style.setProperty('pointer-events','none','important');
     if(shell) shell.style.setProperty('pointer-events',visible?'auto':'none','important');
-    root.setAttribute('aria-hidden',visible?'false':'true');
+    const ariaHidden=visible?'false':'true';
+    if(root.getAttribute('aria-hidden')!==ariaHidden)root.setAttribute('aria-hidden',ariaHidden);
 
     if(visible&&!lastVisible){
       requestAnimationFrame(playLoadAnimation);
@@ -340,7 +341,24 @@
     });
     sourceObserver.observe(sourceNav,{childList:true,subtree:true,attributes:true,attributeFilter:['data-page']});
     sourceNav.addEventListener('click',event=>{if(event.target.closest('button[data-page]'))requestAnimationFrame(()=>syncActive({center:true}))});
-    const visibilityObserver=new MutationObserver(()=>syncVisibility());
+    let visibilitySyncQueued=false;
+    const queueVisibilitySync=()=>{
+      if(visibilitySyncQueued)return;
+      visibilitySyncQueued=true;
+      requestAnimationFrame(()=>{
+        visibilitySyncQueued=false;
+        syncVisibility();
+      });
+    };
+    const visibilityObserver=new MutationObserver(mutations=>{
+      const relevant=mutations.some(m=>{
+        const target=m.target;
+        if(target===root||target?.closest?.('.prumo-bottom-nav'))return false;
+        if(m.type==='childList')return true;
+        return m.type==='attributes'&&m.attributeName==='class';
+      });
+      if(relevant)queueVisibilitySync();
+    });
     const app=document.getElementById('appRoot');
     const auth=document.getElementById('authScreen');
     if(app)visibilityObserver.observe(app,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});
@@ -349,7 +367,7 @@
       childList:true,
       subtree:true,
       attributes:true,
-      attributeFilter:['class','hidden','aria-hidden']
+      attributeFilter:['class']
     });
 
     window.addEventListener('resize',()=>{
