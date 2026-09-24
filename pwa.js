@@ -21,21 +21,31 @@
     const style=document.createElement('style');style.id='pwa-install-style';style.textContent=`
       .pwa-install-card{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(15,23,42,.68)}
       .pwa-install-title{font-size:12px;font-weight:760}.pwa-install-copy{font-size:11px;color:var(--muted);line-height:1.45;margin-top:4px}.pwa-install-card .btn{margin-top:9px;width:100%}
-      .pwa-installed-badge{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:5px 8px;border-radius:999px;background:#102a19;border:1px solid #245f37;color:#bbf7d0;font-size:10px;font-weight:700}
+      .pwa-install-card.pwa-installed-only{display:flex;align-items:center;justify-content:center;min-height:52px;padding:8px;background:transparent;border-color:transparent}
+      .pwa-installed-device{position:relative;width:34px;height:34px;display:grid;place-items:center;color:var(--muted)}
+      .pwa-installed-device svg{width:28px;height:28px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+      .pwa-installed-check{position:absolute;right:-2px;bottom:-1px;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;background:var(--bg);color:var(--accent);box-shadow:0 0 0 2px var(--bg)}
+      .pwa-installed-check svg{width:12px;height:12px;stroke:currentColor;stroke-width:2.4}
     `;document.head.appendChild(style);
+  }
+
+  function renderInstalledState(card){
+    if(!card)return;
+    card.className='pwa-install-card pwa-installed-only';
+    card.innerHTML='<div class="pwa-installed-device" role="img" aria-label="Aplicativo instalado" title="Aplicativo instalado"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.2"></rect><path d="M10 18.5h4"></path></svg><span class="pwa-installed-check"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 8.2 2.5 2.5L12 5.3"></path></svg></span></div>';
   }
 
   function ensureInstallUi(){
     injectStyles();const sidebar=document.querySelector('.sidebar');if(!sidebar||document.getElementById('pwaInstallCard'))return;
     const card=document.createElement('div');card.id='pwaInstallCard';card.className='pwa-install-card';
-    if(standalone)card.innerHTML='<div class="pwa-install-title">Aplicativo instalado</div><div class="pwa-installed-badge">✓ Modo aplicativo</div>';
+    if(standalone)renderInstalledState(card);
     else if(isIos)card.innerHTML='<div class="pwa-install-title">Instalar no iPhone</div><div class="pwa-install-copy">No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</div>';
     else card.innerHTML='<div class="pwa-install-title">Instalar aplicativo</div><div class="pwa-install-copy">Adicione o prumo à tela inicial para abrir como aplicativo.</div><button class="btn small" type="button" id="pwaInstallBtn" disabled>Instalar app</button>';
-    sidebar.appendChild(card);const button=document.getElementById('pwaInstallBtn');if(button){button.disabled=!deferredPrompt;button.onclick=async()=>{if(!deferredPrompt)return;button.disabled=true;deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(_e){}deferredPrompt=null;card.innerHTML='<div class="pwa-install-title">Aplicativo</div><div class="pwa-install-copy">A instalação foi processada pelo navegador.</div>'}}
+    sidebar.appendChild(card);const button=document.getElementById('pwaInstallBtn');if(button){button.disabled=!deferredPrompt;button.onclick=async()=>{if(!deferredPrompt)return;button.disabled=true;deferredPrompt.prompt();try{const choice=await deferredPrompt.userChoice;if(choice?.outcome==='accepted')renderInstalledState(card)}catch(_e){}deferredPrompt=null}}
   }
 
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredPrompt=event;const button=document.getElementById('pwaInstallBtn');if(button)button.disabled=false;ensureInstallUi()});
-  window.addEventListener('appinstalled',()=>{deferredPrompt=null;const card=document.getElementById('pwaInstallCard');if(card)card.innerHTML='<div class="pwa-install-title">Aplicativo instalado</div><div class="pwa-installed-badge">✓ Modo aplicativo</div>'});
+  window.addEventListener('appinstalled',()=>{deferredPrompt=null;const card=document.getElementById('pwaInstallCard');if(card)renderInstalledState(card)});
 
   async function register(){
     ensureHead();
