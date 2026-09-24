@@ -120,15 +120,6 @@
       .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
         background:#18263a;
       }
-      .prumo-bottom-nav-item[data-page="dashboard"]::before{
-        content:'';
-        position:absolute;
-        right:-3px;
-        top:9px;
-        bottom:9px;
-        width:1px;
-        background:rgba(91,113,140,.34);
-      }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
       .prumo-bottom-nav[aria-hidden="true"]{
         display:none!important;
