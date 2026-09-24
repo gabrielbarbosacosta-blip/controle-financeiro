@@ -123,8 +123,15 @@
         background:rgba(91,113,140,.34);
       }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
+      .prumo-bottom-nav[aria-hidden="true"]{
+        display:none!important;
+        visibility:hidden!important;
+        opacity:0!important;
+        pointer-events:none!important;
+      }
       @media(max-width:900px){
         .prumo-bottom-nav{display:block!important;visibility:visible!important;opacity:1!important}
+        .prumo-bottom-nav[aria-hidden="true"]{display:none!important;visibility:hidden!important;opacity:0!important}
         .sidebar .nav{display:none!important}
         .main{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}
         .modal-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
@@ -149,8 +156,14 @@
     const authVisible=!!(auth&&!auth.hidden&&!auth.classList.contains('hidden'));
     const splashActive=!!document.body?.classList.contains('prumo-app-splash')&&!document.body?.classList.contains('caderno-splash-done');
     const show=appVisible&&!authVisible&&!splashActive;
-    root.style.display=show&&window.matchMedia(MOBILE_QUERY).matches?'block':'none';
-    root.setAttribute('aria-hidden',show?'false':'true');
+    const visible=show&&window.matchMedia(MOBILE_QUERY).matches;
+    root.style.setProperty('display',visible?'block':'none','important');
+    root.style.setProperty('visibility',visible?'visible':'hidden','important');
+    root.style.setProperty('opacity',visible?'1':'0','important');
+    root.style.setProperty('pointer-events',visible?'none':'none','important');
+    const shell=root.querySelector('.prumo-bottom-nav-shell');
+    if(shell) shell.style.setProperty('pointer-events',visible?'auto':'none','important');
+    root.setAttribute('aria-hidden',visible?'false':'true');
   }
 
   function buttons(){return sourceNav?Array.from(sourceNav.querySelectorAll('button[data-page]')):[]}
