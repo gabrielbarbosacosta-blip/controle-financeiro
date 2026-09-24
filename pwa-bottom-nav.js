@@ -5,6 +5,7 @@
   const MOBILE_QUERY='(max-width: 900px)';
   let root=null,viewport=null,track=null,sourceNav=null,sourceObserver=null,activeObserver=null;
   let syncing=false,pointerStartX=null,pointerStartY=null;
+  let menuAnimated=false,lastVisible=false;
 
   const ICONS={
     dashboard:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.7l8.5 6.8v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 20.5v-6h6v6"/></svg>',
@@ -148,6 +149,55 @@
     document.head.appendChild(style);
   }
 
+  function playLoadAnimation(){
+    if(menuAnimated||!root)return;
+    const shell=root.querySelector('.prumo-bottom-nav-shell');
+    if(!shell)return;
+    const reduced=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_e){return false}})();
+    menuAnimated=true;
+    if(reduced)return;
+
+    try{
+      shell.getAnimations?.().forEach(a=>a.cancel());
+      shell.animate([
+        {opacity:0,transform:'translate3d(-50%,18px,0) scale(.97)',filter:'blur(6px)'},
+        {opacity:.78,transform:'translate3d(-50%,-2px,0) scale(1.008)',filter:'blur(1px)',offset:.72},
+        {opacity:1,transform:'translate3d(-50%,0,0) scale(1)',filter:'blur(0)'}
+      ],{
+        duration:520,
+        easing:'cubic-bezier(.22,1,.36,1)',
+        fill:'none'
+      });
+
+      const items=Array.from(track?.querySelectorAll('.prumo-bottom-nav-item')||[]);
+      items.slice(0,8).forEach((item,index)=>{
+        item.getAnimations?.().forEach(a=>a.cancel());
+        item.animate([
+          {opacity:0,transform:'translateY(9px) scale(.94)'},
+          {opacity:1,transform:'translateY(0) scale(1)'}
+        ],{
+          duration:360,
+          delay:90+(index*42),
+          easing:'cubic-bezier(.22,1,.36,1)',
+          fill:'backwards'
+        });
+      });
+
+      const active=track?.querySelector('.prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon');
+      if(active){
+        active.animate([
+          {transform:'scale(.82)',opacity:.45},
+          {transform:'scale(1.12)',opacity:1,offset:.72},
+          {transform:'scale(1)',opacity:1}
+        ],{
+          duration:430,
+          delay:230,
+          easing:'cubic-bezier(.22,1,.36,1)'
+        });
+      }
+    }catch(_e){}
+  }
+
   function syncVisibility(){
     if(!root)return;
     const app=document.getElementById('appRoot');
@@ -164,6 +214,10 @@
     const shell=root.querySelector('.prumo-bottom-nav-shell');
     if(shell) shell.style.setProperty('pointer-events',visible?'auto':'none','important');
     root.setAttribute('aria-hidden',visible?'false':'true');
+    if(visible&&!lastVisible){
+      requestAnimationFrame(()=>requestAnimationFrame(playLoadAnimation));
+    }
+    lastVisible=visible;
   }
 
   function buttons(){return sourceNav?Array.from(sourceNav.querySelectorAll('button[data-page]')):[]}
