@@ -1,5 +1,5 @@
-const CACHE='prumo-pwa-v64-20260924-recurringfix1';
-const SHELL=['/','/index.html','/prumo-ui-current.css','/prumo-ui-current.js','/profile-panel-current.js','/app.js','/history-status.js','/debts.js','/incomes.js','/financial-entity-panel-runtime-v2.js','/kpi-countup-v1.js','/profile-avatar-performance-v1.js','/pwa.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
+const CACHE='prumo-pwa-v65-20260924-bottomnavfixed2';
+const SHELL=['/','/index.html','/prumo-ui-current.css','/prumo-ui-current.js','/profile-panel-current.js','/app.js','/history-status.js','/debts.js','/incomes.js','/financial-entity-panel-runtime-v2.js','/kpi-countup-v1.js','/profile-avatar-performance-v1.js','/pwa.js','/pwa-bottom-nav.js','/manifest.webmanifest','/pwa-icon.svg','/pwa-icon-maskable.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>null));
