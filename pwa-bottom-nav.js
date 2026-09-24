@@ -136,6 +136,16 @@
         opacity:0!important;
         pointer-events:none!important;
       }
+      body:has(.modal-backdrop.open) .prumo-bottom-nav,
+      body:has(.profile-dropdown.open) .prumo-bottom-nav,
+      body:has([role="dialog"].open) .prumo-bottom-nav,
+      body:has(.drawer.open) .prumo-bottom-nav,
+      body:has(.sheet.open) .prumo-bottom-nav{
+        display:none!important;
+        visibility:hidden!important;
+        opacity:0!important;
+        pointer-events:none!important;
+      }
       @media(max-width:900px){
         .prumo-bottom-nav{display:block!important;visibility:visible!important;opacity:1!important}
         .prumo-bottom-nav[aria-hidden="true"]{display:none!important;visibility:hidden!important;opacity:0!important}
@@ -219,7 +229,10 @@
     const appVisible=!!(app&&!app.hidden&&!app.classList.contains('auth-hidden'));
     const authVisible=!!(auth&&!auth.hidden&&!auth.classList.contains('hidden'));
     const splashActive=!!document.body?.classList.contains('prumo-app-splash')&&!document.body?.classList.contains('caderno-splash-done');
-    const show=appVisible&&!authVisible&&!splashActive;
+    const overlayOpen=!!document.querySelector(
+      '.modal-backdrop.open, .profile-dropdown.open, [role="dialog"].open, .drawer.open, .sheet.open'
+    );
+    const show=appVisible&&!authVisible&&!splashActive&&!overlayOpen;
     const visible=show&&window.matchMedia(MOBILE_QUERY).matches;
     const shell=root.querySelector('.prumo-bottom-nav-shell');
     const animator=root.querySelector('.prumo-bottom-nav-animator');
@@ -332,7 +345,12 @@
     const auth=document.getElementById('authScreen');
     if(app)visibilityObserver.observe(app,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});
     if(auth)visibilityObserver.observe(auth,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});
-    visibilityObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+    visibilityObserver.observe(document.body,{
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['class','hidden','aria-hidden']
+    });
 
     window.addEventListener('resize',()=>{
       syncVisibility();
