@@ -66,6 +66,12 @@
         backdrop-filter:blur(20px) saturate(1.25);
         isolation:isolate;
       }
+      .prumo-bottom-nav-animator{
+        width:100%;height:100%;
+        border-radius:inherit;
+        transform-origin:50% 100%;
+        will-change:transform,opacity,filter;
+      }
       .prumo-bottom-nav-viewport{
         width:100%;height:100%;overflow-x:auto;overflow-y:hidden;position:relative;
         scrollbar-width:none;scroll-snap-type:x proximity;scroll-behavior:smooth;
@@ -151,45 +157,41 @@
 
   function playLoadAnimation(){
     if(menuAnimated||!root)return;
-    const shell=root.querySelector('.prumo-bottom-nav-shell');
-    if(!shell)return;
+    const animator=root.querySelector('.prumo-bottom-nav-animator');
+    if(!animator)return;
     const reduced=(()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_e){return false}})();
     menuAnimated=true;
 
     const finish=()=>{
-      shell.style.removeProperty('opacity');
-      shell.style.removeProperty('filter');
-      shell.style.setProperty('transform','translate3d(-50%,0,0)','important');
+      animator.style.removeProperty('opacity');
+      animator.style.removeProperty('filter');
+      animator.style.removeProperty('transform');
     };
 
-    if(reduced){
-      finish();
-      return;
-    }
+    if(reduced){finish();return}
 
     try{
-      shell.getAnimations?.().forEach(a=>a.cancel());
-
-      const shellAnim=shell.animate([
-        {opacity:0,transform:'translate3d(-50%,18px,0) scale(.97)',filter:'blur(6px)'},
-        {opacity:.78,transform:'translate3d(-50%,-2px,0) scale(1.008)',filter:'blur(1px)',offset:.72},
-        {opacity:1,transform:'translate3d(-50%,0,0) scale(1)',filter:'blur(0)'}
+      animator.getAnimations?.().forEach(a=>a.cancel());
+      const anim=animator.animate([
+        {opacity:0,transform:'translateY(18px) scale(.97)',filter:'blur(6px)'},
+        {opacity:.82,transform:'translateY(-2px) scale(1.008)',filter:'blur(1px)',offset:.72},
+        {opacity:1,transform:'translateY(0) scale(1)',filter:'blur(0)'}
       ],{
-        duration:520,
+        duration:560,
         easing:'cubic-bezier(.22,1,.36,1)',
         fill:'forwards'
       });
-      shellAnim.finished.then(finish).catch(finish);
+      anim.finished.then(finish).catch(finish);
 
       const items=Array.from(track?.querySelectorAll('.prumo-bottom-nav-item')||[]);
       items.slice(0,8).forEach((item,index)=>{
         item.getAnimations?.().forEach(a=>a.cancel());
         item.animate([
-          {opacity:0,transform:'translateY(9px) scale(.94)'},
+          {opacity:0,transform:'translateY(8px) scale(.94)'},
           {opacity:1,transform:'translateY(0) scale(1)'}
         ],{
           duration:360,
-          delay:90+(index*42),
+          delay:105+(index*45),
           easing:'cubic-bezier(.22,1,.36,1)',
           fill:'backwards'
         });
@@ -198,12 +200,12 @@
       const active=track?.querySelector('.prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon');
       if(active){
         active.animate([
-          {transform:'scale(.82)',opacity:.45},
-          {transform:'scale(1.12)',opacity:1,offset:.72},
+          {transform:'scale(.84)',opacity:.5},
+          {transform:'scale(1.13)',opacity:1,offset:.7},
           {transform:'scale(1)',opacity:1}
         ],{
-          duration:430,
-          delay:230,
+          duration:440,
+          delay:260,
           easing:'cubic-bezier(.22,1,.36,1)'
         });
       }
@@ -220,12 +222,13 @@
     const show=appVisible&&!authVisible&&!splashActive;
     const visible=show&&window.matchMedia(MOBILE_QUERY).matches;
     const shell=root.querySelector('.prumo-bottom-nav-shell');
+    const animator=root.querySelector('.prumo-bottom-nav-animator');
 
-    if(visible&&!lastVisible&&!menuAnimated&&shell){
-      // Prepare the first visible frame so the menu cannot flash before animation.
-      shell.style.setProperty('opacity','0','important');
-      shell.style.setProperty('filter','blur(6px)','important');
-      shell.style.setProperty('transform','translate3d(-50%,18px,0) scale(.97)','important');
+    if(visible&&!lastVisible&&!menuAnimated&&animator){
+      // Prepare the very first visible frame without touching the fixed shell.
+      animator.style.opacity='0';
+      animator.style.filter='blur(6px)';
+      animator.style.transform='translateY(18px) scale(.97)';
     }
 
     root.style.setProperty('display',visible?'block':'none','important');
@@ -298,9 +301,10 @@
     injectStyles();
     root=document.createElement('nav');root.className='prumo-bottom-nav';root.setAttribute('aria-label','Navegação principal');
     const shell=document.createElement('div');shell.className='prumo-bottom-nav-shell';
+    const animator=document.createElement('div');animator.className='prumo-bottom-nav-animator';
     viewport=document.createElement('div');viewport.className='prumo-bottom-nav-viewport';
     track=document.createElement('div');track.className='prumo-bottom-nav-track';
-    viewport.appendChild(track);shell.appendChild(viewport);root.appendChild(shell);document.body.appendChild(root);
+    viewport.appendChild(track);animator.appendChild(viewport);shell.appendChild(animator);root.appendChild(shell);document.body.appendChild(root);
 
     // Reinforce viewport anchoring on iOS/PWA even if page CSS changes later.
     Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'2147483000',pointerEvents:'none',transform:'none'});
