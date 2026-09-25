@@ -128,18 +128,18 @@
         position:sticky!important;
         left:0!important;
         z-index:6;
-        background:rgba(255,255,255,.045);
-        -webkit-backdrop-filter:blur(30px) saturate(1.35);
-        backdrop-filter:blur(30px) saturate(1.35);
-        box-shadow:10px 0 16px -14px rgba(0,0,0,.55);
+        background:transparent;
+        -webkit-backdrop-filter:none;
+        backdrop-filter:none;
+        box-shadow:none;
       }
       @media(hover:hover) and (pointer:fine){
         .prumo-bottom-nav-item[data-page="dashboard"]:hover{
-          background:rgba(255,255,255,.06);
+          background:transparent;
         }
       }
       .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
-        background:rgba(255,255,255,.045);
+        background:transparent;
       }
       .prumo-bottom-nav-item:active{transform:scale(.975);background:transparent!important}
       .prumo-bottom-nav-item:focus{outline:none}
