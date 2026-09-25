@@ -23,9 +23,11 @@
   };
 
   function iconFor(source){
+    const page=String(source?.dataset?.page||'').toLowerCase();
+    if(page==='dashboard')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.7l8.5 6.8v9a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 20.5v-6h6v6"/></svg>';
+    if(page==='history')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14M5 12h14M5 18.5h14"/><path d="M3 5.5h.01M3 12h.01M3 18.5h.01"/></svg>';
     const desktopSvg=source?.querySelector?.('.caderno-nav-icon svg');
     if(desktopSvg)return desktopSvg.outerHTML;
-    const page=String(source?.dataset?.page||'').toLowerCase();
     const text=String(source?.textContent||'').toLowerCase();
     let path=ICONS[page];
     if(!path&&/objetiv|meta/.test(text))path=ICONS.goals;
