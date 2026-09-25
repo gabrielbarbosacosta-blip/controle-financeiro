@@ -36,8 +36,8 @@
         display:block!important;
         margin:0 0 12px!important;
         color:#8ea5c1!important;
-        font:600 11px/1.2 'DM Mono', monospace!important;
-        letter-spacing:.08em!important;
+        font:700 13px/1.2 Manrope,Arial,sans-serif!important;
+        letter-spacing:-.01em!important;
         text-transform:lowercase;
       }
       #profilePanelSkin.profile-dropdown.profile-skin-v1 .profile-layout,
