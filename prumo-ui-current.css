@@ -663,7 +663,7 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
 /* Prumo glass modals — same visual language as the mobile bottom navigation */
 html.caderno-stable .modal,
 html.caderno-stable .profile-dropdown{
-  background:rgba(255,255,255,.11)!important;
+  background:rgba(7,16,29,.72)!important;
   border:1px solid rgba(255,255,255,.24)!important;
   box-shadow:
     0 14px 38px rgba(0,0,0,.30),
@@ -679,7 +679,7 @@ html.caderno-stable .modal{
 
 html.caderno-stable .modal-head,
 html.caderno-stable .modal-foot{
-  background:rgba(7,16,29,.26)!important;
+  background:rgba(7,16,29,.46)!important;
   border-color:rgba(255,255,255,.12)!important;
   -webkit-backdrop-filter:blur(26px) saturate(1.25)!important;
   backdrop-filter:blur(26px) saturate(1.25)!important;
