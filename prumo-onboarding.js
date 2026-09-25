@@ -17,25 +17,31 @@
       icon:'home'
     },
     {
-      eyebrow:'1 de 4 · Comece pelo básico',
+      eyebrow:'1 de 5 · Comece pelo básico',
       title:'Registre o que entra e o que sai.',
       text:'Cadastre suas receitas e despesas. Itens recorrentes ajudam o Prumo a entender os próximos meses automaticamente.',
       icon:'wallet'
     },
     {
-      eyebrow:'2 de 4 · Cartões',
+      eyebrow:'2 de 5 · Cartões',
       title:'A fatura sem perder os detalhes.',
       text:'Cadastre o cartão e suas compras. O Prumo mantém as compras detalhadas, mas leva a fatura consolidada para o seu fluxo de caixa.',
       icon:'card'
     },
     {
-      eyebrow:'3 de 4 · Objetivos',
+      eyebrow:'3 de 5 · Objetivos',
       title:'Transforme planos em metas visíveis.',
       text:'Crie objetivos individuais ou compartilhados, registre aportes e acompanhe quanto falta para chegar lá.',
       icon:'target'
     },
     {
-      eyebrow:'4 de 4 · Projeções',
+      eyebrow:'4 de 5 · Simulações',
+      title:'Teste uma despesa antes de assumir o compromisso.',
+      text:'Use a simulação para incluir ou retirar despesas do cenário e ver como isso afeta seu saldo e os próximos meses, sem alterar seus lançamentos reais.',
+      icon:'simulate'
+    },
+    {
+      eyebrow:'5 de 5 · Projeções',
       title:'Veja o mês de amanhã antes de ele chegar.',
       text:'Use Projeções para antecipar saldos, compromissos e faturas. Assim você decide com mais contexto, não só olhando para hoje.',
       icon:'chart'
@@ -47,6 +53,7 @@
     wallet:`<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 14h27a4 4 0 0 1 4 4v19H11a4 4 0 0 1-4-4V15a5 5 0 0 1 5-5h23"/><path d="M32 23h8v9h-8a4.5 4.5 0 0 1 0-9Z"/><path d="M32 27.5h.01"/></svg>`,
     card:`<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="11" width="36" height="26" rx="5"/><path d="M6 19h36"/><path d="M12 30h10"/></svg>`,
     target:`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="23" cy="25" r="15"/><circle cx="23" cy="25" r="8"/><path d="m23 25 15-15"/><path d="M32 10h6v6"/></svg>`,
+    simulate:`<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 12h26"/><path d="M11 24h26"/><path d="M11 36h16"/><circle cx="34" cy="36" r="5"/><path d="M34 33v6"/><path d="M31 36h6"/></svg>`,
     chart:`<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 38V10"/><path d="M8 38h33"/><path d="m13 31 8-9 7 5 11-14"/><path d="M34 13h5v5"/></svg>`
   };
 
