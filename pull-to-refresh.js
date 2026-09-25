@@ -5,7 +5,7 @@
   const THRESHOLD=76;
   const MAX_PULL=118;
   let startY=0,startX=0,pull=0,tracking=false,armed=false,refreshing=false;
-  let indicator=null,ring=null,label=null;
+  let indicator=null,ring=null,label=null,appRoot=null;
 
   function haptic(pattern=10){
     try{
@@ -20,6 +20,14 @@
     style.textContent=`
       html,body{overscroll-behavior-y:none}
       html.prumo-pull-refresh-active,html.prumo-pull-refresh-active body{overscroll-behavior-y:none}
+      #appRoot.prumo-ptr-dragging{
+        will-change:transform!important;
+        transition:none!important;
+      }
+      #appRoot.prumo-ptr-releasing{
+        will-change:transform!important;
+        transition:transform .32s cubic-bezier(.22,1,.36,1)!important;
+      }
       html.prumo-pull-refresh-active .prumo-bottom-nav,
       html.prumo-pull-refresh-active .prumo-bottom-nav-shell,
       html.prumo-pull-refresh-active .prumo-bottom-nav-animator{
@@ -105,24 +113,65 @@
     return Math.min(MAX_PULL,Math.pow(Math.max(0,distance),.88)*1.22);
   }
 
+  function pageOffset(){
+    return Math.min(84,pull*.62);
+  }
+
   function paint(){
     ensureUi();
     const progress=Math.min(1,pull/THRESHOLD);
-    const y=-26+(pull*.52);
+    const offset=pageOffset();
     const scale=.92+progress*.08;
-    indicator.classList.toggle('visible',pull>3||refreshing);
-    if(!refreshing)indicator.style.transform=`translate3d(-50%,${y}px,0) scale(${scale})`;
+    indicator.classList.toggle('visible',pull>2||refreshing);
+
+    appRoot=document.getElementById('appRoot');
+    if(appRoot&&!refreshing){
+      appRoot.classList.add('prumo-ptr-dragging');
+      appRoot.classList.remove('prumo-ptr-releasing');
+      appRoot.style.setProperty('transform',`translate3d(0,${offset}px,0)`,'important');
+    }
+
+    if(!refreshing)indicator.style.transform=`translate3d(-50%,${-34+offset}px,0) scale(${scale})`;
     if(ring&&!refreshing)ring.style.transform=`rotate(${Math.round(progress*250)}deg)`;
     if(label&&!refreshing)label.textContent=armed?'Solte para atualizar':'Puxe para atualizar';
   }
 
   function reset(){
     tracking=false;armed=false;pull=0;
-    if(!indicator)return;
-    indicator.classList.remove('visible');
-    indicator.style.transform='translate3d(-50%,-34px,0) scale(.92)';
-    if(ring)ring.style.transform='rotate(0deg)';
+    appRoot=appRoot||document.getElementById('appRoot');
+    if(appRoot){
+      appRoot.classList.remove('prumo-ptr-dragging','prumo-ptr-releasing');
+      appRoot.style.removeProperty('transform');
+    }
+    if(indicator){
+      indicator.classList.remove('visible');
+      indicator.style.transform='translate3d(-50%,-34px,0) scale(.92)';
+      if(ring)ring.style.transform='rotate(0deg)';
+    }
     document.documentElement.classList.remove('prumo-pull-refresh-active');
+  }
+
+  function releasePage({keepIndicator=false}={}){
+    return new Promise(resolve=>{
+      appRoot=appRoot||document.getElementById('appRoot');
+      if(!appRoot){resolve();return}
+      appRoot.classList.remove('prumo-ptr-dragging');
+      appRoot.classList.add('prumo-ptr-releasing');
+      appRoot.style.setProperty('transform','translate3d(0,0,0)','important');
+
+      if(indicator){
+        indicator.style.transition='opacity .16s ease,transform .32s cubic-bezier(.22,1,.36,1),width .18s ease';
+        indicator.style.transform='translate3d(-50%,0,0) scale(1)';
+        if(!keepIndicator)indicator.style.opacity='0';
+      }
+
+      setTimeout(()=>{
+        appRoot?.classList.remove('prumo-ptr-releasing');
+        appRoot?.style.removeProperty('transform');
+        if(indicator)indicator.style.removeProperty('opacity');
+        resolve();
+      },330);
+    });
   }
 
   async function waitForPendingSave(){
@@ -191,12 +240,18 @@
     paint();
   }
 
-  function onEnd(){
+  async function onEnd(){
     if(!tracking||refreshing)return;
     const shouldRefresh=armed;
     tracking=false;
-    if(shouldRefresh)refresh();
-    else reset();
+    if(shouldRefresh){
+      await releasePage({keepIndicator:true});
+      pull=0;armed=false;
+      await refresh();
+    }else{
+      await releasePage({keepIndicator:false});
+      reset();
+    }
   }
 
   function init(){
@@ -204,7 +259,7 @@
     document.addEventListener('touchstart',onStart,{passive:true});
     document.addEventListener('touchmove',onMove,{passive:false,capture:true});
     document.addEventListener('touchend',onEnd,{passive:true});
-    document.addEventListener('touchcancel',reset,{passive:true});
+    document.addEventListener('touchcancel',()=>{if(tracking){tracking=false;releasePage({keepIndicator:false}).then(reset)}else reset()},{passive:true});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
