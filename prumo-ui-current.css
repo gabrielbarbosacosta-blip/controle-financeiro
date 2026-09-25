@@ -734,3 +734,19 @@ html.caderno-stable .profile-dropdown{
 @media(prefers-reduced-motion:reduce){
   .page.active{animation:none!important}
 }
+
+
+/* Keep the canonical month select available to app logic, but remove the left topbar control visually. */
+.topbar .actions > #monthSelect.prumo-month-select-hidden{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
