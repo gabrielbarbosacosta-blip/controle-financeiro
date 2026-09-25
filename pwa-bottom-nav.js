@@ -58,12 +58,12 @@
         width:min(94vw,520px);height:72px;
         padding:7px 8px;
         pointer-events:auto!important;
-        border:1px solid rgba(255,224,102,.34);
+        border:1px solid rgba(255,255,255,.24);
         border-radius:24px;
-        background:rgba(244,211,94,.18);
+        background:rgba(255,255,255,.11);
         box-shadow:
           0 14px 38px rgba(0,0,0,.30),
-          inset 0 1px 0 rgba(255,255,255,.16);
+          inset 0 1px 0 rgba(255,255,255,.14);
         -webkit-backdrop-filter:blur(30px) saturate(1.35);
         backdrop-filter:blur(30px) saturate(1.35);
         isolation:isolate;
