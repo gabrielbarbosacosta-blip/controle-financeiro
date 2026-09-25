@@ -14,37 +14,43 @@
       eyebrow:'Bem-vindo ao Prumo',
       title:'Seu dinheiro, com direção.',
       text:'Receitas, despesas, cartões, objetivos e projeções reunidos em uma visão simples do seu mês.',
-      icon:'home'
+      icon:'home',
+      pages:['dashboard']
     },
     {
       eyebrow:'1 de 5 · Comece pelo básico',
       title:'Registre o que entra e o que sai.',
       text:'Cadastre suas receitas e despesas. Itens recorrentes ajudam o Prumo a entender os próximos meses automaticamente.',
-      icon:'wallet'
+      icon:'wallet',
+      pages:['incomes','debts']
     },
     {
       eyebrow:'2 de 5 · Cartões',
       title:'A fatura sem perder os detalhes.',
       text:'Cadastre o cartão e suas compras. O Prumo mantém as compras detalhadas, mas leva a fatura consolidada para o seu fluxo de caixa.',
-      icon:'card'
+      icon:'card',
+      pages:['cards']
     },
     {
       eyebrow:'3 de 5 · Objetivos',
       title:'Transforme planos em metas visíveis.',
       text:'Crie objetivos individuais ou compartilhados, registre aportes e acompanhe quanto falta para chegar lá.',
-      icon:'target'
+      icon:'target',
+      pages:['goals','objectives']
     },
     {
       eyebrow:'4 de 5 · Simulações',
       title:'Teste uma despesa antes de assumir o compromisso.',
       text:'Use a simulação para incluir ou retirar despesas do cenário e ver como isso afeta seu saldo e os próximos meses, sem alterar seus lançamentos reais.',
-      icon:'simulate'
+      icon:'simulate',
+      pages:['projection']
     },
     {
       eyebrow:'5 de 5 · Projeções',
       title:'Veja o mês de amanhã antes de ele chegar.',
       text:'Use Projeções para antecipar saldos, compromissos e faturas. Assim você decide com mais contexto, não só olhando para hoje.',
-      icon:'chart'
+      icon:'chart',
+      pages:['projection']
     }
   ];
 
@@ -74,6 +80,29 @@
         transition:opacity .28s ease,visibility 0s linear .28s;
       }
       .prumo-onboarding.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease}
+      body.prumo-tour-open .prumo-bottom-nav{z-index:20010!important}
+      body.prumo-tour-open .prumo-bottom-nav-shell{
+        box-shadow:0 18px 50px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.14);
+      }
+      body.prumo-tour-open .prumo-bottom-nav-item{
+        opacity:.34;
+        transition:opacity .24s ease,transform .24s cubic-bezier(.22,1,.36,1),color .24s ease,filter .24s ease!important;
+      }
+      body.prumo-tour-open .prumo-bottom-nav-item.prumo-tour-highlight{
+        opacity:1!important;
+        transform:translateY(-2px) scale(1.04)!important;
+        filter:none!important;
+        color:#fff!important;
+      }
+      body.prumo-tour-open .prumo-bottom-nav-item.prumo-tour-highlight .prumo-bottom-nav-icon{
+        color:#ddeaac!important;
+        filter:drop-shadow(0 0 9px rgba(221,234,172,.28));
+      }
+      body.prumo-tour-open .prumo-bottom-nav-item.prumo-tour-highlight::after{
+        content:'';
+        position:absolute;left:50%;bottom:1px;transform:translateX(-50%);
+        width:22px;height:2px;border-radius:999px;background:#ddeaac;
+      }
       .prumo-onboarding-card{
         width:min(520px,100%);
         min-height:min(650px,calc(100vh - 36px));
@@ -152,18 +181,28 @@
         to{opacity:1;transform:none;filter:none}
       }
       @media(max-width:600px){
-        .prumo-onboarding{padding:0}
-        .prumo-onboarding-card{
-          width:100%;height:100%;min-height:100%;max-height:none;border-radius:0;border:0;
-          background:linear-gradient(180deg,#0b1626 0%,#07101d 100%);
+        .prumo-onboarding{
+          place-items:start center;
+          padding:calc(14px + env(safe-area-inset-top)) 12px calc(118px + env(safe-area-inset-bottom));
+          background:rgba(3,9,18,.62);
+          -webkit-backdrop-filter:blur(8px) saturate(1.08);
+          backdrop-filter:blur(8px) saturate(1.08);
         }
-        .prumo-onboarding-top{padding:calc(14px + env(safe-area-inset-top)) 20px 8px}
-        .prumo-onboarding-stage{padding:14px 24px 16px}
-        .prumo-onboarding-visual{width:96px;height:96px;border-radius:28px;margin-bottom:28px}
-        .prumo-onboarding-visual svg{width:49px;height:49px}
-        .prumo-onboarding-title{font-size:36px}
-        .prumo-onboarding-text{font-size:14px}
-        .prumo-onboarding-footer{padding:12px 20px calc(18px + env(safe-area-inset-bottom))}
+        .prumo-onboarding-card{
+          width:100%;
+          min-height:0;
+          max-height:calc(100vh - 146px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+          border-radius:24px;
+          border:1px solid rgba(255,255,255,.14);
+          background:rgba(11,22,38,.94);
+        }
+        .prumo-onboarding-top{padding:14px 18px 5px}
+        .prumo-onboarding-stage{padding:8px 22px 14px;justify-content:flex-start}
+        .prumo-onboarding-visual{width:72px;height:72px;border-radius:22px;margin:8px 0 20px}
+        .prumo-onboarding-visual svg{width:38px;height:38px}
+        .prumo-onboarding-title{font-size:30px}
+        .prumo-onboarding-text{font-size:13px;line-height:1.55;margin-top:14px}
+        .prumo-onboarding-footer{padding:10px 18px 16px}
       }
       @media(prefers-reduced-motion:reduce){
         .prumo-onboarding,.prumo-onboarding-card.is-changing .prumo-onboarding-stage,.prumo-onboarding-btn{transition:none!important;animation:none!important}
@@ -238,6 +277,56 @@
     return overlay;
   }
 
+  function clearTourHighlights(){
+    document.querySelectorAll('.prumo-bottom-nav-item.prumo-tour-highlight').forEach(el=>el.classList.remove('prumo-tour-highlight'));
+  }
+
+  function resolveSourceButton(page){
+    const direct=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
+    if(direct)return direct;
+    if(page==='goals'||page==='objectives'){
+      return Array.from(document.querySelectorAll('.sidebar .nav button[data-page]')).find(btn=>/objetiv|meta/i.test(btn.textContent||''))||null;
+    }
+    return null;
+  }
+
+  function navigateTour(slide){
+    const pages=Array.isArray(slide?.pages)?slide.pages:[];
+    let source=null;
+    for(const page of pages){
+      source=resolveSourceButton(page);
+      if(source)break;
+    }
+    if(source&&!source.classList.contains('active'))source.click();
+  }
+
+  function highlightTour(slide){
+    clearTourHighlights();
+    const pages=Array.isArray(slide?.pages)?slide.pages:[];
+    pages.forEach(page=>{
+      document.querySelectorAll('.prumo-bottom-nav-item[data-page="'+page+'"]').forEach(el=>el.classList.add('prumo-tour-highlight'));
+    });
+    if(pages.some(p=>p==='goals'||p==='objectives')){
+      document.querySelectorAll('.prumo-bottom-nav-item').forEach(el=>{
+        if(/objetiv|meta/i.test(el.textContent||''))el.classList.add('prumo-tour-highlight');
+      });
+    }
+    const first=document.querySelector('.prumo-bottom-nav-item.prumo-tour-highlight');
+    if(first){
+      const viewport=first.closest('.prumo-bottom-nav-viewport');
+      if(viewport&&first.dataset.page!=='dashboard'){
+        const left=first.offsetLeft-(viewport.clientWidth-first.clientWidth)/2;
+        viewport.scrollTo({left:Math.max(0,left),behavior:'smooth'});
+      }
+    }
+  }
+
+  function syncTour(slide){
+    navigateTour(slide);
+    requestAnimationFrame(()=>highlightTour(slide));
+    setTimeout(()=>highlightTour(slide),120);
+  }
+
   function render(){
     const el=build(),slide=slides[current],card=el.querySelector('.prumo-onboarding-card');
     card.classList.remove('is-changing');
@@ -255,6 +344,7 @@
     back.hidden=current===0;
     next.textContent=current===slides.length-1?'Começar a usar':'Continuar';
     skip.hidden=current===slides.length-1;
+    if(document.body.classList.contains('prumo-tour-open'))syncTour(slide);
   }
 
   function go(index){
@@ -268,7 +358,8 @@
     current=Number.isInteger(options.step)?Math.max(0,Math.min(slides.length-1,options.step)):0;
     render();
     overlay.classList.add('open');
-    document.body.classList.add('prumo-onboarding-open');
+    document.body.classList.add('prumo-onboarding-open','prumo-tour-open');
+    syncTour(slides[current]);
     setTimeout(()=>overlay.querySelector('[data-onboarding-next]')?.focus(),50);
   }
 
@@ -276,7 +367,8 @@
     if(!overlay)return;
     if(remember)markSeen();
     overlay.classList.remove('open');
-    document.body.classList.remove('prumo-onboarding-open');
+    document.body.classList.remove('prumo-onboarding-open','prumo-tour-open');
+    clearTourHighlights();
   }
 
   async function maybeOpen(){
