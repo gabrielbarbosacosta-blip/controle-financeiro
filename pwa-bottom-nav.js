@@ -104,11 +104,11 @@
         background:transparent;color:#f3f6fb;
       }
       .prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon{
-        color:#f3f6fb;
+        color:#ddeaac;
       }
       .prumo-bottom-nav-item[aria-current="page"]::after{
         content:'';position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
-        width:20px;height:2px;border-radius:999px;background:#7f8ea3;
+        width:20px;height:2px;border-radius:999px;background:#ddeaac;
       }
       .prumo-bottom-nav-item[data-page="dashboard"]{
         position:sticky!important;
