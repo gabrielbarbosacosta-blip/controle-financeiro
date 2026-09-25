@@ -706,3 +706,30 @@ html.caderno-stable .profile-dropdown{
 }
 
 
+
+
+/* Section transition */
+.page.active{
+  animation:prumoSectionEnter .34s cubic-bezier(.22,1,.36,1) both;
+  transform-origin:50% 0;
+  will-change:opacity,transform,filter;
+}
+@keyframes prumoSectionEnter{
+  0%{
+    opacity:0;
+    transform:translateY(7px) scale(.995);
+    filter:blur(3px);
+  }
+  55%{
+    opacity:.82;
+    filter:blur(.8px);
+  }
+  100%{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    filter:blur(0);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .page.active{animation:none!important}
+}
