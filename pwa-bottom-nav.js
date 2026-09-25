@@ -106,9 +106,11 @@
         width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
         text-align:center;font-size:9px;font-weight:700;line-height:1.15;letter-spacing:-.01em;
       }
-      .prumo-bottom-nav-item:hover{
-        background:rgba(255,255,255,.08);
-        color:#f7f9fc;
+      @media(hover:hover) and (pointer:fine){
+        .prumo-bottom-nav-item:hover{
+          background:rgba(255,255,255,.06);
+          color:#f7f9fc;
+        }
       }
       .prumo-bottom-nav-item[aria-current="page"]{
         background:transparent;
@@ -131,13 +133,20 @@
         backdrop-filter:blur(30px) saturate(1.35);
         box-shadow:10px 0 16px -14px rgba(0,0,0,.55);
       }
-      .prumo-bottom-nav-item[data-page="dashboard"]:hover{
-        background:rgba(255,255,255,.09);
+      @media(hover:hover) and (pointer:fine){
+        .prumo-bottom-nav-item[data-page="dashboard"]:hover{
+          background:rgba(255,255,255,.06);
+        }
       }
       .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
         background:rgba(255,255,255,.045);
       }
-      .prumo-bottom-nav-item:active{transform:scale(.965);background:rgba(255,255,255,.12)}
+      .prumo-bottom-nav-item:active{transform:scale(.975);background:transparent!important}
+      .prumo-bottom-nav-item:focus{outline:none}
+      .prumo-bottom-nav-item:focus-visible{
+        outline:2px solid rgba(221,234,172,.72);
+        outline-offset:-2px;
+      }
       .prumo-bottom-nav[aria-hidden="true"]{
         display:none!important;
         visibility:hidden!important;
