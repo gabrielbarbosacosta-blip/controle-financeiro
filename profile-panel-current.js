@@ -307,10 +307,13 @@
       }
       #profilePanelSkin.profile-dropdown.profile-skin-v1 #profileSaveBtn,
       #page-profile.profile-skin-v1 #profileSaveBtn{
-        background:var(--profile-lime)!important;
-        border-color:var(--profile-lime)!important;
+        background:rgba(221,234,172,.78)!important;
+        border-color:rgba(231,242,187,.82)!important;
         color:#0b1a27!important;
         box-shadow:none!important;
+        box-shadow:0 8px 24px rgba(221,234,172,.14),inset 0 1px 0 rgba(255,255,255,.38)!important;
+        -webkit-backdrop-filter:blur(18px) saturate(1.25)!important;
+        backdrop-filter:blur(18px) saturate(1.25)!important;
       }
       #profilePanelSkin.profile-dropdown.profile-skin-v1 #profileSaveBtn:hover,
       #page-profile.profile-skin-v1 #profileSaveBtn:hover{
