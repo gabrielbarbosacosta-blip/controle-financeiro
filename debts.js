@@ -425,6 +425,12 @@
     });
 
     const saving=Math.max(0,nominal-paidAmount);
+    const advanceMeta=selected.map(t=>({
+      n:Number(t.debtInstallmentNumber)||0,
+      ym:String(t.date).slice(0,7),
+      amount:Number(rows.find(r=>r.dataset.debtAdvanceTx===String(t.id))?.dataset.amount)||0
+    }));
+    const advanceMarker='[[PRUMO_ADVANCE|'+encodeURIComponent(JSON.stringify(advanceMeta))+']]';
     state.transactions.push({
       id:`debt-advance-${debt.id}-${txUid()}`,
       date:paymentDate,
@@ -434,8 +440,10 @@
       account:debt.account||'',
       nature:'Antecipação',
       amount:paidAmount,
+      debtId:debt.id,
+      debtManaged:false,
       status:'Pago',
-      notes:`Parcelas antecipadas: ${parcelNumbers.sort((a,b)=>a-b).join(', ')}. Valor nominal: ${money(nominal)}. Valor pago: ${money(paidAmount)}. Economia: ${money(saving)}.`,
+      notes:`Parcelas antecipadas: ${parcelNumbers.sort((a,b)=>a-b).join(', ')}. Valor nominal: ${money(nominal)}. Valor pago: ${money(paidAmount)}. Economia: ${money(saving)}. ${advanceMarker}`,
       projection:false,
       recurring:false
     });
@@ -445,6 +453,68 @@
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
     renderDebtPage();
     try{if(typeof setSyncStatus==='function')setSyncStatus('Antecipação registrada')}catch(_e){}
+  }
+
+  function isDebtAdvanceTransaction(tx){
+    return !!tx&&(String(tx.nature||'').toLowerCase()==='antecipação'||String(tx.id||'').startsWith('debt-advance-'));
+  }
+
+  function advanceMetaFromTransaction(tx,debt){
+    const notes=String(tx?.notes||'');
+    const marker=notes.match(/\[\[PRUMO_ADVANCE\|([^\]]+)\]\]/);
+    if(marker){
+      try{
+        const parsed=JSON.parse(decodeURIComponent(marker[1]));
+        if(Array.isArray(parsed))return parsed.filter(x=>Number(x?.n)>0&&x?.ym).map(x=>({n:Number(x.n),ym:String(x.ym),amount:Number(x.amount)||0}));
+      }catch(_e){}
+    }
+    const legacy=notes.match(/Parcelas antecipadas:\s*([0-9,\s]+)/i);
+    const nums=legacy?legacy[1].split(',').map(x=>Number(x.trim())).filter(Boolean):[];
+    return nums.map(n=>{
+      const t=linkedTransactions(debt?.id).find(x=>Number(x.debtInstallmentNumber)===n);
+      const ym=t?String(t.date).slice(0,7):addMonth(debt.firstMonth,n-(Number(debt.firstInstallment)||1));
+      let amount=0;
+      if(typeof window.expenseAmountForMonth==='function'){
+        const copy={...debt,monthOverrides:{...(debt.monthOverrides||{})}};
+        delete copy.monthOverrides[ym];
+        amount=Number(window.expenseAmountForMonth(copy,ym))||Number(debt.installmentAmount)||0;
+      }else amount=Number(debt.installmentAmount)||0;
+      return{n,ym,amount};
+    });
+  }
+
+  function cancelDebtAdvanceTransaction(txId,{confirmUser=true}={}){
+    if(!ensureDebtState())return false;
+    const tx=state.transactions.find(t=>String(t.id)===String(txId));
+    if(!isDebtAdvanceTransaction(tx))return false;
+    let debt=tx.debtId?state.debts.find(d=>String(d.id)===String(tx.debtId)):null;
+    if(!debt){
+      const name=String(tx.description||'').replace(/^Antecipação\s*[—-]\s*/i,'').trim();
+      debt=state.debts.find(d=>String(d.name||'').trim()===name)||null;
+    }
+    if(!debt){alert('Não foi possível localizar a despesa vinculada a esta antecipação.');return false}
+    if(confirmUser&&!confirm(`Cancelar a antecipação de "${debt.name}"? As parcelas selecionadas voltarão a ficar pendentes nos meses originais.`))return false;
+
+    const meta=advanceMetaFromTransaction(tx,debt);
+    debt.monthOverrides=debt.monthOverrides&&typeof debt.monthOverrides==='object'?{...debt.monthOverrides}:{};
+    const linked=linkedTransactions(debt.id);
+    for(const item of meta){
+      debt.monthOverrides[item.ym]=Number(item.amount)||0;
+      const parcel=linked.find(t=>Number(t.debtInstallmentNumber)===Number(item.n));
+      if(parcel){
+        parcel.amount=Number(item.amount)||0;
+        parcel.status='Pendente';
+        parcel.projection=true;
+        parcel.notes=String(parcel.notes||'').replace(/\s*Parcela antecipada em \d{4}-\d{2}-\d{2}\.?/g,'').trim();
+      }
+    }
+
+    state.transactions=state.transactions.filter(t=>String(t.id)!==String(txId));
+    if(typeof window.reconcileExpenseValueHistory==='function')window.reconcileExpenseValueHistory();
+    if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
+    renderDebtPage();
+    try{if(typeof setSyncStatus==='function')setSyncStatus('Antecipação cancelada')}catch(_e){}
+    return true;
   }
 
   function isGoalManagedDebt(id){
@@ -507,6 +577,8 @@
   window.editDebtPlan=openDebtModal;
   window.deleteDebtPlan=deleteDebt;
   window.openDebtAdvance=openDebtAdvanceModal;
+  window.isDebtAdvanceTransaction=isDebtAdvanceTransaction;
+  window.cancelDebtAdvanceTransaction=cancelDebtAdvanceTransaction;
 
   function init(){
     if(!ensureDebtState())return;
