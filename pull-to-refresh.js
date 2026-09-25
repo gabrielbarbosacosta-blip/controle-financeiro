@@ -18,19 +18,36 @@
     const style=document.createElement('style');
     style.id='prumo-pull-refresh-style';
     style.textContent=`
-      html.prumo-pull-refresh-active,html.prumo-pull-refresh-active body{overscroll-behavior-y:contain}
+      html,body{overscroll-behavior-y:none}
+      html.prumo-pull-refresh-active,html.prumo-pull-refresh-active body{overscroll-behavior-y:none}
+      html.prumo-pull-refresh-active .prumo-bottom-nav,
+      html.prumo-pull-refresh-active .prumo-bottom-nav-shell,
+      html.prumo-pull-refresh-active .prumo-bottom-nav-animator{
+        visibility:visible!important;
+        opacity:1!important;
+      }
+      html.prumo-pull-refresh-active .prumo-bottom-nav-item{
+        visibility:visible!important;
+        opacity:1!important;
+        clip-path:none!important;
+        -webkit-clip-path:none!important;
+      }
       #prumoPullRefresh{
         position:fixed;
         z-index:10020;
         top:calc(10px + env(safe-area-inset-top,0px));
         left:50%;
-        width:46px;
+        width:154px;
         height:46px;
-        transform:translate3d(-50%,-72px,0) scale(.82);
+        transform:translate3d(-50%,-34px,0) scale(.92);
         opacity:0;
         pointer-events:none;
         display:grid;
-        place-items:center;
+        grid-template-columns:28px 1fr;
+        align-items:center;
+        justify-items:start;
+        gap:6px;
+        padding:0 12px;
         border:1px solid rgba(255,255,255,.20);
         border-radius:999px;
         background:rgba(7,16,29,.76);
@@ -41,7 +58,7 @@
         color:#e7edf5;
       }
       #prumoPullRefresh.visible{opacity:1}
-      #prumoPullRefresh.refreshing{width:118px;border-radius:24px;grid-template-columns:30px 1fr;padding:0 12px;gap:4px}
+      #prumoPullRefresh.refreshing{width:132px;border-radius:24px}
       #prumoPullRefresh .prumo-ptr-ring{
         width:22px;height:22px;border-radius:50%;
         border:2px solid rgba(231,237,245,.22);
@@ -50,11 +67,10 @@
       }
       #prumoPullRefresh.refreshing .prumo-ptr-ring{animation:prumoPtrSpin .72s linear infinite}
       #prumoPullRefresh .prumo-ptr-label{
-        display:none;
+        display:block;
         font:700 11px/1.1 Manrope,Arial,sans-serif;
         white-space:nowrap;
       }
-      #prumoPullRefresh.refreshing .prumo-ptr-label{display:block}
       @keyframes prumoPtrSpin{to{transform:rotate(360deg)}}
       @media(prefers-reduced-motion:reduce){
         #prumoPullRefresh{transition:none}
@@ -66,7 +82,7 @@
     indicator=document.createElement('div');
     indicator.id='prumoPullRefresh';
     indicator.setAttribute('aria-hidden','true');
-    indicator.innerHTML='<div class="prumo-ptr-ring"></div><div class="prumo-ptr-label">Atualizando…</div>';
+    indicator.innerHTML='<div class="prumo-ptr-ring"></div><div class="prumo-ptr-label">Puxe para atualizar</div>';
     document.body.appendChild(indicator);
     ring=indicator.querySelector('.prumo-ptr-ring');
     label=indicator.querySelector('.prumo-ptr-label');
@@ -74,8 +90,8 @@
   }
 
   function appReady(){
-    const app=document.getElementById('app');
-    if(!app||app.classList.contains('hidden')||app.getAttribute('aria-hidden')==='true')return false;
+    const app=document.getElementById('appRoot');
+    if(!app||app.hidden||app.classList.contains('hidden')||app.classList.contains('auth-hidden')||app.getAttribute('aria-hidden')==='true')return false;
     if(document.querySelector('.modal-backdrop.open'))return false;
     return !!window.financeCloud?.ready;
   }
@@ -92,18 +108,19 @@
   function paint(){
     ensureUi();
     const progress=Math.min(1,pull/THRESHOLD);
-    const y=-58+(pull*.72);
-    const scale=.82+progress*.18;
+    const y=-26+(pull*.52);
+    const scale=.92+progress*.08;
     indicator.classList.toggle('visible',pull>3||refreshing);
     if(!refreshing)indicator.style.transform=`translate3d(-50%,${y}px,0) scale(${scale})`;
     if(ring&&!refreshing)ring.style.transform=`rotate(${Math.round(progress*250)}deg)`;
+    if(label&&!refreshing)label.textContent=armed?'Solte para atualizar':'Puxe para atualizar';
   }
 
   function reset(){
     tracking=false;armed=false;pull=0;
     if(!indicator)return;
     indicator.classList.remove('visible');
-    indicator.style.transform='translate3d(-50%,-72px,0) scale(.82)';
+    indicator.style.transform='translate3d(-50%,-34px,0) scale(.92)';
     if(ring)ring.style.transform='rotate(0deg)';
     document.documentElement.classList.remove('prumo-pull-refresh-active');
   }
@@ -152,6 +169,7 @@
 
   function onStart(e){
     if(refreshing||!appReady()||!atTop()||e.touches?.length!==1)return;
+    if(e.target?.closest?.('.prumo-bottom-nav,input,textarea,select,[contenteditable="true"]'))return;
     const t=e.touches[0];
     startY=t.clientY;startX=t.clientX;pull=0;tracking=true;armed=false;
   }
@@ -162,7 +180,7 @@
     const dy=t.clientY-startY,dx=Math.abs(t.clientX-startX);
     if(dy<=0||dx>Math.abs(dy)*.72){if(dy<0)reset();return}
     if(!atTop()&&pull<3){reset();return}
-    if(dy<5)return;
+    if(dy<=1)return;
 
     e.preventDefault();
     document.documentElement.classList.add('prumo-pull-refresh-active');
@@ -184,7 +202,7 @@
   function init(){
     ensureUi();
     document.addEventListener('touchstart',onStart,{passive:true});
-    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchmove',onMove,{passive:false,capture:true});
     document.addEventListener('touchend',onEnd,{passive:true});
     document.addEventListener('touchcancel',reset,{passive:true});
   }
