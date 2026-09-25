@@ -101,7 +101,7 @@
         text-align:center;font-size:9px;font-weight:700;line-height:1.15;letter-spacing:-.01em;
       }
       .prumo-bottom-nav-item[aria-current="page"]{
-        background:#18263a;color:#f3f6fb;
+        background:transparent;color:#f3f6fb;
       }
       .prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon{
         color:#f3f6fb;
@@ -118,7 +118,7 @@
         box-shadow:10px 0 16px -14px rgba(0,0,0,.95);
       }
       .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
-        background:#18263a;
+        background:#091321;
       }
       .prumo-bottom-nav-item:active{transform:scale(.96)}
       .prumo-bottom-nav[aria-hidden="true"]{
