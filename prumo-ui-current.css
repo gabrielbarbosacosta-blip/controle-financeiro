@@ -736,3 +736,50 @@ html.caderno-stable .profile-dropdown{
 }
 
 
+
+
+/* Minimal month navigation: < set de 26 > */
+html.caderno-stable .topbar .caderno-month-switcher{
+  height:40px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  overflow:visible!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+html.caderno-stable .topbar .caderno-month-switcher button{
+  width:26px!important;
+  height:40px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#a8b7c8!important;
+  font:500 20px/1 Manrope,Arial,sans-serif!important;
+  cursor:pointer;
+}
+html.caderno-stable .topbar .caderno-month-switcher button:hover{
+  background:transparent!important;
+  color:#f1f5f9!important;
+}
+html.caderno-stable .topbar .caderno-month-switcher select{
+  min-width:92px!important;
+  width:auto!important;
+  height:40px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#e7edf5!important;
+  font:700 14px/1 Manrope,Arial,sans-serif!important;
+  letter-spacing:-.015em!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  text-align:center!important;
+  text-align-last:center!important;
+}
