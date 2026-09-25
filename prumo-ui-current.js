@@ -85,6 +85,36 @@
     prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
   }
 
+
+  function removeDuplicateMonthNavigation(){
+    const actions=document.querySelector('.topbar .actions');
+    if(!actions)return;
+
+    const isMonthArrow=btn=>{
+      if(!btn||btn.tagName!=='BUTTON')return false;
+      const text=String(btn.textContent||'').trim();
+      const label=String(btn.getAttribute('aria-label')||'').toLowerCase();
+      return text==='‹'||text==='›'||text==='←'||text==='→'||
+        label.includes('mês anterior')||label.includes('mes anterior')||
+        label.includes('próximo mês')||label.includes('proximo mes');
+    };
+
+    [...actions.children].forEach(child=>{
+      if(child.classList?.contains('caderno-month-switcher'))return;
+      if(child.id==='quickAdd'||child.id==='logoutBtn'||child.id==='monthSelect')return;
+
+      if(isMonthArrow(child)){
+        child.remove();
+        return;
+      }
+
+      const buttons=[...child.querySelectorAll?.('button')||[]];
+      if(buttons.length>=1&&buttons.every(isMonthArrow)){
+        child.remove();
+      }
+    });
+  }
+
   function decorateQuickAdd(){const btn=document.getElementById('quickAdd');if(!btn)return;if(btn.textContent.trim()!=='Novo lançamento')btn.textContent='Novo lançamento';btn.setAttribute('aria-label','Novo lançamento')}
   function activePage(){return document.querySelector('.nav button.active')?.dataset.page||''}
   function refreshHeading(){
@@ -129,7 +159,7 @@
     setText(dash.querySelector('.dashboard-grid>.card:first-child h3'),'Saldo projetado');setText(dash.querySelector('.dashboard-grid>.card:nth-child(2) h3'),'Gastos por categoria');
   }
 
-  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
+  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();removeDuplicateMonthNavigation();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
