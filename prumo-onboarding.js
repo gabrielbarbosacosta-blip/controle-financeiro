@@ -363,12 +363,23 @@
     setTimeout(()=>overlay.querySelector('[data-onboarding-next]')?.focus(),50);
   }
 
+  function goDashboardAfterTour(){
+    const btn=document.querySelector('.sidebar .nav button[data-page="dashboard"]');
+    if(btn&&!btn.classList.contains('active'))btn.click();
+    else if(btn)requestAnimationFrame(()=>{
+      document.querySelectorAll('.prumo-bottom-nav-item').forEach(el=>{
+        el.setAttribute('aria-current',el.dataset.page==='dashboard'?'page':'false');
+      });
+    });
+  }
+
   function close(remember=true){
     if(!overlay)return;
     if(remember)markSeen();
     overlay.classList.remove('open');
     document.body.classList.remove('prumo-onboarding-open','prumo-tour-open');
     clearTourHighlights();
+    goDashboardAfterTour();
   }
 
   async function maybeOpen(){
