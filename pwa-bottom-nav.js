@@ -114,15 +114,15 @@
       }
       .prumo-bottom-nav-item[aria-current="page"]{
         background:transparent;
-        color:#ffd84d;
+        color:#ffffff;
         box-shadow:none;
       }
       .prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon{
-        color:#ffd84d;
+        color:#ddeaac;
       }
       .prumo-bottom-nav-item[aria-current="page"]::after{
         content:'';position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
-        width:20px;height:2px;border-radius:999px;background:#ffd84d;
+        width:20px;height:2px;border-radius:999px;background:#ddeaac;
       }
       .prumo-bottom-nav-item[data-page="dashboard"]{
         position:sticky!important;
@@ -144,7 +144,7 @@
       .prumo-bottom-nav-item:active{transform:scale(.975);background:transparent!important}
       .prumo-bottom-nav-item:focus{outline:none}
       .prumo-bottom-nav-item:focus-visible{
-        outline:2px solid rgba(255,216,77,.78);
+        outline:2px solid rgba(221,234,172,.72);
         outline-offset:-2px;
       }
       .prumo-bottom-nav[aria-hidden="true"]{
