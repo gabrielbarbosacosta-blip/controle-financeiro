@@ -76,10 +76,29 @@
   }
 
   function ensureMonthSwitcher(){
-    const select=document.getElementById('monthSelect');if(!select||select.closest('.caderno-month-switcher'))return;
+    const select=document.getElementById('monthSelect');if(!select)return;
+
     select.classList.remove('prumo-month-select-hidden');
     select.removeAttribute('aria-hidden');
+    select.removeAttribute('hidden');
     select.removeAttribute('tabindex');
+    select.style.removeProperty('display');
+    select.style.removeProperty('visibility');
+    select.style.removeProperty('opacity');
+    select.style.removeProperty('position');
+    select.style.removeProperty('width');
+    select.style.removeProperty('height');
+    select.style.removeProperty('clip');
+    select.style.removeProperty('pointer-events');
+
+    const existing=select.closest('.caderno-month-switcher');
+    if(existing){
+      existing.style.setProperty('display','flex','important');
+      existing.style.removeProperty('visibility');
+      existing.style.removeProperty('opacity');
+      return;
+    }
+
     const wrap=document.createElement('div');wrap.className='caderno-month-switcher';
     const prev=document.createElement('button');prev.type='button';prev.setAttribute('aria-label','Mês anterior');prev.textContent='‹';
     const next=document.createElement('button');next.type='button';next.setAttribute('aria-label','Próximo mês');next.textContent='›';
@@ -87,7 +106,6 @@
     const move=delta=>{const ni=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(ni===select.selectedIndex)return;select.selectedIndex=ni;select.dispatchEvent(new Event('change',{bubbles:true}))};
     prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
   }
-
 
 
 
