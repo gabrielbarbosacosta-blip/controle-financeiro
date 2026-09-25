@@ -4,7 +4,8 @@
 
   const MOBILE_QUERY='(max-width: 900px)';
   let root=null,viewport=null,track=null,sourceNav=null,sourceObserver=null,activeObserver=null;
-  let syncing=false,pointerStartX=null,pointerStartY=null;
+  let syncing=false,pointerStartX=null,pointerStartY=null,pointerTargetItem=null,pointerType=null;
+  let suppressClickUntil=0;
   let menuAnimated=false,lastVisible=false;
 
   const ICONS={
@@ -77,7 +78,7 @@
       .prumo-bottom-nav-viewport{
         width:100%;height:100%;overflow-x:auto;overflow-y:hidden;position:relative;
         scrollbar-width:none;scroll-snap-type:x proximity;scroll-behavior:smooth;
-        overscroll-behavior-x:contain;touch-action:pan-x;
+        overscroll-behavior-x:contain;touch-action:pan-x;isolation:isolate;
       }
       .prumo-bottom-nav-viewport::-webkit-scrollbar{display:none}
       .prumo-bottom-nav-track{display:flex;align-items:stretch;gap:4px;min-width:max-content;height:100%}
@@ -303,6 +304,15 @@
     }finally{syncing=false}
   }
 
+  function activateNavItem(item){
+    if(!item)return;
+    const page=item.dataset.page||'';
+    const source=buttons().find(btn=>(btn.dataset.page||'')===page);
+    if(!source)return;
+    source.click();
+    requestAnimationFrame(()=>syncActive({center:true}));
+  }
+
   function rebuild(){
     if(!sourceNav||!track)return;
     const list=buttons();track.innerHTML='';
@@ -313,7 +323,10 @@
       item.setAttribute('aria-label',`Abrir ${label}`);
       item.innerHTML=`<span class="prumo-bottom-nav-icon">${iconFor(source)}</span><span class="prumo-bottom-nav-label"></span>`;
       item.querySelector('.prumo-bottom-nav-label').textContent=label;
-      item.addEventListener('click',()=>{source.click();requestAnimationFrame(()=>syncActive({center:true}))});
+      item.addEventListener('click',event=>{
+        if(performance.now()<suppressClickUntil){event.preventDefault();return}
+        activateNavItem(item);
+      });
       track.appendChild(item);
     });
     syncActive({center:true,behavior:'auto'});bindActiveObserver();
@@ -349,15 +362,41 @@
     viewport.addEventListener('scroll',clipBehindPinned,{passive:true});
     viewport.addEventListener('pointerdown',event=>{
       if(event.pointerType==='mouse'&&event.button!==0)return;
-      pointerStartX=event.clientX;pointerStartY=event.clientY;
-    });
+      pointerStartX=event.clientX;
+      pointerStartY=event.clientY;
+      pointerType=event.pointerType||'touch';
+      pointerTargetItem=event.target.closest('.prumo-bottom-nav-item');
+    },{passive:true});
+
     viewport.addEventListener('pointerup',event=>{
       if(pointerStartX===null)return;
       const dx=event.clientX-pointerStartX,dy=event.clientY-pointerStartY;
-      pointerStartX=null;pointerStartY=null;
-      if(Math.abs(dx)>54&&Math.abs(dx)>Math.abs(dy)*1.3)move(dx<0?1:-1);
-    });
-    viewport.addEventListener('pointercancel',()=>{pointerStartX=null;pointerStartY=null});
+      const absX=Math.abs(dx),absY=Math.abs(dy);
+      const target=pointerTargetItem;
+      const type=pointerType;
+
+      pointerStartX=null;
+      pointerStartY=null;
+      pointerTargetItem=null;
+      pointerType=null;
+
+      // Touch/pen taps are handled directly instead of waiting for the browser's
+      // click event. iOS may suppress click while the page has scroll momentum.
+      if((type==='touch'||type==='pen')&&target&&absX<=14&&absY<=14){
+        suppressClickUntil=performance.now()+550;
+        activateNavItem(target);
+        return;
+      }
+
+      if(absX>54&&absX>absY*1.3)move(dx<0?1:-1);
+    },{passive:true});
+
+    viewport.addEventListener('pointercancel',()=>{
+      pointerStartX=null;
+      pointerStartY=null;
+      pointerTargetItem=null;
+      pointerType=null;
+    },{passive:true});
 
     sourceObserver=new MutationObserver(ms=>{
       if(ms.some(m=>m.type==='childList'||(m.type==='attributes'&&m.attributeName==='data-page')))rebuild();
