@@ -260,10 +260,36 @@
     if(status)status.textContent='Enviando foto…';
     try{
       const newPath=await uploadAvatar(file);
-      const base={user_id:currentUser.id,full_name:profile?.full_name||'',nickname:profile?.nickname||'',cpf:profile?.cpf||null,avatar_path:newPath,updated_at:new Date().toISOString()};
-      const {data,error}=await sb.from('finance_profiles').upsert(base,{onConflict:'user_id'}).select('user_id,full_name,nickname,cpf,avatar_path,share_code').single();
-      if(error)throw error;
-      profile=data;signedAvatarUrl=await avatarSignedUrl(newPath);updateVisuals();
+      const avatarPatch={avatar_path:newPath,updated_at:new Date().toISOString()};
+      let result=await sb.from('finance_profiles')
+        .update(avatarPatch)
+        .eq('user_id',currentUser.id)
+        .select('user_id,full_name,nickname,cpf,avatar_path,share_code')
+        .maybeSingle();
+
+      if(result.error)throw result.error;
+
+      // Contas antigas podem ainda não ter uma linha de perfil.
+      if(!result.data){
+        const base={
+          user_id:currentUser.id,
+          full_name:profile?.full_name||currentUser?.user_metadata?.full_name||currentUser?.user_metadata?.name||'',
+          nickname:profile?.nickname||'',
+          cpf:profile?.cpf||null,
+          avatar_path:newPath,
+          updated_at:new Date().toISOString()
+        };
+        result=await sb.from('finance_profiles')
+          .upsert(base,{onConflict:'user_id'})
+          .select('user_id,full_name,nickname,cpf,avatar_path,share_code')
+          .single();
+        if(result.error)throw result.error;
+      }
+
+      profile=result.data;
+      avatarUrlCache.delete(newPath);
+      signedAvatarUrl=await avatarSignedUrl(newPath,{force:true});
+      updateVisuals();
       if(oldPath&&oldPath!==newPath)sb.storage.from(BUCKET).remove([oldPath]).catch(()=>{});
       if(status)status.textContent='Foto atualizada.';
     }catch(e){
