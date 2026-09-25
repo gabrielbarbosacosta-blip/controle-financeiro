@@ -265,11 +265,28 @@
   function buttons(){return sourceNav?Array.from(sourceNav.querySelectorAll('button[data-page]')):[]}
   function currentIndex(){const list=buttons(),i=list.findIndex(btn=>btn.classList.contains('active'));return i>=0?i:0}
 
+  function clipBehindPinned(){
+    if(!viewport||!track)return;
+    const pinned=track.querySelector('.prumo-bottom-nav-item[data-page="dashboard"]');
+    if(!pinned)return;
+    const pinRect=pinned.getBoundingClientRect();
+    Array.from(track.querySelectorAll('.prumo-bottom-nav-item')).forEach(item=>{
+      if(item===pinned){item.style.removeProperty('clip-path');item.style.removeProperty('-webkit-clip-path');return}
+      const r=item.getBoundingClientRect();
+      const overlap=Math.max(0,Math.min(r.width,pinRect.right-r.left));
+      const inset=Math.min(r.width,overlap);
+      const clip=`inset(0 0 0 ${inset}px)`;
+      item.style.clipPath=clip;
+      item.style.webkitClipPath=clip;
+    });
+  }
+
   function centerIndex(index,behavior='smooth'){
     if(!viewport||!track)return;
     const item=track.children[index];if(!item)return;
     const left=item.offsetLeft-(viewport.clientWidth-item.clientWidth)/2;
     viewport.scrollTo({left:Math.max(0,left),behavior});
+    requestAnimationFrame(clipBehindPinned);
   }
 
   function syncActive({center=true,behavior='smooth'}={}){
@@ -300,6 +317,7 @@
       track.appendChild(item);
     });
     syncActive({center:true,behavior:'auto'});bindActiveObserver();
+    requestAnimationFrame(clipBehindPinned);
   }
 
   function move(step){
@@ -328,6 +346,7 @@
     Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'20',pointerEvents:'none',transform:'none'});
     Object.assign(shell.style,{position:'absolute',left:'50%',bottom:'calc(26px + env(safe-area-inset-bottom, 0px))',transform:'translate3d(-50%,0,0)',pointerEvents:'auto'});
 
+    viewport.addEventListener('scroll',clipBehindPinned,{passive:true});
     viewport.addEventListener('pointerdown',event=>{
       if(event.pointerType==='mouse'&&event.button!==0)return;
       pointerStartX=event.clientX;pointerStartY=event.clientY;
@@ -376,7 +395,10 @@
 
     window.addEventListener('resize',()=>{
       syncVisibility();
-      if(window.matchMedia(MOBILE_QUERY).matches)syncActive({center:true,behavior:'auto'});
+      if(window.matchMedia(MOBILE_QUERY).matches){
+        syncActive({center:true,behavior:'auto'});
+        requestAnimationFrame(clipBehindPinned);
+      }
     },{passive:true});
 
     window.addEventListener('caderno:splash-done',syncVisibility);
