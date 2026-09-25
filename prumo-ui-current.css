@@ -658,3 +658,44 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
 .goal-settings-item{display:block;width:100%;padding:11px 12px;border:0;border-radius:7px;background:transparent;color:inherit;text-align:left;font:inherit;font-size:12px;cursor:pointer}
 .goal-settings-item:hover,.goal-settings-item:focus-visible{background:#23334a;outline:none}
 .goal-settings-item.danger{color:#f2a29c}.goal-settings-item:disabled{opacity:.5;cursor:default}
+
+
+/* Prumo glass modals — visual language shared with the mobile bottom navigation */
+html.caderno-stable .modal,
+html.caderno-stable .profile-dropdown{
+  background:rgba(13,25,41,.76)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.10)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.35)!important;
+  backdrop-filter:blur(30px) saturate(1.35)!important;
+}
+
+html.caderno-stable .modal{
+  border-radius:18px!important;
+}
+
+html.caderno-stable .modal-head,
+html.caderno-stable .modal-foot{
+  background:rgba(13,25,41,.62)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.25)!important;
+  backdrop-filter:blur(22px) saturate(1.25)!important;
+}
+
+html.caderno-stable .modal-backdrop{
+  background:rgba(2,7,15,.64)!important;
+  -webkit-backdrop-filter:blur(9px) saturate(1.05)!important;
+  backdrop-filter:blur(9px) saturate(1.05)!important;
+}
+
+html.caderno-stable .profile-dropdown{
+  border-radius:18px!important;
+}
+
+@media (max-width:900px){
+  html.caderno-stable .modal{
+    border-radius:22px!important;
+  }
+}
