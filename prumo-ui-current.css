@@ -74,7 +74,7 @@ button{cursor:pointer}
 
 .caderno-month-switcher{height:40px;border:1px solid #d4d6d1;background:#fbfaf6;border-radius:8px;display:flex;align-items:center;overflow:hidden}
 .caderno-month-switcher button{height:100%;width:35px;background:transparent;border:0;color:#6f7b82;font-size:21px;line-height:1}
-.caderno-month-switcher select{height:100%;min-width:72px;background:transparent!important;border:0!important;border-radius:0!important;color:#374551!important;padding:0 4px!important;font:500 11px 'DM Mono',monospace!important;box-shadow:none!important;outline:0;text-align:center;text-align-last:center;appearance:none}
+.caderno-month-switcher select{height:100%;min-width:78px;background:transparent!important;border:0!important;border-radius:0!important;color:#374551!important;padding:0 6px!important;font:700 13px/1 Manrope,Arial,sans-serif!important;letter-spacing:-.01em!important;box-shadow:none!important;outline:0;text-align:center;text-align-last:center;appearance:none}
 
 .btn{border:1px solid #d4d6d1;color:#374551;background:#fbfaf6;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:650;box-shadow:none}
 .btn:hover{filter:none;background:#f1f1ed;border-color:#c7cac4}
