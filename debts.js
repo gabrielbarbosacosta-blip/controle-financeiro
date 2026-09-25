@@ -34,7 +34,9 @@
       .debt-progress{height:7px;background:#172033;border-radius:999px;overflow:hidden;margin-top:7px}.debt-progress span{display:block;height:100%;background:#60a5fa;border-radius:999px}
       .debt-name{font-weight:750}.pfp-name-button{appearance:none;border:0;background:transparent;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}.pfp-name-button:hover,.pfp-name-button:focus-visible{color:#8fc2ff;text-decoration:underline;text-underline-offset:3px;outline:none}.debt-sub{font-size:12px;color:#94a3b8;margin-top:3px}.debt-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
       #page-debts .summary-strip{margin-bottom:14px}
-      .debt-counterparty-box{grid-column:1/-1;padding:11px 12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:#0b1424}.debt-counterparty-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:9px}.debt-counterparty-state{grid-column:1/-1;min-height:14px;font-size:10px;color:var(--muted)}.debt-counterparty-state.ok{color:#86efac}.debt-counterparty-state.warn{color:#fde68a}.debt-counterparty-state.bad{color:#fca5a5}@media(max-width:620px){.debt-counterparty-row{grid-template-columns:1fr}.debt-counterparty-row .btn{width:100%}}
+      .debt-counterparty-box{grid-column:1/-1;padding:11px 12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:#0b1424}.debt-counterparty-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:9px}.debt-counterparty-state{grid-column:1/-1;min-height:14px;font-size:10px;color:var(--muted)}.debt-counterparty-state.ok{color:#86efac}.debt-counterparty-state.warn{color:#fde68a}.debt-counterparty-state.bad{color:#fca5a5}
+      .debt-advance-list{display:grid;gap:8px;max-height:320px;overflow:auto;padding-right:2px}.debt-advance-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025);cursor:pointer}.debt-advance-row:hover{background:rgba(255,255,255,.045)}.debt-advance-row input{width:17px;height:17px}.debt-advance-main{min-width:0}.debt-advance-title{font-size:12px;font-weight:780}.debt-advance-meta{font-size:10px;color:var(--muted);margin-top:2px}.debt-advance-value{font-size:12px;font-weight:800;white-space:nowrap}.debt-advance-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.debt-advance-summary .mini{min-height:76px}.debt-advance-saving{color:#91d6b9!important}
+      @media(max-width:620px){.debt-counterparty-row{grid-template-columns:1fr}.debt-counterparty-row .btn{width:100%}.debt-advance-summary{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
@@ -106,6 +108,35 @@
       document.getElementById('debtCounterpartyLookup').addEventListener('click',lookupDebtCounterparty);
       document.getElementById('debtForm').addEventListener('submit',saveDebtFromForm);
     }
+
+    if(!document.getElementById('debtAdvanceModal')){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`
+        <div class="modal-backdrop" id="debtAdvanceModal"><div class="modal"><form id="debtAdvanceForm">
+          <div class="modal-head"><h3 id="debtAdvanceTitle">Antecipar parcelas</h3><button type="button" class="btn ghost" id="debtAdvanceClose">✕</button></div>
+          <div class="modal-body">
+            <input type="hidden" id="debtAdvanceDebtId">
+            <div class="notice" style="margin-bottom:14px">Selecione as parcelas que serão quitadas antecipadamente. Elas deixarão de pesar nos meses futuros e o valor efetivamente pago será lançado no caixa na data escolhida.</div>
+            <div class="debt-advance-list" id="debtAdvanceList"></div>
+            <div class="debt-advance-summary">
+              <div class="mini"><div class="t">Total nominal selecionado</div><div class="v" id="debtAdvanceNominal">R$ 0,00</div></div>
+              <div class="mini"><div class="t">Economia estimada</div><div class="v debt-advance-saving" id="debtAdvanceSaving">R$ 0,00</div></div>
+            </div>
+            <div class="form-grid" style="margin-top:14px">
+              <div class="field"><label>Data do pagamento</label><input id="debtAdvanceDate" type="date" required></div>
+              <div class="field"><label>Valor que será pago (R$)</label><input id="debtAdvancePaidAmount" type="number" min="0.01" step="0.01" required><small class="muted">Pode ser menor que o total nominal quando houver desconto.</small></div>
+            </div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn" id="debtAdvanceCancel">Cancelar</button><button class="btn primary" type="submit">Confirmar antecipação</button></div>
+        </form></div></div>`;
+      document.body.appendChild(wrap.firstElementChild);
+      document.getElementById('debtAdvanceClose').addEventListener('click',closeDebtAdvanceModal);
+      document.getElementById('debtAdvanceCancel').addEventListener('click',closeDebtAdvanceModal);
+      document.getElementById('debtAdvanceModal').addEventListener('click',e=>{if(e.target.id==='debtAdvanceModal')closeDebtAdvanceModal()});
+      document.getElementById('debtAdvanceList').addEventListener('change',updateDebtAdvanceSummary);
+      document.getElementById('debtAdvancePaidAmount').addEventListener('input',e=>{e.target.dataset.userEdited='1';updateDebtAdvanceSummary()});
+      document.getElementById('debtAdvanceForm').addEventListener('submit',submitDebtAdvance);
+    }
   }
 
   function toggleOpenEndedFields(){
@@ -176,6 +207,7 @@
     const first=Math.max(1,Number(debt.firstInstallment)||1),last=desiredLastNumber(debt);
     for(let n=first;n<=last;n++){
       const ym=addMonth(debt.firstMonth,n-first),previous=byNumber.get(n),status=previous?.status||'Pendente',denom=debt.openEnded?'∞':String(last);
+      const monthAmount=typeof window.expenseAmountForMonth==='function'?window.expenseAmountForMonth(debt,ym):(Object.prototype.hasOwnProperty.call(debt.monthOverrides||{},ym)?Number(debt.monthOverrides[ym])||0:Number(debt.installmentAmount)||0);
       generated.push({
         id:previous?.id||txUid(),
         date:safeDate(ym,debt.dueDay),
@@ -184,7 +216,7 @@
         description:`${debt.name} — parcela ${n}/${denom}`,
         account:debt.account||'',
         nature:'Parcelamento',
-        amount:Number(debt.installmentAmount)||0,
+        amount:String(status).toLowerCase()==='antecipada'?0:monthAmount,
         status,
         notes:[`Parcela gerada automaticamente pela despesa "${debt.name}".`,debt.openEnded?'Despesa sem data final.':'',debt.notes||''].filter(Boolean).join(' '),
         projection:true,
@@ -319,6 +351,102 @@
     renderDebtPage();
   }
 
+  function localToday(){
+    const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function pendingDebtInstallments(debt){
+    return linkedTransactions(debt.id)
+      .filter(t=>String(t.status||'').toLowerCase()==='pendente'&&(Number(t.amount)||0)>0)
+      .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  }
+
+  function closeDebtAdvanceModal(){document.getElementById('debtAdvanceModal')?.classList.remove('open')}
+
+  function openDebtAdvanceModal(id){
+    if(!ensureDebtState())return;
+    const debt=state.debts.find(d=>d.id===id);if(!debt)return;
+    if(isGoalManagedDebt(id)){alert('Esta despesa é gerenciada pela seção Objetivos e não pode ser antecipada por este painel.');return}
+    if(typeof window.reconcileExpenseValueHistory==='function')window.reconcileExpenseValueHistory();
+    const items=pendingDebtInstallments(debt);
+    if(!items.length){alert('Esta despesa não possui parcelas pendentes para antecipar.');return}
+    document.getElementById('debtAdvanceDebtId').value=id;
+    document.getElementById('debtAdvanceTitle').textContent=`Antecipar parcelas · ${debt.name}`;
+    document.getElementById('debtAdvanceDate').value=localToday();
+    const paid=document.getElementById('debtAdvancePaidAmount');paid.value='';delete paid.dataset.userEdited;
+    document.getElementById('debtAdvanceList').innerHTML=items.map(t=>{
+      const n=Number(t.debtInstallmentNumber)||0,denom=debt.openEnded?'∞':(debt.totalInstallments||t.debtInstallmentTotal||'—');
+      return `<label class="debt-advance-row"><input type="checkbox" data-debt-advance-tx="${esc(t.id)}" data-amount="${Number(t.amount)||0}"><span class="debt-advance-main"><span class="debt-advance-title">Parcela ${n}/${denom}</span><span class="debt-advance-meta">${esc(monthLabel(String(t.date).slice(0,7)))} · venc. ${esc(String(t.date).slice(8,10))}</span></span><span class="debt-advance-value">${money(t.amount)}</span></label>`;
+    }).join('');
+    updateDebtAdvanceSummary();
+    document.getElementById('debtAdvanceModal').classList.add('open');
+  }
+
+  function selectedDebtAdvanceRows(){
+    return [...document.querySelectorAll('#debtAdvanceList [data-debt-advance-tx]:checked')];
+  }
+
+  function updateDebtAdvanceSummary(){
+    const rows=selectedDebtAdvanceRows(),nominal=rows.reduce((s,x)=>s+(Number(x.dataset.amount)||0),0);
+    const paid=document.getElementById('debtAdvancePaidAmount');
+    if(paid&&!paid.dataset.userEdited)paid.value=nominal?nominal.toFixed(2):'';
+    const paidValue=Number(paid?.value)||0,saving=Math.max(0,nominal-paidValue);
+    const nominalEl=document.getElementById('debtAdvanceNominal'),savingEl=document.getElementById('debtAdvanceSaving');
+    if(nominalEl)nominalEl.textContent=money(nominal);
+    if(savingEl)savingEl.textContent=money(saving);
+  }
+
+  function submitDebtAdvance(e){
+    e.preventDefault();
+    if(!ensureDebtState())return;
+    const debtId=document.getElementById('debtAdvanceDebtId').value,debt=state.debts.find(d=>d.id===debtId);if(!debt)return;
+    const rows=selectedDebtAdvanceRows();
+    if(!rows.length){alert('Selecione pelo menos uma parcela para antecipar.');return}
+    const selectedIds=new Set(rows.map(x=>x.dataset.debtAdvanceTx));
+    const selected=linkedTransactions(debtId).filter(t=>selectedIds.has(String(t.id)));
+    const nominal=selected.reduce((s,t)=>s+(Number(t.amount)||0),0);
+    const paidAmount=Number(document.getElementById('debtAdvancePaidAmount').value)||0;
+    const paymentDate=document.getElementById('debtAdvanceDate').value;
+    if(!paymentDate){alert('Informe a data do pagamento.');return}
+    if(paidAmount<=0){alert('Informe o valor efetivamente pago.');return}
+    if(paidAmount>nominal+0.009){alert('O valor pago não pode ser maior que o total nominal das parcelas selecionadas.');return}
+
+    debt.monthOverrides=debt.monthOverrides&&typeof debt.monthOverrides==='object'?{...debt.monthOverrides}:{};
+    const parcelNumbers=[];
+    selected.forEach(t=>{
+      const ym=String(t.date).slice(0,7);
+      debt.monthOverrides[ym]=0;
+      t.amount=0;
+      t.status='Antecipada';
+      t.projection=false;
+      t.notes=[String(t.notes||'').trim(),`Parcela antecipada em ${paymentDate}.`].filter(Boolean).join(' ');
+      parcelNumbers.push(Number(t.debtInstallmentNumber)||0);
+    });
+
+    const saving=Math.max(0,nominal-paidAmount);
+    state.transactions.push({
+      id:`debt-advance-${debt.id}-${txUid()}`,
+      date:paymentDate,
+      type:'Despesa',
+      category:debt.category||'Dívidas',
+      description:`Antecipação — ${debt.name}`,
+      account:debt.account||'',
+      nature:'Antecipação',
+      amount:paidAmount,
+      status:'Pago',
+      notes:`Parcelas antecipadas: ${parcelNumbers.sort((a,b)=>a-b).join(', ')}. Valor nominal: ${money(nominal)}. Valor pago: ${money(paidAmount)}. Economia: ${money(saving)}.`,
+      projection:false,
+      recurring:false
+    });
+
+    if(typeof window.reconcileExpenseValueHistory==='function')window.reconcileExpenseValueHistory();
+    closeDebtAdvanceModal();
+    if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
+    renderDebtPage();
+    try{if(typeof setSyncStatus==='function')setSyncStatus('Antecipação registrada')}catch(_e){}
+  }
+
   function isGoalManagedDebt(id){
     try{if(window.financeGoalManagedProtection?.isDebtPlan?.(id))return true}catch(_e){}
     return String(id||'').startsWith('goal-shared-');
@@ -333,7 +461,7 @@
     }
     if(!confirm(`Excluir a despesa "${debt.name}" e todas as parcelas vinculadas, inclusive as já marcadas como pagas?`))return;
     state.debts=state.debts.filter(d=>d.id!==id);
-    state.transactions=state.transactions.filter(t=>!(t.debtManaged===true&&t.debtId===id));
+    state.transactions=state.transactions.filter(t=>!(t.debtManaged===true&&t.debtId===id)&&!String(t.id||'').startsWith('debt-advance-'+id+'-'));
     if(typeof renderAll==='function')renderAll();else if(typeof save==='function')save();
     renderDebtPage();
   }
@@ -350,8 +478,9 @@
     if(nd){const next=[...pending].sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0];nd.textContent=next?`${monthLabel(String(next.date).slice(0,7))} • ${money(next.amount)}`:'—'}
     const body=document.getElementById('debtTableBody');if(!body)return;
     body.innerHTML=debts.length?debts.map(d=>{
-      const txs=linkedTransactions(d.id).sort((a,b)=>String(a.date).localeCompare(String(b.date))),pend=txs.filter(t=>String(t.status).toLowerCase()==='pendente'),paid=txs.length-pend.length,next=pend[0],remaining=pend.reduce((s,t)=>s+(Number(t.amount)||0),0),pct=d.openEnded?0:(txs.length?Math.round(paid/txs.length*100):0);
-      const parcelInfo=d.openEnded?`${paid} paga(s) • ${pend.length} prevista(s)<div class="debt-sub">${d.firstInstallment}/∞ • sem data final</div>`:`${paid} paga(s) • ${pend.length} pendente(s)<div class="debt-sub">${d.firstInstallment}/${d.totalInstallments} até ${d.totalInstallments}/${d.totalInstallments}</div>`;
+      const txs=linkedTransactions(d.id).sort((a,b)=>String(a.date).localeCompare(String(b.date))),pend=txs.filter(t=>String(t.status).toLowerCase()==='pendente'),anticipated=txs.filter(t=>String(t.status).toLowerCase()==='antecipada'),paid=txs.length-pend.length-anticipated.length,next=pend[0],remaining=pend.reduce((s,t)=>s+(Number(t.amount)||0),0),settledCount=paid+anticipated.length,pct=d.openEnded?0:(txs.length?Math.round(settledCount/txs.length*100):0);
+      const anticipatedInfo=anticipated.length?` • ${anticipated.length} antecipada(s)`:'';
+      const parcelInfo=d.openEnded?`${paid} paga(s)${anticipatedInfo} • ${pend.length} prevista(s)<div class="debt-sub">${d.firstInstallment}/∞ • sem data final</div>`:`${paid} paga(s)${anticipatedInfo} • ${pend.length} pendente(s)<div class="debt-sub">${d.firstInstallment}/${d.totalInstallments} até ${d.totalInstallments}/${d.totalInstallments}</div>`;
       const progress=d.openEnded?'':`<div class="debt-progress"><span style="width:${pct}%"></span></div>`;
       const nextLabel=next?`${monthLabel(String(next.date).slice(0,7))}<div class="debt-sub">parcela ${next.debtInstallmentNumber}/${d.openEnded?'∞':d.totalInstallments}</div>`:(d.openEnded?'—':'Quitada');
       return `<tr>
@@ -361,7 +490,7 @@
         <td>${nextLabel}</td>
         <td class="num">${money(d.installmentAmount)}</td>
         <td class="num"><strong>${money(remaining)}</strong>${d.openEnded?`<div class="debt-sub">janela de ${OPEN_HORIZON} meses</div>`:''}</td>
-        <td><div class="debt-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">Painel</button>${isGoalManagedDebt(d.id)?'<span class="goal-managed-plan-label">Gerenciado em Objetivos</span>':`<button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button>`}</div></td>
+        <td><div class="debt-actions"><button type="button" class="btn small pfp-panel-btn" data-pfp-kind="expense" data-pfp-id="${esc(d.id)}">Painel</button>${!isGoalManagedDebt(d.id)&&pend.length?`<button type="button" class="btn small" onclick="openDebtAdvance('${d.id}')">Antecipar</button>`:''}${isGoalManagedDebt(d.id)?'<span class="goal-managed-plan-label">Gerenciado em Objetivos</span>':`<button class="btn small danger" onclick="deleteDebtPlan('${d.id}')">Excluir</button>`}</div></td>
       </tr>`;
     }).join(''):'<tr><td colspan="7" class="empty">Nenhuma despesa cadastrada.</td></tr>';
   }
@@ -377,6 +506,7 @@
 
   window.editDebtPlan=openDebtModal;
   window.deleteDebtPlan=deleteDebt;
+  window.openDebtAdvance=openDebtAdvanceModal;
 
   function init(){
     if(!ensureDebtState())return;
