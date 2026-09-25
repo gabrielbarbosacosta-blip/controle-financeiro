@@ -751,15 +751,15 @@ html.caderno-stable .topbar .caderno-month-switcher{
   box-shadow:none!important;
 }
 html.caderno-stable .topbar .caderno-month-switcher button{
-  width:26px!important;
-  height:40px!important;
+  width:32px!important;
+  height:42px!important;
   padding:0!important;
   border:0!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
   color:#a8b7c8!important;
-  font:500 20px/1 Manrope,Arial,sans-serif!important;
+  font:500 26px/1 Manrope,Arial,sans-serif!important;
   cursor:pointer;
 }
 html.caderno-stable .topbar .caderno-month-switcher button:hover{
@@ -767,16 +767,16 @@ html.caderno-stable .topbar .caderno-month-switcher button:hover{
   color:#f1f5f9!important;
 }
 html.caderno-stable .topbar .caderno-month-switcher select{
-  min-width:92px!important;
+  min-width:108px!important;
   width:auto!important;
-  height:40px!important;
+  height:42px!important;
   padding:0!important;
   border:0!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
   color:#e7edf5!important;
-  font:700 14px/1 Manrope,Arial,sans-serif!important;
+  font:700 16px/1 Manrope,Arial,sans-serif!important;
   letter-spacing:-.015em!important;
   appearance:none!important;
   -webkit-appearance:none!important;
