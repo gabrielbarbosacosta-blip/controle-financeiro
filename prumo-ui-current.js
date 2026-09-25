@@ -78,6 +78,15 @@
   function ensureMonthSwitcher(){
     const select=document.getElementById('monthSelect');if(!select)return;
 
+    const monthNames=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    [...select.options].forEach(option=>{
+      const match=String(option.value||'').match(/^(\\d{4})-(\\d{2})$/);
+      if(!match)return;
+      const month=monthNames[Number(match[2])-1];
+      const year=match[1].slice(-2);
+      if(month)option.textContent=`${month} de ${year}`;
+    });
+
     select.classList.remove('prumo-month-select-hidden');
     select.removeAttribute('aria-hidden');
     select.removeAttribute('hidden');
@@ -100,8 +109,8 @@
     }
 
     const wrap=document.createElement('div');wrap.className='caderno-month-switcher';
-    const prev=document.createElement('button');prev.type='button';prev.setAttribute('aria-label','Mês anterior');prev.textContent='‹';
-    const next=document.createElement('button');next.type='button';next.setAttribute('aria-label','Próximo mês');next.textContent='›';
+    const prev=document.createElement('button');prev.type='button';prev.setAttribute('aria-label','Mês anterior');prev.textContent='<';
+    const next=document.createElement('button');next.type='button';next.setAttribute('aria-label','Próximo mês');next.textContent='>';
     select.parentNode.insertBefore(wrap,select);wrap.append(prev,select,next);
     const move=delta=>{const ni=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(ni===select.selectedIndex)return;select.selectedIndex=ni;select.dispatchEvent(new Event('change',{bubbles:true}))};
     prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
