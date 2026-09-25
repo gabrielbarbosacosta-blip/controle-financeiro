@@ -58,31 +58,13 @@
         width:min(94vw,520px);height:72px;
         padding:7px 8px;
         pointer-events:auto!important;
-        border:1px solid rgba(180,205,230,.16);
+        border:1px solid rgba(72,96,126,.52);
         border-radius:24px;
-        background:
-          linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.018)),
-          rgba(7,16,29,.56);
-        box-shadow:
-          0 18px 48px rgba(0,0,0,.34),
-          inset 0 1px 0 rgba(255,255,255,.08),
-          inset 0 -1px 0 rgba(255,255,255,.025);
-        -webkit-backdrop-filter:blur(28px) saturate(1.45) contrast(1.04);
-        backdrop-filter:blur(28px) saturate(1.45) contrast(1.04);
+        background:rgba(9,19,33,.96);
+        box-shadow:0 18px 48px rgba(0,0,0,.42);
+        -webkit-backdrop-filter:blur(20px) saturate(1.25);
+        backdrop-filter:blur(20px) saturate(1.25);
         isolation:isolate;
-        overflow:hidden;
-      }
-      .prumo-bottom-nav-shell::before{
-        content:'';
-        position:absolute;
-        inset:0;
-        border-radius:inherit;
-        pointer-events:none;
-        background:
-          radial-gradient(120% 90% at 18% -10%,rgba(255,255,255,.11),transparent 48%),
-          linear-gradient(110deg,transparent 18%,rgba(255,255,255,.035) 42%,transparent 62%);
-        mix-blend-mode:screen;
-        opacity:.9;
       }
       .prumo-bottom-nav-animator{
         width:100%;height:100%;
