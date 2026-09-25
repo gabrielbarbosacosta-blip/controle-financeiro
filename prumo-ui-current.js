@@ -76,44 +76,18 @@
   }
 
   function ensureMonthSwitcher(){
-    const select=document.getElementById('monthSelect');if(!select||select.closest('.caderno-month-switcher'))return;
-    const wrap=document.createElement('div');wrap.className='caderno-month-switcher';
-    const prev=document.createElement('button');prev.type='button';prev.setAttribute('aria-label','Mês anterior');prev.textContent='‹';
-    const next=document.createElement('button');next.type='button';next.setAttribute('aria-label','Próximo mês');next.textContent='›';
-    select.parentNode.insertBefore(wrap,select);wrap.append(prev,select,next);
-    const move=delta=>{const ni=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(ni===select.selectedIndex)return;select.selectedIndex=ni;select.dispatchEvent(new Event('change',{bubbles:true}))};
-    prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
+    const select=document.getElementById('monthSelect');if(!select)return;
+    const wrap=select.closest('.caderno-month-switcher');
+    if(wrap){
+      wrap.parentNode.insertBefore(select,wrap);
+      wrap.remove();
+    }
+    select.classList.add('prumo-month-select-hidden');
+    select.setAttribute('aria-hidden','true');
+    select.tabIndex=-1;
   }
 
 
-  function removeDuplicateMonthNavigation(){
-    const actions=document.querySelector('.topbar .actions');
-    if(!actions)return;
-
-    const isMonthArrow=btn=>{
-      if(!btn||btn.tagName!=='BUTTON')return false;
-      const text=String(btn.textContent||'').trim();
-      const label=String(btn.getAttribute('aria-label')||'').toLowerCase();
-      return text==='‹'||text==='›'||text==='←'||text==='→'||
-        label.includes('mês anterior')||label.includes('mes anterior')||
-        label.includes('próximo mês')||label.includes('proximo mes');
-    };
-
-    [...actions.children].forEach(child=>{
-      if(child.classList?.contains('caderno-month-switcher'))return;
-      if(child.id==='quickAdd'||child.id==='logoutBtn'||child.id==='monthSelect')return;
-
-      if(isMonthArrow(child)){
-        child.remove();
-        return;
-      }
-
-      const buttons=[...child.querySelectorAll?.('button')||[]];
-      if(buttons.length>=1&&buttons.every(isMonthArrow)){
-        child.remove();
-      }
-    });
-  }
 
   function decorateQuickAdd(){const btn=document.getElementById('quickAdd');if(!btn)return;if(btn.textContent.trim()!=='Novo lançamento')btn.textContent='Novo lançamento';btn.setAttribute('aria-label','Novo lançamento')}
   function activePage(){return document.querySelector('.nav button.active')?.dataset.page||''}
@@ -159,7 +133,7 @@
     setText(dash.querySelector('.dashboard-grid>.card:first-child h3'),'Saldo projetado');setText(dash.querySelector('.dashboard-grid>.card:nth-child(2) h3'),'Gastos por categoria');
   }
 
-  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();removeDuplicateMonthNavigation();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
+  function decorate(){injectTheme();decorateBrand();ensureProfile();decorateNav();ensureMonthSwitcher();decorateQuickAdd();refreshHeading();tuneDashboardCopy()}
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
