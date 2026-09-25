@@ -27,10 +27,15 @@
       #profilePanelSkin.profile-dropdown.profile-skin-v1{
         width:min(360px,calc(100vw - 32px));
         padding:16px;
-        background:var(--profile-shell)!important;
-        border:1px solid rgba(58,92,128,.42)!important;
-        border-radius:18px!important;
-        box-shadow:0 28px 80px rgba(0,0,0,.54)!important;
+        background:rgba(7,16,29,.72)!important;
+        border:1px solid rgba(255,255,255,.24)!important;
+        border-radius:24px!important;
+        box-shadow:
+          0 14px 38px rgba(0,0,0,.30),
+          inset 0 1px 0 rgba(255,255,255,.14)!important;
+        -webkit-backdrop-filter:blur(30px) saturate(1.35)!important;
+        backdrop-filter:blur(30px) saturate(1.35)!important;
+        isolation:isolate;
       }
       #profilePanelSkin.profile-dropdown.profile-skin-v1 .profile-dropdown-title{
         display:block!important;
@@ -242,9 +247,13 @@
       }
 
       #profilePanelSkin.profile-dropdown.profile-skin-v1{
-        background:var(--profile-shell)!important;
-        border:1px solid #2a3c55!important;
-        box-shadow:0 28px 80px rgba(0,0,0,.48)!important;
+        background:rgba(7,16,29,.72)!important;
+        border:1px solid rgba(255,255,255,.24)!important;
+        box-shadow:
+          0 14px 38px rgba(0,0,0,.30),
+          inset 0 1px 0 rgba(255,255,255,.14)!important;
+        -webkit-backdrop-filter:blur(30px) saturate(1.35)!important;
+        backdrop-filter:blur(30px) saturate(1.35)!important;
       }
       #profilePanelSkin.profile-dropdown.profile-skin-v1 .profile-dropdown-title{
         color:#8fa0b5!important;
