@@ -14,13 +14,13 @@
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/pwa-icon.svg",
+      "src": "/pwa-icon.svg?v=20260924-brandp1",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/pwa-icon-maskable.svg",
+      "src": "/pwa-icon-maskable.svg?v=20260924-brandp1",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -31,13 +31,13 @@
       "name": "Visão geral",
       "short_name": "Visão geral",
       "url": "/?page=dashboard&source=pwa-shortcut",
-      "icons": [{"src":"/pwa-icon.svg","sizes":"any","type":"image/svg+xml"}]
+      "icons": [{"src":"/pwa-icon.svg?v=20260924-brandp1","sizes":"any","type":"image/svg+xml"}]
     },
     {
       "name": "Despesas",
       "short_name": "Despesas",
       "url": "/?page=debts&source=pwa-shortcut",
-      "icons": [{"src":"/pwa-icon.svg","sizes":"any","type":"image/svg+xml"}]
+      "icons": [{"src":"/pwa-icon.svg?v=20260924-brandp1","sizes":"any","type":"image/svg+xml"}]
     }
   ]
 }
