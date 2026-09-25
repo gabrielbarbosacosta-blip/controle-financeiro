@@ -743,7 +743,7 @@ html.caderno-stable .topbar .caderno-month-switcher{
   height:40px!important;
   display:flex!important;
   align-items:center!important;
-  gap:5px!important;
+  gap:0!important;
   overflow:visible!important;
   background:transparent!important;
   border:0!important;
@@ -751,7 +751,7 @@ html.caderno-stable .topbar .caderno-month-switcher{
   box-shadow:none!important;
 }
 html.caderno-stable .topbar .caderno-month-switcher button{
-  width:32px!important;
+  width:28px!important;
   height:42px!important;
   padding:0!important;
   border:0!important;
@@ -767,7 +767,7 @@ html.caderno-stable .topbar .caderno-month-switcher button:hover{
   color:#f1f5f9!important;
 }
 html.caderno-stable .topbar .caderno-month-switcher select{
-  min-width:108px!important;
+  min-width:96px!important;
   width:auto!important;
   height:42px!important;
   padding:0!important;
