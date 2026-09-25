@@ -111,9 +111,9 @@
         color:#f7f9fc;
       }
       .prumo-bottom-nav-item[aria-current="page"]{
-        background:rgba(101,170,255,.09);
+        background:transparent;
         color:#ffffff;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+        box-shadow:none;
       }
       .prumo-bottom-nav-item[aria-current="page"] .prumo-bottom-nav-icon{
         color:#ddeaac;
@@ -135,7 +135,7 @@
         background:rgba(255,255,255,.09);
       }
       .prumo-bottom-nav-item[data-page="dashboard"][aria-current="page"]{
-        background:rgba(101,170,255,.09);
+        background:rgba(255,255,255,.045);
       }
       .prumo-bottom-nav-item:active{transform:scale(.965);background:rgba(255,255,255,.12)}
       .prumo-bottom-nav[aria-hidden="true"]{
