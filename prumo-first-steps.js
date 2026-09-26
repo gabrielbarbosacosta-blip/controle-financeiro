@@ -92,7 +92,7 @@
   function hideFocus(){
     clearTimeout(focusHideTimer);
     if(focusRaf){cancelAnimationFrame(focusRaf);focusRaf=0}
-    if(focusRing)focusRing.classList.remove('visible');
+    if(focusRing&&focusRing.classList.contains('visible'))focusRing.classList.remove('visible');
     focusTarget=null;
   }
   window.addEventListener('resize',scheduleFocusPosition,{passive:true});
@@ -262,7 +262,11 @@
   }
 
   function observeModals(){
-    var observer=new MutationObserver(function(){syncPanelWithModals()});
+    // Only modal class changes affect panel visibility. Observing our own focus
+    // ring would feed hideFocus() back into this observer indefinitely.
+    var observer=new MutationObserver(function(records){
+      if(records.some(function(record){return record.target.matches('.modal-backdrop')}))syncPanelWithModals();
+    });
     observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
     document.addEventListener('click',function(){setTimeout(syncPanelWithModals,0)},true);
     document.addEventListener('submit',function(){setTimeout(syncPanelWithModals,0)},true);
