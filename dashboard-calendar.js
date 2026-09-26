@@ -29,23 +29,50 @@
       }
       .prumo-cal-day:hover{background:#101f32;border-color:#36506f}
       .prumo-cal-day.empty{visibility:hidden;pointer-events:none}
-      .prumo-cal-day.selected{border-color:#ddeaac;box-shadow:0 0 0 1px rgba(221,234,172,.18) inset}
-      .prumo-cal-day.today{
-        background:linear-gradient(145deg,rgba(234,211,143,.22),rgba(234,211,143,.10))!important;
-        border-color:rgba(234,211,143,.48)!important;
-        box-shadow:0 10px 26px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.14)!important;
+      .prumo-cal-day.flow-income{
+        background:linear-gradient(145deg,rgba(145,214,185,.22),rgba(145,214,185,.09))!important;
+        border-color:rgba(145,214,185,.42)!important;
+        box-shadow:0 10px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.12)!important;
         -webkit-backdrop-filter:blur(18px) saturate(1.2);
         backdrop-filter:blur(18px) saturate(1.2);
+      }
+      .prumo-cal-day.flow-expense{
+        background:linear-gradient(145deg,rgba(239,138,129,.22),rgba(239,138,129,.09))!important;
+        border-color:rgba(239,138,129,.42)!important;
+        box-shadow:0 10px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.12)!important;
+        -webkit-backdrop-filter:blur(18px) saturate(1.2);
+        backdrop-filter:blur(18px) saturate(1.2);
+      }
+      .prumo-cal-day.flow-mixed{
+        background:linear-gradient(135deg,rgba(145,214,185,.24) 0%,rgba(145,214,185,.12) 38%,rgba(239,138,129,.12) 62%,rgba(239,138,129,.24) 100%)!important;
+        border-color:rgba(199,177,157,.42)!important;
+        box-shadow:0 10px 24px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.12)!important;
+        -webkit-backdrop-filter:blur(18px) saturate(1.2);
+        backdrop-filter:blur(18px) saturate(1.2);
+      }
+      .prumo-cal-day.flow-income:hover{
+        background:linear-gradient(145deg,rgba(145,214,185,.28),rgba(145,214,185,.12))!important;
+        border-color:rgba(145,214,185,.56)!important;
+      }
+      .prumo-cal-day.flow-expense:hover{
+        background:linear-gradient(145deg,rgba(239,138,129,.28),rgba(239,138,129,.12))!important;
+        border-color:rgba(239,138,129,.56)!important;
+      }
+      .prumo-cal-day.flow-mixed:hover{
+        background:linear-gradient(135deg,rgba(145,214,185,.30) 0%,rgba(145,214,185,.14) 38%,rgba(239,138,129,.14) 62%,rgba(239,138,129,.30) 100%)!important;
+        border-color:rgba(199,177,157,.56)!important;
+      }
+      .prumo-cal-day.selected{box-shadow:0 0 0 1px rgba(221,234,172,.22) inset,0 10px 24px rgba(0,0,0,.14)!important}
+      .prumo-cal-day.today{
+        border-color:rgba(234,211,143,.68)!important;
+        box-shadow:0 0 0 1px rgba(234,211,143,.22) inset,0 0 18px rgba(234,211,143,.10),0 10px 24px rgba(0,0,0,.14)!important;
       }
       .prumo-cal-day.today .prumo-cal-num{
         background:rgba(234,211,143,.92);
         color:#17202b;
         box-shadow:0 4px 12px rgba(234,211,143,.15);
       }
-      .prumo-cal-day.today:hover{
-        background:linear-gradient(145deg,rgba(234,211,143,.28),rgba(234,211,143,.13))!important;
-        border-color:rgba(234,211,143,.62)!important;
-      }
+      .prumo-cal-day.today:hover{border-color:rgba(234,211,143,.82)!important}
       .prumo-cal-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;line-height:1;font-weight:850;letter-spacing:-.02em}
       .prumo-cal-dots{
         position:absolute;
@@ -300,13 +327,16 @@
       const outgoing=list.filter(e=>e.type!=='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
       const pending=list.some(e=>!isSettled(e.status));
       const net=incoming-outgoing;
+      const hasIncome=list.some(e=>e.type==='Receita');
+      const hasExpense=list.some(e=>e.type!=='Receita');
+      const flowClass=hasIncome&&hasExpense?'flow-mixed':hasIncome?'flow-income':hasExpense?'flow-expense':'';
       const dots=[
         incoming?'<span class="prumo-cal-flow in" aria-label="Receita">↓</span>':'',
         outgoing?'<span class="prumo-cal-flow out" aria-label="Despesa">↑</span>':'',
         pending?'<span class="prumo-cal-flow pending" aria-label="Pendente"></span>':''
       ].join('');
       const amount=list.length?'<div class="prumo-cal-amount '+(net<0?'negative':net>0?'positive':'')+'">'+(typeof fmtMoney==='function'?fmtMoney(Math.abs(net)):'')+'</div>':'';
-      cells.push('<button type="button" class="prumo-cal-day '+(key===todayKey?'today ':'')+'" data-cal-day="'+d+'"><span class="prumo-cal-num">'+d+'</span><div class="prumo-cal-dots">'+dots+'</div>'+amount+'</button>');
+      cells.push('<button type="button" class="prumo-cal-day '+flowClass+' '+(key===todayKey?'today ':'')+'" data-cal-day="'+d+'"><span class="prumo-cal-num">'+d+'</span><div class="prumo-cal-dots">'+dots+'</div>'+amount+'</button>');
     }
     grid.innerHTML=cells.join('');
     grid.querySelectorAll('[data-cal-day]').forEach(btn=>btn.onclick=()=>{
