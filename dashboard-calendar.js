@@ -47,9 +47,19 @@
         border-color:rgba(234,211,143,.62)!important;
       }
       .prumo-cal-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;line-height:1;font-weight:850;letter-spacing:-.02em}
-      .prumo-cal-dots{position:absolute;right:6px;bottom:6px;display:flex;gap:3px;align-items:center;min-height:5px}
-      .prumo-cal-dot{width:5px;height:5px;border-radius:50%;background:#718299}
-      .prumo-cal-dot.in{background:#91d6b9}.prumo-cal-dot.out{background:#ef8a81}.prumo-cal-dot.pending{background:#ead38f}
+      .prumo-cal-dots{position:absolute;right:6px;bottom:5px;display:flex;gap:3px;align-items:center;min-height:10px}
+      .prumo-cal-flow{
+        display:inline-grid;place-items:center;
+        min-width:12px;height:12px;
+        color:#ef8a81;
+        font-size:11px;line-height:1;font-weight:900;
+        text-shadow:0 0 10px rgba(239,138,129,.18)
+      }
+      .prumo-cal-flow.pending{
+        width:5px;min-width:5px;height:5px;border-radius:50%;
+        background:#ead38f;color:transparent;
+        box-shadow:0 0 8px rgba(234,211,143,.18)
+      }
       .prumo-cal-amount{display:none}
       .prumo-cal-amount.negative{color:#ef8a81}.prumo-cal-amount.positive{color:#91d6b9}
       .prumo-cal-detail{display:none!important}
@@ -185,7 +195,11 @@
       const outgoing=list.filter(e=>e.type!=='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
       const pending=list.some(e=>!isSettled(e.status));
       const net=incoming-outgoing;
-      const dots=[incoming?'<span class="prumo-cal-dot in"></span>':'',outgoing?'<span class="prumo-cal-dot out"></span>':'',pending?'<span class="prumo-cal-dot pending"></span>':''].join('');
+      const dots=[
+        incoming?'<span class="prumo-cal-flow in" aria-label="Receita">↑</span>':'',
+        outgoing?'<span class="prumo-cal-flow out" aria-label="Despesa">↓</span>':'',
+        pending?'<span class="prumo-cal-flow pending" aria-label="Pendente"></span>':''
+      ].join('');
       const amount=list.length?'<div class="prumo-cal-amount '+(net<0?'negative':net>0?'positive':'')+'">'+(typeof fmtMoney==='function'?fmtMoney(Math.abs(net)):'')+'</div>':'';
       cells.push('<button type="button" class="prumo-cal-day '+(key===todayKey?'today ':'')+'" data-cal-day="'+d+'"><span class="prumo-cal-num">'+d+'</span><div class="prumo-cal-dots">'+dots+'</div>'+amount+'</button>');
     }
