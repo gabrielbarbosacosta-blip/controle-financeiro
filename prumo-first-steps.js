@@ -46,12 +46,37 @@
     if(btn&&!btn.classList.contains('active'))btn.click();
     return btn;
   }
-  function highlight(el){
+  function highlight(el,duration){
     document.querySelectorAll('.pfs-highlight').forEach(function(x){x.classList.remove('pfs-highlight')});
     if(!el)return;
     el.classList.add('pfs-highlight');
     try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_e){}
-    setTimeout(function(){el.classList.remove('pfs-highlight')},4200);
+    setTimeout(function(){el.classList.remove('pfs-highlight')},duration||1200);
+  }
+
+  function menuTarget(page){
+    var el=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
+    if(!el&&(page==='goals'||page==='objectives'))el=Array.from(document.querySelectorAll('.sidebar .nav button[data-page]')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
+    if(el)return el;
+    el=document.querySelector('.prumo-bottom-nav-item[data-page="'+page+'"]');
+    if(!el&&(page==='goals'||page==='objectives'))el=Array.from(document.querySelectorAll('.prumo-bottom-nav-item')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
+    return el;
+  }
+
+  function stagedOpen(page,getButton,openAction,options){
+    options=options||{};
+    var menu=menuTarget(page);
+    if(menu)highlight(menu,900);
+    setTimeout(function(){
+      navigate(page);
+      setTimeout(function(){
+        var button=typeof getButton==='function'?getButton():null;
+        if(button)highlight(button,1000);
+        setTimeout(function(){
+          if(typeof openAction==='function')openAction(button);
+        },options.openDelay||900);
+      },options.buttonDelay||650);
+    },options.menuDelay||800);
   }
 
   function ensureCard(){
@@ -118,22 +143,48 @@
   function perform(step){
     if(!step)return;
     if(step.target==='settings'){
-      navigate('settings');setTimeout(function(){highlight((document.getElementById('setBaseBalance')||{}).closest?document.getElementById('setBaseBalance').closest('.card'):document.getElementById('setBaseBalance'))},180);return;
+      var menu=menuTarget('settings');if(menu)highlight(menu,900);
+      setTimeout(function(){
+        navigate('settings');
+        setTimeout(function(){
+          var field=document.getElementById('setBaseBalance');
+          var target=field&&field.closest?field.closest('.card'):field;
+          highlight(target,1800);
+          if(field)try{field.focus({preventScroll:true})}catch(_e){}
+        },650);
+      },800);
+      return;
     }
     if(step.target==='incomes'){
-      navigate('incomes');setTimeout(function(){if(typeof window.editIncomePlan==='function')window.editIncomePlan();else if(document.getElementById('addIncomeBtn'))document.getElementById('addIncomeBtn').click()},180);return;
+      stagedOpen('incomes',function(){return document.getElementById('addIncomeBtn')},function(button){
+        if(button)button.click();else if(typeof window.editIncomePlan==='function')window.editIncomePlan();
+      });return;
     }
     if(step.target==='debts'){
-      navigate('debts');setTimeout(function(){if(typeof window.editDebtPlan==='function')window.editDebtPlan();else if(document.getElementById('addDebtBtn'))document.getElementById('addDebtBtn').click()},180);return;
+      stagedOpen('debts',function(){return document.getElementById('addDebtBtn')},function(button){
+        if(button)button.click();else if(typeof window.editDebtPlan==='function')window.editDebtPlan();
+      });return;
     }
-    if(step.target==='cards'){navigate('cards');setTimeout(function(){if(document.getElementById('addCardBtn'))document.getElementById('addCardBtn').click()},180);return}
+    if(step.target==='cards'){
+      stagedOpen('cards',function(){return document.getElementById('addCardBtn')},function(button){if(button)button.click()});return;
+    }
     if(step.target==='goals'){
-      navigate('goals');setTimeout(function(){var add=document.getElementById('addGoalBtn')||document.querySelector('[data-add-goal],.goal-add-button');if(add)add.click()},220);return;
+      stagedOpen('goals',function(){return document.getElementById('addGoalBtn')||document.querySelector('[data-add-goal],.goal-add-button')},function(button){if(button)button.click()},{buttonDelay:750});return;
     }
-    if(step.target==='calendar'){navigate('settings');setTimeout(function(){highlight(document.getElementById('calendarSubscriptionCard'))},180);return}
+    if(step.target==='calendar'){
+      var settingsMenu=menuTarget('settings');if(settingsMenu)highlight(settingsMenu,900);
+      setTimeout(function(){
+        navigate('settings');
+        setTimeout(function(){
+          var activate=document.getElementById('calendarActivateBtn');
+          highlight(activate||document.getElementById('calendarSubscriptionCard'),1800);
+        },650);
+      },800);
+      return;
+    }
     if(step.target==='install'){
       var installBtn=document.querySelector('[data-pwa-install],#installPwaBtn,#pwaInstallBtn');
-      if(installBtn){installBtn.click();return}
+      if(installBtn){highlight(installBtn,1000);setTimeout(function(){installBtn.click()},900);return}
       panel.querySelector('.pfs-step-text').textContent='No iPhone: Compartilhar → Adicionar à Tela de Início. No Chrome ou Edge, use a opção Instalar aplicativo no menu do navegador.';
     }
   }
