@@ -43,13 +43,17 @@
   let csvContextCardId='';
   let csvContextYm='';
 
-  function aiCsvPrompt(cardName,invoiceYm){
+  function aiCsvPrompt(cardName,invoiceYm,invoiceTotal){
     const cats=Array.isArray(categories)?categories.join(', '):'Compras, Alimentação, Transporte, Saúde, Lazer, Assinaturas, Serviços, Outros';
+    const totalLabel=Number.isFinite(Number(invoiceTotal))&&Number(invoiceTotal)>0
+      ?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(invoiceTotal))
+      :'não informado';
     return `Vou anexar uma fatura de cartão de crédito. Analise TODOS os lançamentos da fatura e gere um arquivo CSV pronto para importação no sistema Prumo.
 
 CONTEXTO DA FATURA
 - Cartão: ${cardName||'Cartão'}
 - Competência/fatura em análise: ${invoiceYm||'AAAA-MM'}
+- Valor total informado da fatura: ${totalLabel}
 
 FORMATO OBRIGATÓRIO
 - Gere CSV UTF-8 separado por ponto e vírgula (;).
@@ -107,6 +111,7 @@ VALIDAÇÃO ANTES DE GERAR
 - Confira se primeira_fatura + (parcela_atual - 1 meses) = ${invoiceYm||'AAAA-MM'}.
 - Confira se nenhuma compra parcelada foi convertida para parcelas=1.
 - Confira se o CSV possui exatamente as 12 colunas solicitadas, sempre na mesma ordem.
+- Se o valor total da fatura tiver sido informado, use-o apenas como referência de conferência. Não invente lançamentos para forçar o fechamento; o Prumo fará a conciliação de eventual diferença.
 
 Na coluna observacao, registre informações úteis para auditoria, por exemplo: "Na fatura ${invoiceYm||'AAAA-MM'} aparece como PARC 07/11; valor da parcela R$ 386,65; valor total inferido pela multiplicação da parcela pelo total de parcelas.".`;
   }
@@ -124,17 +129,19 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     const el=document.getElementById('csvAiPrompt');if(!el)return;
     const target=getCard(csvContextCardId||selectedCardId);
     const ym=csvContextYm||selectedInvoiceYm||state.settings.selectedMonth;
-    el.value=aiCsvPrompt(target?.name||'Cartão',ym);
+    const invoiceTotal=parseMoney(document.getElementById('csvInvoiceTotal')?.value);
+    el.value=aiCsvPrompt(target?.name||'Cartão',ym,invoiceTotal);
   }
 
   function buildCsvModal(){
     if(document.getElementById('csvPurchaseModal'))return;
-    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal" style="max-width:980px"><form id="csvPurchaseForm"><div class="modal-head"><div><h3>Importar compras por CSV</h3><div class="muted">Prepare o arquivo com IA e importe na fatura correta</div></div><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px"><strong id="csvImportContext">Fatura selecionada</strong><br>O arquivo importado será vinculado a este cartão e a esta fatura.</div><div class="card" style="margin-bottom:14px;padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">1. Prepare o CSV com uma IA</h3><div class="muted">Anexe sua fatura à IA, cole este prompt e peça o arquivo CSV.</div></div><button type="button" class="btn primary" id="csvCopyPromptBtn">Copiar prompt</button></div><textarea id="csvAiPrompt" readonly spellcheck="false" style="width:100%;min-height:210px;resize:vertical;font:11px/1.5 'DM Mono',monospace;background:#081321;color:#cbd7e4;border:1px solid #2a3c55;border-radius:10px;padding:12px;box-sizing:border-box"></textarea></div><div class="card" style="padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">2. Importe o arquivo gerado</h3><div class="muted">O Prumo valida e cadastra os lançamentos na fatura.</div></div><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><div class="form-grid"><div class="field"><label>Cartão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Fatura em análise</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><p class="muted" style="margin-top:12px">Formato esperado: data, descricao, categoria, valor, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
+    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal" style="max-width:980px"><form id="csvPurchaseForm"><div class="modal-head"><div><h3>Importar compras por CSV</h3><div class="muted">Prepare o arquivo com IA e importe na fatura correta</div></div><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px"><strong id="csvImportContext">Fatura selecionada</strong><br>O arquivo importado será vinculado a este cartão e a esta fatura.</div><div class="card" style="margin-bottom:14px;padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">1. Prepare o CSV com uma IA</h3><div class="muted">Anexe sua fatura à IA, cole este prompt e peça o arquivo CSV.</div></div><button type="button" class="btn primary" id="csvCopyPromptBtn">Copiar prompt</button></div><textarea id="csvAiPrompt" readonly spellcheck="false" style="width:100%;min-height:210px;resize:vertical;font:11px/1.5 'DM Mono',monospace;background:#081321;color:#cbd7e4;border:1px solid #2a3c55;border-radius:10px;padding:12px;box-sizing:border-box"></textarea></div><div class="card" style="padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">2. Importe o arquivo gerado</h3><div class="muted">O Prumo valida e cadastra os lançamentos na fatura.</div></div><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><div class="form-grid"><div class="field"><label>Cartão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Fatura em análise</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Valor da fatura (R$)</label><input id="csvInvoiceTotal" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"><small class="muted">Opcional. O Prumo usa este valor para conciliar a soma dos itens importados.</small></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><p class="muted" style="margin-top:12px">Formato esperado: data, descricao, categoria, valor, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
     document.getElementById('csvPurchaseClose').onclick=closeCsvImport;
     document.getElementById('csvPurchaseCancel').onclick=closeCsvImport;
     document.getElementById('csvPurchaseModal').addEventListener('click',e=>{if(e.target.id==='csvPurchaseModal')closeCsvImport()});
     document.getElementById('csvTemplateBtn').onclick=downloadTemplate;
     document.getElementById('csvCopyPromptBtn').onclick=copyAiPrompt;
+    document.getElementById('csvInvoiceTotal').addEventListener('input',updateAiPrompt);
     document.getElementById('csvPurchaseForm').onsubmit=importPurchases;
   }
   function refreshCsvOptions(){const card=document.getElementById('csvPurchaseCard'),cat=document.getElementById('csvPurchaseCategory');if(!card||!cat)return;card.innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');cat.innerHTML=categories.map(c=>`<option>${c}</option>`).join('');card.value=selectedCardId||state.cards[0]?.id||'';cat.value='Compras';document.getElementById('csvPurchaseInvoice').value=selectedInvoiceYm||state.settings.selectedMonth}
@@ -146,6 +153,9 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     if(card){card.value=csvContextCardId;card.disabled=true}
     if(invoice){invoice.value=csvContextYm;invoice.disabled=true}
     const target=getCard(csvContextCardId);
+    const targetInvoice=getInvoice(csvContextCardId,csvContextYm);
+    const totalInput=document.getElementById('csvInvoiceTotal');
+    if(totalInput)totalInput.value=Number(targetInvoice?.statementTotal)>0?Number(targetInvoice.statementTotal).toFixed(2):'';
     if(ctx)ctx.textContent=`${target?.name||'Cartão'} • ${typeof fmtMonth==='function'?fmtMonth(csvContextYm):csvContextYm}`;
     updateAiPrompt();
     const s=document.getElementById('csvImportSummary');s.style.display='none';s.textContent='';
@@ -166,6 +176,7 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
       fallbackInvoice=document.getElementById('csvPurchaseInvoice').value||state.settings.selectedMonth,
       fallbackCategory=document.getElementById('csvPurchaseCategory').value||'Compras',
       skip=document.getElementById('csvSkipDuplicates').checked,
+      invoiceTotal=parseMoney(document.getElementById('csvInvoiceTotal')?.value),
       summary=document.getElementById('csvImportSummary');
     summary.style.display='block';summary.textContent='Lendo arquivo…';
     try{
@@ -221,10 +232,21 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
         if(skip&&duplicateExists(p)){duplicates++;continue}
         state.purchases.push(p);ensureInvoice(p.cardId,p.firstInvoiceYm);imported++;if(!first)first=p;
       }
-      if(imported){
-        selectedCardId=first.cardId;selectedInvoiceYm=first.firstInvoiceYm;state.settings.selectedMonth=first.firstInvoiceYm;renderAll();
+      let reconciliationText='';
+      if(Number.isFinite(invoiceTotal)&&invoiceTotal>=0&&csvContextCardId&&csvContextYm){
+        const inv=ensureInvoice(csvContextCardId,csvContextYm);
+        const allocated=round2(invoiceItems(csvContextCardId,csvContextYm).reduce((sum,x)=>sum+(Number(x.alloc?.amount)||0),0));
+        inv.statementTotal=round2(invoiceTotal);
+        inv.adjustment=round2(invoiceTotal-allocated);
+        inv.reconciledAt=new Date().toISOString();
+        reconciliationText=` Valor da fatura: ${fmtMoney(invoiceTotal)}; itens: ${fmtMoney(allocated)}; ajuste de conciliação: ${fmtMoney(inv.adjustment)}.`;
       }
-      summary.textContent=`Importação concluída: ${imported} compra(s) adicionada(s), ${installmentRows} parcelada(s) reconhecida(s), ${duplicates} duplicata(s) ignorada(s) e ${ignored} linha(s) inválida(s).`;
+      if(imported){
+        selectedCardId=first.cardId;selectedInvoiceYm=csvContextYm||first.firstInvoiceYm;state.settings.selectedMonth=selectedInvoiceYm;renderAll();
+      }else if(Number.isFinite(invoiceTotal)&&csvContextCardId&&csvContextYm){
+        selectedCardId=csvContextCardId;selectedInvoiceYm=csvContextYm;state.settings.selectedMonth=csvContextYm;renderAll();
+      }
+      summary.textContent=`Importação concluída: ${imported} compra(s) adicionada(s), ${installmentRows} parcelada(s) reconhecida(s), ${duplicates} duplicata(s) ignorada(s) e ${ignored} linha(s) inválida(s).${reconciliationText}`;
       document.getElementById('csvPurchaseFile').value='';
     }catch(err){
       console.error(err);summary.textContent=`Não foi possível importar: ${err.message||'arquivo inválido.'}`;
