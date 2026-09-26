@@ -55,9 +55,51 @@
     const defs=[['all','Calendário financeiro'],['income','Somente receitas'],['expense','Somente despesas']];
     host.innerHTML=defs.map(([scope,label])=>{
       const url=endpoint(token,scope);
-      return `<div class="calendar-sub-row"><div><strong>${label}</strong><div class="calendar-sub-url">${url}</div></div><div class="calendar-sub-actions"><button type="button" class="btn small" data-cal-copy="${scope}">Copiar link</button><a class="btn small" data-cal-subscribe="${scope}" href="${webcal(url)}">Assinar</a></div></div>`;
+      return `<div class="calendar-sub-row"><div><strong>${label}</strong><div class="calendar-sub-url">${url}</div></div><div class="calendar-sub-actions"><button type="button" class="btn small" data-cal-copy="${scope}">Copiar link</button><button type="button" class="btn small" data-cal-qr="${scope}" data-cal-label="${label}">QR Code</button><a class="btn small" data-cal-subscribe="${scope}" href="${webcal(url)}">Assinar</a></div></div>`;
     }).join('');
     host.querySelectorAll('[data-cal-copy]').forEach(btn=>btn.onclick=()=>copy(endpoint(token,btn.dataset.calCopy)));
+    host.querySelectorAll('[data-cal-qr]').forEach(btn=>btn.onclick=()=>openQr(btn.dataset.calQr,btn.dataset.calLabel));
+  }
+
+  function ensureQrModal(){
+    let modal=document.getElementById('calendarQrModal');if(modal)return modal;
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`
+      <div class="modal-backdrop" id="calendarQrModal">
+        <div class="modal calendar-qr-modal">
+          <div class="modal-head">
+            <div><h3 id="calendarQrTitle">QR Code</h3><div class="muted">Escaneie para assinar o calendário em outro aparelho.</div></div>
+            <button type="button" class="btn ghost" id="calendarQrClose">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="calendar-qr-box"><div id="calendarQrCanvas"></div></div>
+            <div class="calendar-qr-secret">Este QR contém o link privado de leitura do seu calendário. Compartilhe apenas com dispositivos ou pessoas autorizadas.</div>
+            <div class="calendar-qr-link" id="calendarQrLink"></div>
+          </div>
+          <div class="modal-foot">
+            <button type="button" class="btn" id="calendarQrCopy">Copiar link</button>
+            <a class="btn primary" id="calendarQrSubscribe" href="#">Assinar neste dispositivo</a>
+          </div>
+        </div>
+      </div>`;
+    modal=wrap.firstElementChild;
+    document.body.appendChild(modal);
+    document.getElementById('calendarQrClose').onclick=()=>modal.classList.remove('open');
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
+    return modal;
+  }
+
+  function openQr(scope,label){
+    const token=getLocalToken();if(!token){setMsg('Gere um link de assinatura antes de criar o QR Code.','error');return}
+    if(typeof QRCode!=='function'){setMsg('O gerador de QR Code ainda não está disponível.','error');return}
+    const url=endpoint(token,scope),modal=ensureQrModal(),host=document.getElementById('calendarQrCanvas');
+    document.getElementById('calendarQrTitle').textContent=label||'Calendário do Prumo';
+    document.getElementById('calendarQrLink').textContent=url;
+    document.getElementById('calendarQrSubscribe').href=webcal(url);
+    document.getElementById('calendarQrCopy').onclick=()=>copy(url);
+    host.innerHTML='';
+    new QRCode(host,{text:url,width:240,height:240,colorDark:'#07101d',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    modal.classList.add('open');
   }
   async function refresh(){
     const client=getSb(),uid=getUserId();if(!client||!uid)return;
@@ -113,7 +155,13 @@
       .calendar-sub-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #23334a;border-radius:12px;background:#0a1524}
       .calendar-sub-row strong{font-size:11px;color:#edf3f8}
       .calendar-sub-url{margin-top:4px;font-size:9px;color:#70849b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:760px}
-      .calendar-sub-actions{display:flex;gap:7px;align-items:center}
+      .calendar-sub-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+      .calendar-qr-modal{width:min(520px,calc(100vw - 24px))}
+      .calendar-qr-box{display:grid;place-items:center;padding:18px;border-radius:18px;background:#fff;width:max-content;max-width:100%;margin:0 auto}
+      #calendarQrCanvas{width:240px;height:240px;display:grid;place-items:center}
+      #calendarQrCanvas img,#calendarQrCanvas canvas{display:block;max-width:100%;height:auto!important}
+      .calendar-qr-secret{margin:14px auto 0;max-width:390px;padding:10px 12px;border:1px solid #5a4824;border-radius:11px;background:#2a2213;color:#ead38f;font-size:9px;line-height:1.45;text-align:center}
+      .calendar-qr-link{margin:10px auto 0;max-width:390px;color:#71849c;font-size:8.5px;line-height:1.35;overflow-wrap:anywhere;text-align:center}
       #calendarSubscriptionMsg{min-height:16px;margin-top:10px;font-size:10px;color:#8193a9}
       #calendarSubscriptionMsg[data-type="ok"]{color:#91d6b9}
       #calendarSubscriptionMsg[data-type="error"]{color:#ef8a81}
