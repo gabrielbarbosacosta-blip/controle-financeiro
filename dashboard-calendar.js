@@ -95,6 +95,16 @@
       .prumo-cal-modal-main{min-width:0}
       .prumo-cal-modal-name{font-size:11px;font-weight:800;color:#eef3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .prumo-cal-modal-meta{font-size:9px;color:#8193a9;margin-top:4px;line-height:1.35}
+      .prumo-cal-status{
+        display:inline-flex;align-items:center;gap:5px;
+        margin-top:7px;padding:4px 7px;border-radius:999px;
+        border:1px solid #3a4656;background:#151d29;color:#9ba9b8;
+        font-size:9px;font-weight:800;white-space:nowrap
+      }
+      .prumo-cal-status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+      .prumo-cal-status.paid{border-color:#28513e;background:#10271d;color:#9dd8b6}
+      .prumo-cal-status.pending{border-color:#675226;background:#30250f;color:#efd18c}
+      .prumo-cal-status.unpaid{border-color:#623039;background:#2b171b;color:#f2a29c}
       .prumo-cal-modal-side{display:flex;align-items:center;gap:9px}
       .prumo-cal-modal-value{font-size:11px;font-weight:850;white-space:nowrap}
       .prumo-cal-modal-empty{padding:18px 8px;text-align:center;color:#8193a9;font-size:10px}
@@ -226,6 +236,20 @@
   }
 
 
+  function paymentStatus(event){
+    const raw=String(event?.status||'').trim().toLowerCase();
+    if(event?.kind==='invoice'){
+      const paid=raw==='paga'||raw==='pago';
+      return {label:paid?'Paga':'Não paga',cls:paid?'paid':'unpaid'};
+    }
+    if(event?.type==='Receita'){
+      const paid=raw==='recebido'||raw==='recebida'||raw==='pago'||raw==='paga';
+      return {label:paid?'Recebida':'Não recebida',cls:paid?'paid':'pending'};
+    }
+    const paid=raw==='pago'||raw==='paga'||raw==='recebido'||raw==='recebida'||raw==='antecipada';
+    return {label:paid?'Paga':'Não paga',cls:paid?'paid':'pending'};
+  }
+
   function openDayModal(day,events){
     const list=events.filter(e=>Number(String(e.date).slice(8,10))===day);
     const modal=document.getElementById('dashboardCalendarDayModal'),host=document.getElementById('dashboardCalendarDayList');
@@ -239,7 +263,8 @@
       const incoming=e.type==='Receita';
       const entityLabel=e.kind==='invoice'?'Abrir fatura':incoming?'Abrir receita':'Abrir despesa';
       const directButton=e.kind==='invoice'?'':'<button type="button" class="btn small" data-cal-direct="'+i+'">Abrir lançamento</button>';
-      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+' · '+esc(e.status||'')+(e.category?' · '+esc(e.category):'')+'</div></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn small" data-cal-entity="'+i+'">'+entityLabel+'</button>'+directButton+'</div></div></div>'
+      const pay=paymentStatus(e);
+      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+(e.category?' · '+esc(e.category):'')+'</div><span class="prumo-cal-status '+pay.cls+'">'+pay.label+'</span></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn small" data-cal-entity="'+i+'">'+entityLabel+'</button>'+directButton+'</div></div></div>'
     }).join(''):'<div class="prumo-cal-modal-empty">Nenhuma despesa ou receita neste dia.</div>';
 
     host.querySelectorAll('[data-cal-entity]').forEach(btn=>btn.onclick=()=>{
