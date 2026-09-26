@@ -40,17 +40,6 @@
         const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='manageCardPurchasesBtn';btn.textContent='Gerenciar compras';btn.onclick=()=>openManager(selectedCardId);
         tools.insertBefore(btn,tools.lastElementChild);
       }
-      if(!document.getElementById('invoiceCsvImportBtn')){
-        const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='invoiceCsvImportBtn';btn.textContent='Importar compras CSV';
-        btn.onclick=()=>{
-          const cardId=selectedCardId;
-          const ym=selectedInvoiceYm||state.settings.selectedMonth;
-          if(typeof window.openCsvImport==='function')window.openCsvImport(cardId,ym);
-          else console.error('Módulo csv-import.js não está disponível.');
-        };
-        const add=Array.from(tools.querySelectorAll('button')).find(b=>/adicionar compra/i.test(b.textContent||''));
-        tools.insertBefore(btn,add||tools.lastElementChild||null);
-      }
     }
     document.querySelectorAll('#cardDetail button[onclick*="editPurchase("]').forEach(edit=>{const holder=edit.parentElement;if(!holder||holder.querySelector('.purchase-delete-inline'))return;const m=(edit.getAttribute('onclick')||'').match(/editPurchase\(['\"]([^'\"]+)['\"]\)/);if(!m)return;const del=document.createElement('button');del.type='button';del.className='btn small danger purchase-delete-inline';del.textContent='Excluir';del.style.marginLeft='5px';del.onclick=()=>deletePurchase(m[1]);holder.appendChild(del)})
   }
