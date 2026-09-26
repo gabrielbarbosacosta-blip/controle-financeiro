@@ -35,16 +35,34 @@
   }
   function duplicateExists(p){return state.purchases.some(x=>x.cardId===p.cardId&&x.date===p.date&&normalizeKey(x.description)===normalizeKey(p.description)&&round2(x.totalAmount)===round2(p.totalAmount)&&(x.firstInvoiceYm||'')===(p.firstInvoiceYm||'')&&Number(x.installments||0)===Number(p.installments||0)&&(x.mode||'parcelada')===(p.mode||'parcelada'))}
 
+  let csvContextCardId='';
+  let csvContextYm='';
+
   function buildCsvModal(){
     if(document.getElementById('csvPurchaseModal'))return;
-    const addCard=document.getElementById('addCardBtn');
-    if(addCard&&!document.getElementById('importPurchasesBtn')){const btn=document.createElement('button');btn.className='btn';btn.id='importPurchasesBtn';btn.textContent='Importar compras CSV';addCard.parentElement.insertBefore(btn,addCard);btn.onclick=openCsvImport}
-    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal"><form id="csvPurchaseForm"><div class="modal-head"><h3>Importar compras por CSV</h3><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px">Cada linha será cadastrada como uma compra do cartão. O CSV pode usar <strong>;</strong> ou <strong>,</strong>. Colunas mínimas: <strong>descricao</strong> e <strong>valor</strong>.</div><div class="form-grid"><div class="field"><label>Cartão padrão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Primeira fatura padrão</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><div class="toolbar" style="margin-top:14px"><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><p class="muted" style="margin-top:12px">Colunas reconhecidas: data, descricao, categoria, valor, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao. Em parcelas, também aceitamos formatos como 07/12.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
+    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal"><form id="csvPurchaseForm"><div class="modal-head"><h3>Importar compras por CSV</h3><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px"><strong id="csvImportContext">Fatura selecionada</strong><br>Cada linha será cadastrada diretamente nesta fatura. O CSV pode usar <strong>;</strong> ou <strong>,</strong>. Colunas mínimas: <strong>descricao</strong> e <strong>valor</strong>.</div><div class="form-grid"><div class="field"><label>Cartão padrão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Primeira fatura padrão</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><div class="toolbar" style="margin-top:14px"><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><p class="muted" style="margin-top:12px">Colunas reconhecidas: data, descricao, categoria, valor, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao. Em parcelas, também aceitamos formatos como 07/12.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
     document.getElementById('csvPurchaseClose').onclick=closeCsvImport;document.getElementById('csvPurchaseCancel').onclick=closeCsvImport;document.getElementById('csvPurchaseModal').addEventListener('click',e=>{if(e.target.id==='csvPurchaseModal')closeCsvImport()});document.getElementById('csvTemplateBtn').onclick=downloadTemplate;document.getElementById('csvPurchaseForm').onsubmit=importPurchases;
   }
   function refreshCsvOptions(){const card=document.getElementById('csvPurchaseCard'),cat=document.getElementById('csvPurchaseCategory');if(!card||!cat)return;card.innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');cat.innerHTML=categories.map(c=>`<option>${c}</option>`).join('');card.value=selectedCardId||state.cards[0]?.id||'';cat.value='Compras';document.getElementById('csvPurchaseInvoice').value=selectedInvoiceYm||state.settings.selectedMonth}
-  function openCsvImport(){buildCsvModal();refreshCsvOptions();const s=document.getElementById('csvImportSummary');s.style.display='none';s.textContent='';document.getElementById('csvPurchaseFile').value='';document.getElementById('csvPurchaseModal').classList.add('open')}
-  function closeCsvImport(){document.getElementById('csvPurchaseModal')?.classList.remove('open')}
+  function openCsvImport(cardId=selectedCardId,ym=selectedInvoiceYm||state.settings.selectedMonth){
+    buildCsvModal();refreshCsvOptions();
+    csvContextCardId=cardId||selectedCardId||state.cards[0]?.id||'';
+    csvContextYm=ym||selectedInvoiceYm||state.settings.selectedMonth;
+    const card=document.getElementById('csvPurchaseCard'),invoice=document.getElementById('csvPurchaseInvoice'),ctx=document.getElementById('csvImportContext');
+    if(card){card.value=csvContextCardId;card.disabled=true}
+    if(invoice){invoice.value=csvContextYm;invoice.disabled=true}
+    const target=getCard(csvContextCardId);
+    if(ctx)ctx.textContent=`${target?.name||'Cartão'} • ${typeof fmtMonth==='function'?fmtMonth(csvContextYm):csvContextYm}`;
+    const s=document.getElementById('csvImportSummary');s.style.display='none';s.textContent='';
+    document.getElementById('csvPurchaseFile').value='';
+    document.getElementById('csvPurchaseModal').classList.add('open');
+  }
+  function closeCsvImport(){
+    document.getElementById('csvPurchaseModal')?.classList.remove('open');
+    csvContextCardId='';csvContextYm='';
+    const card=document.getElementById('csvPurchaseCard'),invoice=document.getElementById('csvPurchaseInvoice');
+    if(card)card.disabled=false;if(invoice)invoice.disabled=false;
+  }
   function downloadTemplate(){const csv='\ufeffdata;descricao;categoria;valor;parcelas;parcela_atual;valor_parcela;primeira_fatura;cartao;tipo;ultima_fatura;observacao\n2026-09-12;Amazon;Compras;1452,90;6;1;242,15;2026-09;BB Gabriel;parcelada;;Exemplo de compra parcelada',blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='modelo-compras.csv';a.click();URL.revokeObjectURL(a.href)}
   async function importPurchases(e){
     e.preventDefault();
@@ -67,7 +85,8 @@
           description=String(get('description')).trim(),amount=parseMoney(get('amount')),
           notes=String(get('notes')).trim();
         if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
-        const firstInvoiceYm=parseMonth(get('firstInvoice'),fallbackInvoice),
+        const firstInvoiceYm=csvContextYm||parseMonth(get('firstInvoice'),fallbackInvoice),
+          targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
           mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
         let installments=null,installmentValue=null,installmentCurrent=null,installmentTotal=null;
         if(mode!=='recorrente'){
@@ -78,7 +97,7 @@
         }
         const p={
           id:uid(),
-          cardId:resolveCard(get('card'),fallbackCard),
+          cardId:targetCardId,
           date:parseDate(get('date'),firstInvoiceYm),
           description,
           category:resolveCategory(get('category'),fallbackCategory),
@@ -115,7 +134,15 @@
   const baseRenderCardDetail=renderCardDetail;
   function setInvoicePaymentStatus(paid){const cardId=selectedCardId,ym=selectedInvoiceYm||state.settings.selectedMonth;if(!cardId||!ym)return;const inv=ensureInvoice(cardId,ym);if(paid){if(inv.status!=='Paga')inv.lastNonPaidStatus=inv.status||'Fechada';inv.status='Paga'}else inv.status=inv.lastNonPaidStatus&&inv.lastNonPaidStatus!=='Paga'?inv.lastNonPaidStatus:'Fechada';renderAll()}
   function mountInvoicePaymentToggle(){const card=getCard(selectedCardId);if(!card)return;const ym=selectedInvoiceYm||state.settings.selectedMonth,inv=getInvoice(card.id,ym),paid=inv?.status==='Paga',tools=document.querySelector('#cardDetail .invoice-tools');if(!tools||document.getElementById('invoicePaymentToggle'))return;const box=document.createElement('div');box.id='invoicePaymentToggle';box.style.cssText='display:flex;gap:6px;align-items:center;padding:3px;border:1px solid #273449;border-radius:10px;background:#0b1424';const yes=document.createElement('button');yes.type='button';yes.className='btn small';yes.textContent='✓ Paga';yes.style.cssText=paid?'background:#166534;border-color:#22c55e;color:#dcfce7':'opacity:.68';yes.onclick=()=>setInvoicePaymentStatus(true);const no=document.createElement('button');no.type='button';no.className='btn small';no.textContent='Não paga';no.style.cssText=!paid?'background:#7f1d1d;border-color:#ef4444;color:#fee2e2':'opacity:.68';no.onclick=()=>setInvoicePaymentStatus(false);box.append(yes,no);tools.prepend(box)}
-  renderCardDetail=function(){baseRenderCardDetail();mountInvoicePaymentToggle()};
+  function mountInvoiceCsvImport(){
+    const card=getCard(selectedCardId),ym=selectedInvoiceYm||state.settings.selectedMonth,tools=document.querySelector('#cardDetail .invoice-tools');
+    if(!card||!ym||!tools||document.getElementById('invoiceCsvImportBtn'))return;
+    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='invoiceCsvImportBtn';btn.textContent='Importar compras CSV';
+    btn.onclick=()=>openCsvImport(card.id,ym);
+    const add=Array.from(tools.querySelectorAll('button')).find(b=>/adicionar compra/i.test(b.textContent||''));
+    tools.insertBefore(btn,add||null);
+  }
+  renderCardDetail=function(){baseRenderCardDetail();mountInvoicePaymentToggle();mountInvoiceCsvImport()};
 
   function mountMonthNav(){
     const sel=document.getElementById('monthSelect');if(!sel||document.getElementById('monthNav'))return;
@@ -128,5 +155,5 @@
     document.getElementById('monthPrev').onclick=()=>go(-1);document.getElementById('monthNext').onclick=()=>go(1);sel.addEventListener('change',syncLabel);new MutationObserver(syncLabel).observe(sel,{childList:true,subtree:true});syncLabel();
   }
 
-  buildCsvModal();mountInvoicePaymentToggle();mountMonthNav();window.openCsvImport=openCsvImport;
+  buildCsvModal();mountInvoicePaymentToggle();mountInvoiceCsvImport();mountMonthNav();window.openCsvImport=openCsvImport;
 })();
