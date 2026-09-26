@@ -46,7 +46,7 @@
     if(btn&&!btn.classList.contains('active'))btn.click();
     return btn;
   }
-  var focusRing=null,focusHideTimer=null,focusTarget=null;
+  var focusRing=null,focusHideTimer=null,focusTarget=null,focusPad=5,focusRaf=0;
   function ensureFocusRing(){
     if(focusRing&&document.body.contains(focusRing))return focusRing;
     focusRing=document.createElement('div');
@@ -54,38 +54,53 @@
     document.body.appendChild(focusRing);
     return focusRing;
   }
+  function positionFocus(){
+    if(!focusTarget||!document.body.contains(focusTarget))return;
+    var ring=ensureFocusRing();
+    var r=focusTarget.getBoundingClientRect(),pad=focusPad;
+    ring.style.left=(r.left-pad)+'px';
+    ring.style.top=(r.top-pad)+'px';
+    ring.style.width=(r.width+pad*2)+'px';
+    ring.style.height=(r.height+pad*2)+'px';
+    var radius=parseFloat(getComputedStyle(focusTarget).borderRadius)||10;
+    ring.style.borderRadius=(radius+Math.max(2,pad*.55))+'px';
+  }
+  function scheduleFocusPosition(){
+    if(focusRaf)return;
+    focusRaf=requestAnimationFrame(function(){
+      focusRaf=0;
+      positionFocus();
+    });
+  }
   function placeFocus(el,options){
     options=options||{};
     if(!el)return;
     var ring=ensureFocusRing();
     focusTarget=el;
+    focusPad=options.pad==null?5:options.pad;
     clearTimeout(focusHideTimer);
     try{el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})}catch(_e){}
-    var move=function(){
-      if(!focusTarget||!document.body.contains(focusTarget))return;
-      var r=focusTarget.getBoundingClientRect(),pad=options.pad==null?5:options.pad;
-      ring.style.left=(r.left-pad)+'px';
-      ring.style.top=(r.top-pad)+'px';
-      ring.style.width=(r.width+pad*2)+'px';
-      ring.style.height=(r.height+pad*2)+'px';
-      var radius=parseFloat(getComputedStyle(focusTarget).borderRadius)||10;
-      ring.style.borderRadius=(radius+Math.max(2,pad*.55))+'px';
-      ring.classList.add('visible');
-      ring.classList.remove('pulse');void ring.offsetWidth;ring.classList.add('pulse');
-      if(options.duration){
-        focusHideTimer=setTimeout(function(){ring.classList.remove('visible');focusTarget=null},options.duration);
-      }
-    };
-    requestAnimationFrame(function(){requestAnimationFrame(move)});
-    setTimeout(move,360);
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        positionFocus();
+        ring.classList.add('visible');
+        ring.classList.remove('pulse');
+        void ring.offsetWidth;
+        ring.classList.add('pulse');
+      });
+    });
+    if(options.duration){
+      focusHideTimer=setTimeout(function(){ring.classList.remove('visible');focusTarget=null},options.duration);
+    }
   }
   function hideFocus(){
     clearTimeout(focusHideTimer);
+    if(focusRaf){cancelAnimationFrame(focusRaf);focusRaf=0}
     if(focusRing)focusRing.classList.remove('visible');
     focusTarget=null;
   }
-  window.addEventListener('resize',function(){if(focusTarget)placeFocus(focusTarget,{})},{passive:true});
-  window.addEventListener('scroll',function(){if(focusTarget)placeFocus(focusTarget,{})},{passive:true,capture:true});
+  window.addEventListener('resize',scheduleFocusPosition,{passive:true});
+  window.addEventListener('scroll',scheduleFocusPosition,{passive:true,capture:true});
 
   function menuTarget(page){
     var el=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
