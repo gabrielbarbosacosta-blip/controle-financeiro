@@ -90,7 +90,19 @@
       .prumo-cal-item-meta{font-size:8.5px;color:#8294aa;margin-top:3px}
       .prumo-cal-item-value{font-size:10px;font-weight:800;white-space:nowrap}
       #dashboardCalendarDayModal .modal{width:min(680px,calc(100vw - 24px))}
-      .prumo-cal-modal-list{display:grid;gap:8px}
+      .prumo-cal-modal-list{display:grid;gap:14px}
+      .prumo-cal-modal-section{display:grid;gap:8px}
+      .prumo-cal-modal-section-head{
+        display:flex;align-items:center;justify-content:space-between;gap:10px;
+        padding:0 2px 2px
+      }
+      .prumo-cal-modal-section-title{
+        font-size:10px;font-weight:850;letter-spacing:.04em;text-transform:uppercase;color:#aebed0
+      }
+      .prumo-cal-modal-section-count{font-size:9px;color:#71849c}
+      body.prumo-financial-panel-open #dashboardCalendarDayModal.open{
+        z-index:2147482800!important;
+      }
       .prumo-cal-modal-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #22344b;border-radius:12px;background:#0a1524}
       .prumo-cal-modal-main{min-width:0}
       .prumo-cal-modal-name{font-size:11px;font-weight:800;color:#eef3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -210,7 +222,6 @@
   }
 
   function openEntityPanel(event){
-    closeDayModal();
     if(event.kind==='invoice'){
       if(typeof window.openInvoiceModal==='function')window.openInvoiceModal(event.cardId,event.ym);
       return;
@@ -223,16 +234,6 @@
     if(event.debtManaged&&event.debtId&&typeof window.editDebtPlan==='function'){window.editDebtPlan(event.debtId);return}
     if(event.incomeManaged&&event.incomePlanId&&typeof window.editIncomePlan==='function'){window.editIncomePlan(event.incomePlanId);return}
     if(typeof window.openTransactionModal==='function')window.openTransactionModal(event.id);
-  }
-
-  function openDirectTransaction(event){
-    closeDayModal();
-    if(event.kind==='invoice'){
-      if(typeof window.openInvoiceModal==='function')window.openInvoiceModal(event.cardId,event.ym);
-      return;
-    }
-    if(typeof window.openTransactionModal==='function'){window.openTransactionModal(event.id);return}
-    if(typeof window.editTx==='function')window.editTx(event.id);
   }
 
 
@@ -259,21 +260,27 @@
     document.getElementById('dashboardCalendarDayTitle').textContent='Movimentações do dia '+day;
     document.getElementById('dashboardCalendarDaySub').textContent=typeof fmtDate==='function'?fmtDate(date):date;
 
-    host.innerHTML=list.length?list.map((e,i)=>{
+    const renderItem=(e,index)=>{
       const incoming=e.type==='Receita';
       const entityLabel=e.kind==='invoice'?'Abrir fatura':incoming?'Abrir receita':'Abrir despesa';
-      const directButton=e.kind==='invoice'?'':'<button type="button" class="btn small" data-cal-direct="'+i+'">Abrir lançamento</button>';
       const pay=paymentStatus(e);
-      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+(e.category?' · '+esc(e.category):'')+'</div><span class="prumo-cal-status '+pay.cls+'">'+pay.label+'</span></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn small" data-cal-entity="'+i+'">'+entityLabel+'</button>'+directButton+'</div></div></div>'
-    }).join(''):'<div class="prumo-cal-modal-empty">Nenhuma despesa ou receita neste dia.</div>';
+      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+(e.category?' · '+esc(e.category):'')+'</div><span class="prumo-cal-status '+pay.cls+'">'+pay.label+'</span></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><button type="button" class="btn small" data-cal-entity="'+index+'">'+entityLabel+'</button></div></div>';
+    };
+
+    if(!list.length){
+      host.innerHTML='<div class="prumo-cal-modal-empty">Nenhuma despesa ou receita neste dia.</div>';
+    }else{
+      const incomeIndexes=list.map((e,i)=>({e,i})).filter(x=>x.e.type==='Receita');
+      const expenseIndexes=list.map((e,i)=>({e,i})).filter(x=>x.e.type!=='Receita');
+      const section=(title,items)=>items.length
+        ? '<section class="prumo-cal-modal-section"><div class="prumo-cal-modal-section-head"><div class="prumo-cal-modal-section-title">'+title+'</div><div class="prumo-cal-modal-section-count">'+items.length+' item(ns)</div></div>'+items.map(x=>renderItem(x.e,x.i)).join('')+'</section>'
+        : '';
+      host.innerHTML=section('Receitas',incomeIndexes)+section('Despesas',expenseIndexes);
+    }
 
     host.querySelectorAll('[data-cal-entity]').forEach(btn=>btn.onclick=()=>{
       const item=list[Number(btn.dataset.calEntity)];
       if(item)openEntityPanel(item);
-    });
-    host.querySelectorAll('[data-cal-direct]').forEach(btn=>btn.onclick=()=>{
-      const item=list[Number(btn.dataset.calDirect)];
-      if(item)openDirectTransaction(item);
     });
     modal.classList.add('open');
   }
