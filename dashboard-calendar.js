@@ -50,10 +50,16 @@
       .prumo-cal-dots{position:absolute;right:6px;bottom:5px;display:flex;gap:3px;align-items:center;min-height:10px}
       .prumo-cal-flow{
         display:inline-grid;place-items:center;
-        min-width:12px;height:12px;
+        min-width:13px;height:13px;
+        font-size:12px;line-height:1;font-weight:900;
+      }
+      .prumo-cal-flow.in{
+        color:#91d6b9;
+        text-shadow:0 0 10px rgba(145,214,185,.22)
+      }
+      .prumo-cal-flow.out{
         color:#ef8a81;
-        font-size:11px;line-height:1;font-weight:900;
-        text-shadow:0 0 10px rgba(239,138,129,.18)
+        text-shadow:0 0 10px rgba(239,138,129,.22)
       }
       .prumo-cal-flow.pending{
         width:5px;min-width:5px;height:5px;border-radius:50%;
@@ -196,8 +202,8 @@
       const pending=list.some(e=>!isSettled(e.status));
       const net=incoming-outgoing;
       const dots=[
-        incoming?'<span class="prumo-cal-flow in" aria-label="Receita">↑</span>':'',
-        outgoing?'<span class="prumo-cal-flow out" aria-label="Despesa">↓</span>':'',
+        incoming?'<span class="prumo-cal-flow in" aria-label="Receita">↓</span>':'',
+        outgoing?'<span class="prumo-cal-flow out" aria-label="Despesa">↑</span>':'',
         pending?'<span class="prumo-cal-flow pending" aria-label="Pendente"></span>':''
       ].join('');
       const amount=list.length?'<div class="prumo-cal-amount '+(net<0?'negative':net>0?'positive':'')+'">'+(typeof fmtMoney==='function'?fmtMoney(Math.abs(net)):'')+'</div>':'';
