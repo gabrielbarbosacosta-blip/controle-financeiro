@@ -30,7 +30,22 @@
       .prumo-cal-day:hover{background:#101f32;border-color:#36506f}
       .prumo-cal-day.empty{visibility:hidden;pointer-events:none}
       .prumo-cal-day.selected{border-color:#ddeaac;box-shadow:0 0 0 1px rgba(221,234,172,.18) inset}
-      .prumo-cal-day.today .prumo-cal-num{background:#ddeaac;color:#0b1a27}
+      .prumo-cal-day.today{
+        background:linear-gradient(145deg,rgba(234,211,143,.22),rgba(234,211,143,.10))!important;
+        border-color:rgba(234,211,143,.48)!important;
+        box-shadow:0 10px 26px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.14)!important;
+        -webkit-backdrop-filter:blur(18px) saturate(1.2);
+        backdrop-filter:blur(18px) saturate(1.2);
+      }
+      .prumo-cal-day.today .prumo-cal-num{
+        background:rgba(234,211,143,.92);
+        color:#17202b;
+        box-shadow:0 4px 12px rgba(234,211,143,.15);
+      }
+      .prumo-cal-day.today:hover{
+        background:linear-gradient(145deg,rgba(234,211,143,.28),rgba(234,211,143,.13))!important;
+        border-color:rgba(234,211,143,.62)!important;
+      }
       .prumo-cal-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;line-height:1;font-weight:850;letter-spacing:-.02em}
       .prumo-cal-dots{position:absolute;right:6px;bottom:6px;display:flex;gap:3px;align-items:center;min-height:5px}
       .prumo-cal-dot{width:5px;height:5px;border-radius:50%;background:#718299}
