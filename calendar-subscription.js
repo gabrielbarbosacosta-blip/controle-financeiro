@@ -30,7 +30,7 @@
     });
   }
   function endpoint(token,scope='all'){
-    return \`\${location.origin}/api/calendar?token=\${encodeURIComponent(token)}&scope=\${scope}\`;
+    return `${location.origin}/api/calendar?token=${encodeURIComponent(token)}&scope=${scope}`;
   }
   function webcal(url){return url.replace(/^https?:/,'webcal:')}
   function setMsg(msg,type=''){
@@ -55,7 +55,7 @@
     const defs=[['all','Calendário financeiro'],['income','Somente receitas'],['expense','Somente despesas']];
     host.innerHTML=defs.map(([scope,label])=>{
       const url=endpoint(token,scope);
-      return \`<div class="calendar-sub-row"><div><strong>\${label}</strong><div class="calendar-sub-url">\${url}</div></div><div class="calendar-sub-actions"><button type="button" class="btn small" data-cal-copy="\${scope}">Copiar link</button><a class="btn small" data-cal-subscribe="\${scope}" href="\${webcal(url)}">Assinar</a></div></div>\`;
+      return `<div class="calendar-sub-row"><div><strong>${label}</strong><div class="calendar-sub-url">${url}</div></div><div class="calendar-sub-actions"><button type="button" class="btn small" data-cal-copy="${scope}">Copiar link</button><a class="btn small" data-cal-subscribe="${scope}" href="${webcal(url)}">Assinar</a></div></div>`;
     }).join('');
     host.querySelectorAll('[data-cal-copy]').forEach(btn=>btn.onclick=()=>copy(endpoint(token,btn.dataset.calCopy)));
   }
@@ -102,7 +102,7 @@
     if(document.getElementById('calendarSubscriptionCard'))return;
     const grid=document.querySelector('#page-settings .settings-grid');if(!grid)return;
     const style=document.createElement('style');
-    style.textContent=\`
+    style.textContent=`
       #calendarSubscriptionCard{grid-column:1/-1}
       .calendar-sub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
       .calendar-sub-state{display:inline-flex;padding:5px 9px;border-radius:999px;border:1px solid #39495c;background:#121d2b;color:#92a0b1;font-size:10px;font-weight:800}
@@ -119,11 +119,11 @@
       #calendarSubscriptionMsg[data-type="error"]{color:#ef8a81}
       @media(max-width:850px){.calendar-sub-options{grid-template-columns:1fr 1fr}.calendar-sub-row{grid-template-columns:1fr}.calendar-sub-actions{justify-content:flex-start}}
       @media(max-width:520px){.calendar-sub-options{grid-template-columns:1fr}}
-    \`;
+    `;
     document.head.appendChild(style);
 
     const card=document.createElement('div');card.className='card';card.id='calendarSubscriptionCard';
-    card.innerHTML=\`
+    card.innerHTML=`
       <div class="calendar-sub-head">
         <div><h3>Calendário do Prumo</h3><p class="muted">Assine seus vencimentos e recebimentos no calendário do iPhone, Google Agenda, Outlook e outros apps compatíveis com iCalendar.</p></div>
         <span id="calendarSubscriptionState" class="calendar-sub-state">Desativada</span>
@@ -143,7 +143,7 @@
       <div id="calendarSubscriptionLinks" class="calendar-sub-links"></div>
       <div id="calendarSubscriptionMsg"></div>
       <div class="muted" style="margin-top:8px;font-size:9px">O link funciona como uma chave de leitura. Quem tiver acesso a ele poderá ver os eventos publicados. Gerar um novo link invalida imediatamente o anterior.</div>
-    \`;
+    `;
     grid.insertBefore(card,grid.querySelector('.danger-zone')||null);
     document.getElementById('calendarActivateBtn').onclick=activate;
     document.getElementById('calendarSaveOptionsBtn').onclick=saveOptions;
