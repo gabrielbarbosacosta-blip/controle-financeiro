@@ -34,12 +34,18 @@
   function ensureUi(){
     injectStyles();
     const nav=document.querySelector('.nav');
-    if(nav&&!nav.querySelector('[data-page="connections"]')){
-      const btn=document.createElement('button');
-      btn.dataset.page='connections';btn.textContent='Conexões';
-      const before=nav.querySelector('[data-page="settings"]');
-      before?nav.insertBefore(btn,before):nav.appendChild(btn);
-      btn.addEventListener('click',showConnectionsPage);
+    if(nav){
+      let btn=nav.querySelector('[data-page="connections"]');
+      if(!btn){
+        btn=document.createElement('button');
+        btn.dataset.page='connections';btn.textContent='Conexões';
+        const before=nav.querySelector('[data-page="settings"]');
+        before?nav.insertBefore(btn,before):nav.appendChild(btn);
+      }
+      if(btn.dataset.connectionsBound!=='1'){
+        btn.dataset.connectionsBound='1';
+        btn.addEventListener('click',showConnectionsPage);
+      }
     }
 
     const main=document.querySelector('.main');
