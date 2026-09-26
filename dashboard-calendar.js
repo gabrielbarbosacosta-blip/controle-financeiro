@@ -15,15 +15,15 @@
 
     const style=document.createElement('style');
     style.textContent=`
-      #dashboardCalendarCard{margin-top:14px;padding:16px}
-      .prumo-cal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+      #dashboardCalendarCard{margin-top:14px;padding:14px}
+      .prumo-cal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
       .prumo-cal-head h3{margin:0 0 4px;font-size:14px}
       .prumo-cal-total{font-size:11px;color:#8fa0b5;text-align:right;white-space:nowrap}
-      .prumo-cal-week,.prumo-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-      .prumo-cal-week{margin-bottom:6px}
+      .prumo-cal-week,.prumo-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+      .prumo-cal-week{margin-bottom:3px}
       .prumo-cal-week span{text-align:center;color:#6f8197;font-size:9px;font-weight:800;padding:4px 0}
       .prumo-cal-day{
-        position:relative;min-height:68px;padding:8px;border:1px solid #203149;border-radius:12px;
+        position:relative;min-height:48px;padding:5px 6px;border:1px solid #203149;border-radius:10px;
         background:#0a1524;color:#dce6f2;text-align:left;cursor:pointer;overflow:hidden;
         transition:background .16s ease,border-color .16s ease,transform .16s ease
       }
@@ -31,13 +31,13 @@
       .prumo-cal-day.empty{visibility:hidden;pointer-events:none}
       .prumo-cal-day.selected{border-color:#ddeaac;box-shadow:0 0 0 1px rgba(221,234,172,.18) inset}
       .prumo-cal-day.today .prumo-cal-num{background:#ddeaac;color:#0b1a27}
-      .prumo-cal-num{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:10px;font-weight:800}
-      .prumo-cal-dots{display:flex;gap:4px;align-items:center;margin-top:8px;min-height:5px}
+      .prumo-cal-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;line-height:1;font-weight:850;letter-spacing:-.02em}
+      .prumo-cal-dots{position:absolute;right:6px;bottom:6px;display:flex;gap:3px;align-items:center;min-height:5px}
       .prumo-cal-dot{width:5px;height:5px;border-radius:50%;background:#718299}
       .prumo-cal-dot.in{background:#91d6b9}.prumo-cal-dot.out{background:#ef8a81}.prumo-cal-dot.pending{background:#ead38f}
-      .prumo-cal-amount{margin-top:7px;font-size:9px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .prumo-cal-amount{display:none}
       .prumo-cal-amount.negative{color:#ef8a81}.prumo-cal-amount.positive{color:#91d6b9}
-      .prumo-cal-detail{margin-top:14px;padding-top:14px;border-top:1px solid #203149}
+      .prumo-cal-detail{display:none!important}
       .prumo-cal-detail-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
       .prumo-cal-detail-title strong{font-size:11px}
       .prumo-cal-items{display:grid;gap:7px}
@@ -45,12 +45,23 @@
       .prumo-cal-item-name{font-size:10px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .prumo-cal-item-meta{font-size:8.5px;color:#8294aa;margin-top:3px}
       .prumo-cal-item-value{font-size:10px;font-weight:800;white-space:nowrap}
+      #dashboardCalendarDayModal .modal{width:min(680px,calc(100vw - 24px))}
+      .prumo-cal-modal-list{display:grid;gap:8px}
+      .prumo-cal-modal-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px;border:1px solid #22344b;border-radius:12px;background:#0a1524}
+      .prumo-cal-modal-main{min-width:0}
+      .prumo-cal-modal-name{font-size:11px;font-weight:800;color:#eef3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .prumo-cal-modal-meta{font-size:9px;color:#8193a9;margin-top:4px;line-height:1.35}
+      .prumo-cal-modal-side{display:flex;align-items:center;gap:9px}
+      .prumo-cal-modal-value{font-size:11px;font-weight:850;white-space:nowrap}
+      .prumo-cal-modal-empty{padding:18px 8px;text-align:center;color:#8193a9;font-size:10px}
       @media(max-width:620px){
-        #dashboardCalendarCard{padding:13px}
-        .prumo-cal-week,.prumo-cal-grid{gap:4px}
-        .prumo-cal-day{min-height:57px;padding:6px;border-radius:10px}
-        .prumo-cal-num{width:21px;height:21px;font-size:9px}
-        .prumo-cal-amount{font-size:8px}
+        #dashboardCalendarCard{padding:12px}
+        .prumo-cal-week,.prumo-cal-grid{gap:3px}
+        .prumo-cal-day{min-height:43px;padding:4px;border-radius:9px}
+        .prumo-cal-num{width:27px;height:27px;font-size:14px}
+        .prumo-cal-dots{right:4px;bottom:5px}
+        .prumo-cal-modal-item{grid-template-columns:1fr}
+        .prumo-cal-modal-side{justify-content:space-between}
       }
     `;
     document.head.appendChild(style);
@@ -67,38 +78,81 @@
       <div class="prumo-cal-detail" id="dashboardCalendarDetail"></div>
     `;
     dash.appendChild(card);
+
+    if(!document.getElementById('dashboardCalendarDayModal')){
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`
+        <div class="modal-backdrop" id="dashboardCalendarDayModal">
+          <div class="modal">
+            <div class="modal-head">
+              <div><h3 id="dashboardCalendarDayTitle">Movimentações do dia</h3><div class="muted" id="dashboardCalendarDaySub"></div></div>
+              <button type="button" class="btn ghost" id="dashboardCalendarDayClose">✕</button>
+            </div>
+            <div class="modal-body"><div class="prumo-cal-modal-list" id="dashboardCalendarDayList"></div></div>
+            <div class="modal-foot"><button type="button" class="btn" id="dashboardCalendarDayDone">Fechar</button></div>
+          </div>
+        </div>`;
+      document.body.appendChild(wrap.firstElementChild);
+      document.getElementById('dashboardCalendarDayClose').onclick=closeDayModal;
+      document.getElementById('dashboardCalendarDayDone').onclick=closeDayModal;
+      document.getElementById('dashboardCalendarDayModal').addEventListener('click',e=>{if(e.target.id==='dashboardCalendarDayModal')closeDayModal()});
+    }
   }
 
   function eventsForMonth(month){
     const out=[];
     (state.transactions||[]).filter(t=>String(t.date||'').slice(0,7)===month).forEach(t=>out.push({
       kind:'tx',date:t.date,type:t.type,status:t.status,description:t.description||'Lançamento',
-      amount:Number(t.amount)||0,category:t.category||'',id:t.id
+      amount:Number(t.amount)||0,category:t.category||'',id:t.id,
+      debtId:t.debtId||null,incomePlanId:t.incomePlanId||null,
+      debtManaged:t.debtManaged===true,incomeManaged:t.incomeManaged===true
     }));
     (state.invoices||[]).filter(i=>i.ym===month).forEach(i=>{
       const c=typeof getCard==='function'?getCard(i.cardId):null;
       const total=typeof invoiceKnownTotal==='function'?invoiceKnownTotal(i.cardId,month):Number(i.adjustment)||0;
       const date=typeof invoiceDueDate==='function'?invoiceDueDate(c,month):month+'-01';
-      out.push({kind:'invoice',date,type:'Fatura',status:i.status,description:'Fatura '+(c?.name||'Cartão'),amount:total,category:'Cartões',id:i.id});
+      out.push({kind:'invoice',date,type:'Fatura',status:i.status,description:'Fatura '+(c?.name||'Cartão'),amount:total,category:'Cartões',id:i.id,cardId:i.cardId,ym:i.ym});
     });
     return out;
   }
 
-  function renderDetail(day,events){
-    const host=document.getElementById('dashboardCalendarDetail');if(!host)return;
-    const list=events.filter(e=>Number(String(e.date).slice(8,10))===day);
-    if(!list.length){
-      host.innerHTML='<div class="muted">Nenhuma movimentação neste dia.</div>';
+  function closeDayModal(){document.getElementById('dashboardCalendarDayModal')?.classList.remove('open')}
+
+  function openEventPanel(event){
+    closeDayModal();
+    if(event.kind==='invoice'){
+      if(typeof window.openInvoiceModal==='function')window.openInvoiceModal(event.cardId,event.ym);
       return;
     }
-    const date=list[0].date;
-    host.innerHTML=`
-      <div class="prumo-cal-detail-title"><strong>${typeof fmtDate==='function'?fmtDate(date):date}</strong><span class="muted">${list.length} item(ns)</span></div>
-      <div class="prumo-cal-items">${list.map(e=>{
-        const incoming=e.type==='Receita';
-        return '<div class="prumo-cal-item"><div><div class="prumo-cal-item-name">'+esc(e.description)+'</div><div class="prumo-cal-item-meta">'+esc(e.type)+' · '+esc(e.status||'')+(e.category?' · '+esc(e.category):'')+'</div></div><div class="prumo-cal-item-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div></div>'
-      }).join('')}</div>
-    `;
+    if(typeof window.openPrumoFinancialPanel==='function'){
+      if(event.debtManaged&&event.debtId){window.openPrumoFinancialPanel('expense',event.debtId);return}
+      if(event.incomeManaged&&event.incomePlanId){window.openPrumoFinancialPanel('income',event.incomePlanId);return}
+      window.openPrumoFinancialPanel('transaction',event.id);return;
+    }
+    if(event.debtManaged&&event.debtId&&typeof window.editDebtPlan==='function'){window.editDebtPlan(event.debtId);return}
+    if(event.incomeManaged&&event.incomePlanId&&typeof window.editIncomePlan==='function'){window.editIncomePlan(event.incomePlanId);return}
+    if(typeof window.editTx==='function')window.editTx(event.id);
+  }
+
+  function openDayModal(day,events){
+    const list=events.filter(e=>Number(String(e.date).slice(8,10))===day);
+    const modal=document.getElementById('dashboardCalendarDayModal'),host=document.getElementById('dashboardCalendarDayList');
+    if(!modal||!host)return;
+    const date=list[0]?.date||ym()+'-'+String(day).padStart(2,'0');
+    document.getElementById('dashboardCalendarDayTitle').textContent='Movimentações do dia '+day;
+    document.getElementById('dashboardCalendarDaySub').textContent=typeof fmtDate==='function'?fmtDate(date):date;
+
+    host.innerHTML=list.length?list.map((e,i)=>{
+      const incoming=e.type==='Receita';
+      const buttonLabel=e.kind==='invoice'?'Abrir fatura':incoming?'Abrir receita':'Abrir despesa';
+      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+' · '+esc(e.status||'')+(e.category?' · '+esc(e.category):'')+'</div></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><button type="button" class="btn small" data-cal-event="'+i+'">'+buttonLabel+'</button></div></div>'
+    }).join(''):'<div class="prumo-cal-modal-empty">Nenhuma despesa ou receita neste dia.</div>';
+
+    host.querySelectorAll('[data-cal-event]').forEach(btn=>btn.onclick=()=>{
+      const item=list[Number(btn.dataset.calEvent)];
+      if(item)openEventPanel(item);
+    });
+    modal.classList.add('open');
   }
 
   function render(){
@@ -123,15 +177,12 @@
     grid.innerHTML=cells.join('');
     grid.querySelectorAll('[data-cal-day]').forEach(btn=>btn.onclick=()=>{
       grid.querySelectorAll('.prumo-cal-day').forEach(x=>x.classList.remove('selected'));
-      btn.classList.add('selected');renderDetail(Number(btn.dataset.calDay),events);
+      btn.classList.add('selected');openDayModal(Number(btn.dataset.calDay),events);
     });
     const incoming=events.filter(e=>e.type==='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
     const outgoing=events.filter(e=>e.type!=='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
     const summary=document.getElementById('dashboardCalendarSummary');
     if(summary)summary.textContent=(events.length?events.length+' movimentos':'Sem movimentos')+' · '+(typeof fmtMoney==='function'?fmtMoney(incoming-outgoing):'');
-    const dayToOpen=(todayKey.startsWith(month)?today.getDate():Math.min(days,1));
-    const initial=grid.querySelector('[data-cal-day="'+dayToOpen+'"]');
-    if(initial){initial.classList.add('selected');renderDetail(dayToOpen,events)}
   }
 
   function hook(){
