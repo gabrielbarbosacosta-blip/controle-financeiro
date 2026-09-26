@@ -543,13 +543,23 @@ function ensureInvoice(cardId,ym){let i=getInvoice(cardId,ym);if(!i){i={id:uid()
 function installmentAmount(p,index){const n=Math.max(1,Number(p.installments)||1),cents=Math.round((Number(p.totalAmount)||0)*100),base=Math.floor(cents/n),rem=cents-base*n;return(base+(index<rem?1:0))/100}
 function purchaseAllocation(p,ym){
  if(p.mode==='recorrente'){if(ym<p.firstInvoiceYm)return null;if(p.recurringEnd&&ym>p.recurringEnd)return null;return{amount:Number(p.totalAmount)||0,number:null,total:null}}
- const diff=monthDiff(p.firstInvoiceYm,ym);
- const importedCurrent=Math.max(1,Number(p?.chatgptImport?.installmentCurrent)||1);
- const n=Math.max(importedCurrent,Number(p?.chatgptImport?.installmentTotal)||Number(p.installments)||1);
- const number=importedCurrent+diff;
- if(diff<0||number>n)return null;
+ const importedCurrent=Number(p?.chatgptImport?.installmentCurrent)||0;
+ const importedTotal=Number(p?.chatgptImport?.installmentTotal)||0;
+ const importYm=p?.chatgptImport?.invoiceYm||'';
+ let n=Math.max(1,Number(p.installments)||1),number=0,index=0;
+ if(importedCurrent>0&&importYm){
+   n=Math.max(importedCurrent,importedTotal,n);
+   const diff=monthDiff(importYm,ym);
+   number=importedCurrent+diff;
+   index=number-1;
+   if(number<1||number>n)return null;
+ }else{
+   const diff=monthDiff(p.firstInvoiceYm,ym);
+   if(diff<0||diff>=n)return null;
+   number=diff+1;index=diff;
+ }
  const explicit=Number(p.installmentValue);
- const amount=Number.isFinite(explicit)&&explicit>0?round2(explicit):installmentAmount({...p,installments:n},number-1);
+ const amount=Number.isFinite(explicit)&&explicit>0?round2(explicit):installmentAmount({...p,installments:n},index);
  return{amount,number,total:n}
 }
 function invoiceItems(cardId,ym){return state.purchases.filter(p=>p.cardId===cardId).map(p=>({purchase:p,alloc:purchaseAllocation(p,ym)})).filter(x=>x.alloc)}
@@ -577,7 +587,7 @@ function monthlySpendingCategories(ym){
  const cats={};state.transactions.filter(t=>monthKey(t.date)===ym&&t.type==='Despesa'&&settled(t.status)).forEach(t=>cats[t.category]=(cats[t.category]||0)+(Number(t.amount)||0));
  state.cards.forEach(c=>invoiceItems(c.id,ym).forEach(x=>{cats[x.purchase.category]=(cats[x.purchase.category]||0)+x.alloc.amount}));return cats
 }
-function allMonthOptions(){const set=new Set([state.settings.selectedMonth,monthKey(state.settings.baseDate)]);state.transactions.forEach(t=>set.add(monthKey(t.date)));state.invoices.forEach(i=>set.add(i.ym));state.purchases.forEach(p=>{set.add(p.firstInvoiceYm);const current=Math.max(1,Number(p?.chatgptImport?.installmentCurrent)||1),total=Math.max(current,Number(p?.chatgptImport?.installmentTotal)||Number(p.installments)||1),remaining=Math.max(1,total-current+1);for(let i=1;i<Math.min(remaining,24);i++)set.add(ymAdd(p.firstInvoiceYm,i))});for(let i=-6;i<=18;i++)set.add(ymAdd(state.settings.selectedMonth,i));return[...set].sort()}
+function allMonthOptions(){const set=new Set([state.settings.selectedMonth,monthKey(state.settings.baseDate)]);state.transactions.forEach(t=>set.add(monthKey(t.date)));state.invoices.forEach(i=>set.add(i.ym));state.purchases.forEach(p=>{set.add(p.firstInvoiceYm);const current=Math.max(1,Number(p?.chatgptImport?.installmentCurrent)||1),total=Math.max(current,Number(p?.chatgptImport?.installmentTotal)||Number(p.installments)||1),anchor=p?.chatgptImport?.invoiceYm||p.firstInvoiceYm,remaining=Math.max(1,total-current+1);if(anchor)set.add(anchor);for(let i=1;i<Math.min(remaining,24);i++)set.add(ymAdd(anchor,i))});for(let i=-6;i<=18;i++)set.add(ymAdd(state.settings.selectedMonth,i));return[...set].sort()}
 
 function populateGlobalSelects(){
  const catHtml=categories.map(c=>`<option>${c}</option>`).join('');document.getElementById('txCategory').innerHTML=catHtml;document.getElementById('purchaseCategory').innerHTML=catHtml;document.getElementById('categoryFilter').innerHTML='<option value="">Todas</option>'+catHtml;
