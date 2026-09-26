@@ -54,3 +54,35 @@ for (const kind of ['income', 'debt']) test(`guide opens and closes ${kind} with
     assert.ok(modal.classList.contains('open'), 'the guide can reopen the modal');
   } finally { w.close(); }
 });
+
+for (const [step, cardId] of [[0, 'balanceCard'], [5, 'calendarSubscriptionCard']]) {
+  test(`settings step ${step} scrolls to and highlights the entire card`, async () => {
+    const dom = new JSDOM(`<!doctype html><body>
+      <div class="sidebar"><nav class="nav"><button data-page="settings">Settings</button></nav></div>
+      <section id="page-dashboard"><div class="grid-kpi"></div></section>
+      <section id="page-settings"><div class="settings-grid">
+      <div class="card" id="balanceCard"><input id="setBaseBalance"></div>
+      <div class="card" id="calendarSubscriptionCard"><button id="calendarActivateBtn">Activate</button></div>
+      </div></section></body>`, { url: 'https://example.test', runScripts: 'outside-only', pretendToBeVisual: true });
+    const w = dom.window, scrolled = [];
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    w.HTMLElement.prototype.scrollIntoView = function(options) { scrolled.push(this.id); this.dataset.scrolled = 'true'; };
+    w.HTMLElement.prototype.getBoundingClientRect = function() {
+      return {left:20,top:this.dataset.scrolled ? 100 : 1800,width:this.classList.contains('card') ? 500 : 100,height:200};
+    };
+    try {
+      w.eval(source);
+      await wait(30);
+      w.prumoFirstSteps.open();
+      for (let i=0;i<step;i++) w.document.querySelector('[data-pfs-skip-step]').click();
+      w.document.querySelector('[data-pfs-action]').click();
+      await wait(1650);
+      assert.deepEqual(scrolled, [cardId]);
+      const ring = w.document.querySelector('.pfs-focus-ring');
+      assert.ok(ring.classList.contains('visible'));
+      assert.equal(ring.style.width, '512px');
+      assert.equal(ring.style.transform, 'translate3d(14px,94px,0)');
+      assert.notEqual(w.document.activeElement.id, 'setBaseBalance', 'do not open the mobile keyboard during the visual guide');
+    } finally { w.close(); }
+  });
+}

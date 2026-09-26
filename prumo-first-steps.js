@@ -199,19 +199,29 @@
     save();renderCard();renderPanel();
   }
 
+  function focusSettingsCard(getCard){
+    var menu=menuTarget('settings');
+    if(menu)placeFocus(menu,{pad:4});
+    setTimeout(function(){
+      navigate('settings');
+      setTimeout(function(){
+        var target=getCard();
+        if(!target){hideFocus();return}
+        // Scroll before measuring the fixed ring. This also works when the
+        // settings page retains its previous scroll position.
+        target.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'});
+        placeFocus(target,{duration:3500,pad:6});
+      },650);
+    },800);
+  }
+
   function perform(step){
     if(!step)return;
     if(step.target==='settings'){
-      var menu=menuTarget('settings');if(menu)placeFocus(menu,{duration:900,pad:4});
-      setTimeout(function(){
-        navigate('settings');
-        setTimeout(function(){
-          var field=document.getElementById('setBaseBalance');
-          var target=field&&field.closest?field.closest('.card'):field;
-          placeFocus(target,{duration:1800,pad:6});
-          if(field)try{field.focus({preventScroll:true})}catch(_e){}
-        },650);
-      },800);
+      focusSettingsCard(function(){
+        var field=document.getElementById('setBaseBalance');
+        return field&&field.closest('.card');
+      });
       return;
     }
     if(step.target==='incomes'){
@@ -236,14 +246,7 @@
       stagedOpen('goals',function(){return document.getElementById('addGoalBtn')||document.querySelector('[data-add-goal],.goal-add-button')},function(button){if(button)button.click()},{buttonDelay:750});return;
     }
     if(step.target==='calendar'){
-      var settingsMenu=menuTarget('settings');if(settingsMenu)placeFocus(settingsMenu,{duration:900,pad:4});
-      setTimeout(function(){
-        navigate('settings');
-        setTimeout(function(){
-          var activate=document.getElementById('calendarActivateBtn');
-          placeFocus(activate||document.getElementById('calendarSubscriptionCard'),{duration:1800,pad:6});
-        },650);
-      },800);
+      focusSettingsCard(function(){return document.getElementById('calendarSubscriptionCard')});
       return;
     }
     if(step.target==='install'){
