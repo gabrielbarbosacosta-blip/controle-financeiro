@@ -8,7 +8,7 @@
   let payerUserId='';
   let items=[];
   let balances=[];
-  let loading=false;
+  let loadingForUser='';
   let submitting=false;
   let initialized=false;
 
@@ -70,13 +70,15 @@
     grid.appendChild(details);
     document.getElementById('sharedAddPerson').onclick=addPerson;
     document.getElementById('sharedPayer').onchange=e=>{payerUserId=e.target.value};
-    details.addEventListener('toggle',()=>{if(details.open)prepareParticipants()});
+    details.addEventListener('toggle',async()=>{if(details.open){await loadMe();prepareParticipants(true)}});
   }
 
   async function loadMe(){
-    if(!currentUser?.id)return null;
-    const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf').eq('user_id',currentUser.id).maybeSingle();
+    const userId=currentUser?.id||'';
+    if(!userId){me=null;return null}
+    const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf').eq('user_id',userId).maybeSingle();
     if(error){console.warn('Falha ao carregar perfil para compartilhamento.',error);return null}
+    if(currentUser?.id!==userId)return null;
     me=data||null;return me;
   }
 
@@ -280,12 +282,16 @@
   }
 
   async function loadShared(){
-    if(loading||!currentUser?.id)return;loading=true;
+    const userId=currentUser?.id||'';
+    if(!userId||loadingForUser===userId)return;
+    loadingForUser=userId;
     try{
       const [listRes,balanceRes]=await Promise.all([sb.rpc('finance_list_shared_expenses'),sb.rpc('finance_shared_balances')]);
       if(listRes.error)throw listRes.error;if(balanceRes.error)throw balanceRes.error;
+      if(currentUser?.id!==userId)return;
       items=listRes.data?.items||[];balances=balanceRes.data?.items||[];renderShared();
-    }catch(e){console.error('Falha ao carregar compartilhamentos.',e)}finally{loading=false}
+    }catch(e){console.error('Falha ao carregar compartilhamentos.',e)}
+    finally{if(loadingForUser===userId)loadingForUser=''}
   }
 
   function syncShareVisibility(){
@@ -300,8 +306,22 @@
     const form=txForm();if(form)form.addEventListener('submit',submitShared,true);
     document.getElementById('txType')?.addEventListener('change',syncShareVisibility);
     const modal=document.getElementById('txModal');if(modal){new MutationObserver(()=>{if(modal.classList.contains('open')){syncShareVisibility();if(!document.getElementById('txId')?.value)prepareParticipants(true)}}).observe(modal,{attributes:true,attributeFilter:['class']})}
-    document.getElementById('quickAdd')?.addEventListener('click',()=>setTimeout(()=>{prepareParticipants(true);syncShareVisibility()},0));
-    document.getElementById('addFromHistory')?.addEventListener('click',()=>setTimeout(()=>{prepareParticipants(true);syncShareVisibility()},0));
+    document.getElementById('quickAdd')?.addEventListener('click',()=>setTimeout(async()=>{await loadMe();prepareParticipants(true);syncShareVisibility()},0));
+    document.getElementById('addFromHistory')?.addEventListener('click',()=>setTimeout(async()=>{await loadMe();prepareParticipants(true);syncShareVisibility()},0));
+    sb.auth.onAuthStateChange((event,session)=>{
+      const userId=session?.user?.id||'';
+      if(!userId){
+        me=null;participants=[];payerUserId='';items=[];balances=[];loadingForUser='';submitting=false;
+        resetSharing();renderShared();return;
+      }
+      if(me?.user_id===userId&&event!=='SIGNED_IN')return;
+      setTimeout(async()=>{
+        me=null;participants=[];payerUserId='';items=[];balances=[];loadingForUser='';submitting=false;
+        await loadMe();
+        prepareParticipants(true);
+        await loadShared();
+      },0);
+    });
     await loadShared();
     window.addEventListener('focus',loadShared);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadShared()});
