@@ -39,9 +39,12 @@
   }
 
   async function loadMe(){
-    if(!currentUser?.id)return null;
-    const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf').eq('user_id',currentUser.id).maybeSingle();
-    if(error)throw error;me=data||null;return me;
+    const userId=currentUser?.id||'';
+    if(!userId){me=null;return null}
+    const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf').eq('user_id',userId).maybeSingle();
+    if(error)throw error;
+    if(currentUser?.id!==userId)return null;
+    me=data||null;return me;
   }
   const personName=p=>p?.nickname||p?.fullName||p?.full_name||'Participante';
   function resetPeople(){
@@ -87,7 +90,7 @@
     if(document.getElementById('sharedDebtBox'))return true;
     const d=document.createElement('details');d.id='sharedDebtBox';d.innerHTML=`<summary>Despesa compartilhada</summary><div class="shared-debt-body"><div class="shared-debt-lead">Adicione as pessoas pelo CPF, defina o percentual de responsabilidade e escolha quem pagará o valor integral da despesa.</div><div class="shared-debt-list" id="sharedDebtPeople"></div><div class="shared-debt-toolbar"><button type="button" class="btn small" id="sharedDebtAdd">+ Adicionar pessoa por CPF</button><strong id="sharedDebtTotal" class="shared-debt-total">Total: 100%</strong></div><div class="shared-debt-payer"><div class="shared-debt-hint">O pagador mantém a despesa integral. A parte confirmada dos demais gera um reembolso pendente para o pagador. Em parcelamentos e despesas sem data final, a mesma divisão é aplicada à série inteira.</div><div class="field"><label>Quem vai pagar o valor integral?</label><select id="sharedDebtPayer"></select></div></div><div class="shared-debt-state bad" id="sharedDebtError"></div></div>`;
     grid.appendChild(d);document.getElementById('sharedDebtAdd').onclick=addPerson;document.getElementById('sharedDebtPayer').onchange=e=>payerUserId=e.target.value;
-    d.addEventListener('toggle',()=>{if(d.open)resetPeople()});
+    d.addEventListener('toggle',async()=>{if(d.open){try{await loadMe()}catch(e){console.warn('Falha ao atualizar perfil.',e)}resetPeople()}});
     return true;
   }
   function safeDate(ym,day){const [y,m]=String(ym).split('-').map(Number);const last=new Date(y,m,0).getDate();return `${y}-${String(m).padStart(2,'0')}-${String(Math.min(Math.max(Number(day)||1,1),last)).padStart(2,'0')}`}
@@ -131,7 +134,16 @@
     try{await loadMe()}catch(e){console.warn('Falha ao carregar perfil.',e)}
     resetPeople();
     const form=document.getElementById('debtForm');if(form&&!form.dataset.sharedDebtBound){form.dataset.sharedDebtBound='1';form.addEventListener('submit',submit,true)}
-    const modal=document.getElementById('debtModal');if(modal&&!modal.dataset.sharedDebtObserved){modal.dataset.sharedDebtObserved='1';new MutationObserver(()=>{removeGenericShareBox();if(modal.classList.contains('open')){const editing=!!document.getElementById('debtId')?.value;const box=document.getElementById('sharedDebtBox');if(box){box.style.display=editing?'none':'block';if(!editing)resetPeople()}}}).observe(modal,{attributes:true,attributeFilter:['class']})}
+    const modal=document.getElementById('debtModal');if(modal&&!modal.dataset.sharedDebtObserved){modal.dataset.sharedDebtObserved='1';new MutationObserver(()=>{removeGenericShareBox();if(modal.classList.contains('open')){const editing=!!document.getElementById('debtId')?.value;const box=document.getElementById('sharedDebtBox');if(box){box.style.display=editing?'none':'block';if(!editing)setTimeout(async()=>{try{await loadMe()}catch(e){console.warn('Falha ao atualizar perfil.',e)}resetPeople()},0)}}}).observe(modal,{attributes:true,attributeFilter:['class']})}
+    if(!window.__sharedDebtAuthBound){
+      window.__sharedDebtAuthBound=true;
+      sb.auth.onAuthStateChange((event,session)=>{
+        const userId=session?.user?.id||'';
+        if(!userId){me=null;people=[];payerUserId='';submitting=false;renderPeople();return}
+        if(me?.user_id===userId&&event!=='SIGNED_IN')return;
+        setTimeout(async()=>{me=null;people=[];payerUserId='';submitting=false;try{await loadMe()}catch(e){console.warn('Falha ao carregar perfil após troca de sessão.',e)}resetPeople()},0);
+      });
+    }
     return true;
   }
   function boot(){let tries=0;const timer=setInterval(async()=>{tries++;removeGenericShareBox();let ready=false;try{ready=!!(currentUser?.id&&window.financeCloud&&document.getElementById('debtForm'))}catch(e){}if(ready){clearInterval(timer);await init()}else if(tries>600)clearInterval(timer)},100)}
