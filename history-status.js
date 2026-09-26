@@ -58,7 +58,11 @@
   const loadScript=src=>new Promise(resolve=>{
     if(exists(src)){resolve();return}
     const script=document.createElement('script');script.src=src;script.async=false;
-    script.onload=()=>resolve();script.onerror=()=>{console.warn('Falha ao carregar módulo:',src);resolve()};
+    let settled=false;
+    const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);resolve()};
+    const timer=setTimeout(()=>{console.warn('Timeout ao carregar módulo:',src);finish()},3500);
+    script.onload=finish;
+    script.onerror=()=>{console.warn('Falha ao carregar módulo:',src);finish()};
     document.body.appendChild(script);
   });
   for(const src of scripts)await loadScript(src);
