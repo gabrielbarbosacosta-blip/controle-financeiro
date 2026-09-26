@@ -18,7 +18,11 @@
       #dashboardCalendarCard{margin-top:14px;padding:14px}
       .prumo-cal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
       .prumo-cal-head h3{margin:0 0 4px;font-size:14px}
-      .prumo-cal-total{font-size:11px;color:#8fa0b5;text-align:right;white-space:nowrap}
+      .prumo-cal-total{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:11px;color:#8fa0b5;text-align:right;white-space:nowrap}
+      .prumo-cal-summary-flow{display:inline-flex;align-items:center;gap:4px;font-weight:800}
+      .prumo-cal-summary-flow.in{color:#91d6b9}
+      .prumo-cal-summary-flow.out{color:#ef8a81}
+      .prumo-cal-summary-arrow{font-size:15px;line-height:1;font-weight:900}
       .prumo-cal-week,.prumo-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
       .prumo-cal-week{margin-bottom:3px}
       .prumo-cal-week span{text-align:center;color:#6f8197;font-size:9px;font-weight:800;padding:4px 0}
@@ -343,10 +347,16 @@
       grid.querySelectorAll('.prumo-cal-day').forEach(x=>x.classList.remove('selected'));
       btn.classList.add('selected');openDayModal(Number(btn.dataset.calDay),events);
     });
-    const incoming=events.filter(e=>e.type==='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
-    const outgoing=events.filter(e=>e.type!=='Receita'&&isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
+    const incomeEvents=events.filter(e=>e.type==='Receita');
+    const expenseEvents=events.filter(e=>e.type!=='Receita');
+    const incoming=incomeEvents.filter(e=>isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
+    const outgoing=expenseEvents.filter(e=>isSettled(e.status)).reduce((s,e)=>s+e.amount,0);
     const summary=document.getElementById('dashboardCalendarSummary');
-    if(summary)summary.textContent=(events.length?events.length+' movimentos':'Sem movimentos')+' · '+(typeof fmtMoney==='function'?fmtMoney(incoming-outgoing):'');
+    if(summary){
+      summary.innerHTML=
+        '<span class="prumo-cal-summary-flow in" title="Receitas"><span class="prumo-cal-summary-arrow">↓</span><span>'+incomeEvents.length+'</span></span>'+
+        '<span class="prumo-cal-summary-flow out" title="Despesas"><span class="prumo-cal-summary-arrow">↑</span><span>'+expenseEvents.length+'</span></span>';
+    }
   }
 
   function hook(){
