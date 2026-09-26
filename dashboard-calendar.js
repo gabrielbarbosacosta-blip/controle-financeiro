@@ -47,11 +47,24 @@
         border-color:rgba(234,211,143,.62)!important;
       }
       .prumo-cal-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;line-height:1;font-weight:850;letter-spacing:-.02em}
-      .prumo-cal-dots{position:absolute;right:6px;bottom:5px;display:flex;gap:3px;align-items:center;min-height:10px}
+      .prumo-cal-dots{
+        position:absolute;
+        top:8px;
+        right:7px;
+        display:flex;
+        gap:4px;
+        align-items:center;
+        min-height:18px
+      }
       .prumo-cal-flow{
-        display:inline-grid;place-items:center;
-        min-width:13px;height:13px;
-        font-size:12px;line-height:1;font-weight:900;
+        display:inline-grid;
+        place-items:center;
+        width:18px;
+        min-width:18px;
+        height:18px;
+        font-size:16px;
+        line-height:1;
+        font-weight:900;
       }
       .prumo-cal-flow.in{
         color:#91d6b9;
@@ -90,7 +103,8 @@
         .prumo-cal-week,.prumo-cal-grid{gap:3px}
         .prumo-cal-day{min-height:43px;padding:4px;border-radius:9px}
         .prumo-cal-num{width:27px;height:27px;font-size:14px}
-        .prumo-cal-dots{right:4px;bottom:5px}
+        .prumo-cal-dots{top:6px;right:5px}
+        .prumo-cal-flow{width:16px;min-width:16px;height:16px;font-size:14px}
         .prumo-cal-modal-item{grid-template-columns:1fr}
         .prumo-cal-modal-side{justify-content:space-between}
       }
