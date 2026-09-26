@@ -9,11 +9,16 @@
   function parseMonth(value,fallback){const s=String(value??'').trim();if(/^\d{4}-\d{2}$/.test(s))return s;let m=s.match(/^(\d{1,2})[\/-](\d{4})$/);if(m)return`${m[2]}-${String(m[1]).padStart(2,'0')}`;m=s.match(/^(\d{4})[\/-](\d{1,2})$/);if(m)return`${m[1]}-${String(m[2]).padStart(2,'0')}`;return fallback}
   function resolveCategory(value,fallback){const raw=String(value??'').trim();if(!raw)return fallback;const key=normalizeKey(raw);return categories.find(c=>normalizeKey(c)===key)||fallback}
   function resolveCard(value,fallbackId){const raw=String(value??'').trim();if(!raw)return fallbackId;const key=normalizeKey(raw),found=state.cards.find(c=>normalizeKey(c.name)===key||normalizeKey(c.account)===key);return found?.id||fallbackId}
-  function parseInstallmentInfo(raw,currentRaw,notes){
-    const sources=[raw,currentRaw,notes].map(v=>String(v??''));
+  function parseInstallmentInfo(raw,currentRaw,rowText){
+    const sources=[raw,currentRaw,rowText].map(v=>String(v??''));
     for(const source of sources){
-      const m=source.match(/(?:parc(?:ela)?\.?\s*)?(\d{1,3})\s*[/\-]\s*(\d{1,3})/i);
-      if(m){
+      const patterns=[
+        /\bparc(?:ela)?\.?\s*(\d{1,3})\s*[\/-]\s*(\d{1,3})\b/i,
+        /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/
+      ];
+      for(const re of patterns){
+        const m=source.match(re);
+        if(!m)continue;
         const current=Math.max(1,Number(m[1])||1),total=Math.max(1,Number(m[2])||1);
         if(current<=total)return{current,total};
       }
@@ -83,16 +88,16 @@
       for(let i=1;i<rows.length;i++){
         const r=rows[i],get=k=>col[k]>=0?(r[col[k]]??''):'',
           description=String(get('description')).trim(),amount=parseMoney(get('amount')),
-          notes=String(get('notes')).trim();
+          notes=String(get('notes')).trim(),rowText=r.map(v=>String(v??'')).join(' ');
         if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
         const firstInvoiceYm=csvContextYm||parseMonth(get('firstInvoice'),fallbackInvoice),
           targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
           mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
         let installments=null,installmentValue=null,installmentCurrent=null,installmentTotal=null;
         if(mode!=='recorrente'){
-          const info=parseInstallmentInfo(get('installments'),get('installmentCurrent'),notes+' '+description);
+          const info=parseInstallmentInfo(get('installments'),get('installmentCurrent'),rowText);
           installmentCurrent=info.current;installmentTotal=info.total;installments=info.total;
-          installmentValue=parseInstallmentValue(get('installmentValue'),notes,amount,installments);
+          installmentValue=parseInstallmentValue(get('installmentValue'),rowText,amount,installments);
           if(installments>1||installmentCurrent>1)installmentRows++;
         }
         const p={
@@ -134,15 +139,7 @@
   const baseRenderCardDetail=renderCardDetail;
   function setInvoicePaymentStatus(paid){const cardId=selectedCardId,ym=selectedInvoiceYm||state.settings.selectedMonth;if(!cardId||!ym)return;const inv=ensureInvoice(cardId,ym);if(paid){if(inv.status!=='Paga')inv.lastNonPaidStatus=inv.status||'Fechada';inv.status='Paga'}else inv.status=inv.lastNonPaidStatus&&inv.lastNonPaidStatus!=='Paga'?inv.lastNonPaidStatus:'Fechada';renderAll()}
   function mountInvoicePaymentToggle(){const card=getCard(selectedCardId);if(!card)return;const ym=selectedInvoiceYm||state.settings.selectedMonth,inv=getInvoice(card.id,ym),paid=inv?.status==='Paga',tools=document.querySelector('#cardDetail .invoice-tools');if(!tools||document.getElementById('invoicePaymentToggle'))return;const box=document.createElement('div');box.id='invoicePaymentToggle';box.style.cssText='display:flex;gap:6px;align-items:center;padding:3px;border:1px solid #273449;border-radius:10px;background:#0b1424';const yes=document.createElement('button');yes.type='button';yes.className='btn small';yes.textContent='✓ Paga';yes.style.cssText=paid?'background:#166534;border-color:#22c55e;color:#dcfce7':'opacity:.68';yes.onclick=()=>setInvoicePaymentStatus(true);const no=document.createElement('button');no.type='button';no.className='btn small';no.textContent='Não paga';no.style.cssText=!paid?'background:#7f1d1d;border-color:#ef4444;color:#fee2e2':'opacity:.68';no.onclick=()=>setInvoicePaymentStatus(false);box.append(yes,no);tools.prepend(box)}
-  function mountInvoiceCsvImport(){
-    const card=getCard(selectedCardId),ym=selectedInvoiceYm||state.settings.selectedMonth,tools=document.querySelector('#cardDetail .invoice-tools');
-    if(!card||!ym||!tools||document.getElementById('invoiceCsvImportBtn'))return;
-    const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='invoiceCsvImportBtn';btn.textContent='Importar compras CSV';
-    btn.onclick=()=>openCsvImport(card.id,ym);
-    const add=Array.from(tools.querySelectorAll('button')).find(b=>/adicionar compra/i.test(b.textContent||''));
-    tools.insertBefore(btn,add||null);
-  }
-  renderCardDetail=function(){baseRenderCardDetail();mountInvoicePaymentToggle();mountInvoiceCsvImport()};
+  renderCardDetail=function(){baseRenderCardDetail();mountInvoicePaymentToggle()};
 
   function mountMonthNav(){
     const sel=document.getElementById('monthSelect');if(!sel||document.getElementById('monthNav'))return;
@@ -155,5 +152,5 @@
     document.getElementById('monthPrev').onclick=()=>go(-1);document.getElementById('monthNext').onclick=()=>go(1);sel.addEventListener('change',syncLabel);new MutationObserver(syncLabel).observe(sel,{childList:true,subtree:true});syncLabel();
   }
 
-  buildCsvModal();mountInvoicePaymentToggle();mountInvoiceCsvImport();mountMonthNav();window.openCsvImport=openCsvImport;
+  buildCsvModal();mountInvoicePaymentToggle();mountMonthNav();window.openCsvImport=openCsvImport;
 })();
