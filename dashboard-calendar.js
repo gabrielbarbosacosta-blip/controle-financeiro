@@ -45,7 +45,13 @@
         box-sizing:border-box;
       }
       .prumo-cal-day:hover{background:#101f32;border-color:#36506f}
-      .prumo-cal-day.empty{visibility:hidden;pointer-events:none}
+      .prumo-cal-day.empty{
+        visibility:hidden;
+        pointer-events:none;
+        padding:0!important;
+        height:48px!important;
+        min-height:48px!important;
+      }
       .prumo-cal-day.flow-income{
         background:linear-gradient(145deg,rgba(145,214,185,.22),rgba(145,214,185,.09))!important;
         border-color:rgba(145,214,185,.42)!important;
@@ -179,6 +185,7 @@
         #dashboardCalendarCard{padding:12px}
         .prumo-cal-week,.prumo-cal-grid{gap:3px}
         .prumo-cal-day{height:43px;min-height:43px;padding:4px;border-radius:9px}
+        .prumo-cal-day.empty{height:43px!important;min-height:43px!important;padding:0!important}
         .prumo-cal-num{width:27px;height:27px;font-size:14px}
         .prumo-cal-dots{top:8px;right:6px;height:14px;min-height:14px}
         .prumo-cal-flow{width:14px;min-width:14px;height:14px;font-size:12px}
