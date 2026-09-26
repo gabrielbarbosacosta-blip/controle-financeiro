@@ -120,7 +120,10 @@
     var menu=menuTarget(page);
     if(menu)placeFocus(menu,{duration:850,pad:4});
     setTimeout(function(){
-      try{navigate(page)}catch(_e){}
+      try{
+        if(typeof options.navigate==='function')options.navigate();
+        else navigate(page);
+      }catch(_e){}
       setTimeout(function(){
         var button=null;
         try{button=typeof getButton==='function'?getButton():null}catch(_e){}
@@ -214,6 +217,11 @@
     if(step.target==='incomes'){
       stagedOpen('incomes',function(){return document.getElementById('addIncomeBtn')},function(button){
         if(button)button.click();else if(typeof window.editIncomePlan==='function')window.editIncomePlan();
+      },{
+        navigate:function(){
+          if(typeof window.showIncomeSetupPage==='function')window.showIncomeSetupPage();
+          else navigate('incomes');
+        }
       });return;
     }
     if(step.target==='debts'){
