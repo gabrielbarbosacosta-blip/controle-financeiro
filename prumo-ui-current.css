@@ -661,6 +661,51 @@ html.caderno-stable .goal-contributor-owner{background:#111f31!important;border-
 .goal-settings-item.danger{color:#f2a29c}.goal-settings-item:disabled{opacity:.5;cursor:default}
 
 
+
+/* Primeiros passos — use the exact PWA bottom-nav glass recipe.
+   This lives in the canonical stylesheet so the generic .card rule cannot win. */
+html.caderno-stable body #prumoFirstStepsCard.card{
+  position:relative!important;
+  margin:0 0 14px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  border-radius:24px!important;
+  background:rgba(255,255,255,.11)!important;
+  box-shadow:
+    0 14px 38px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.14)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(1.35)!important;
+  backdrop-filter:blur(30px) saturate(1.35)!important;
+  isolation:isolate!important;
+}
+html.caderno-stable body #prumoFirstStepsCard.card::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.14),rgba(255,255,255,.035) 36%,transparent 64%),
+    linear-gradient(135deg,rgba(255,255,255,.055),transparent 42%);
+}
+html.caderno-stable body #prumoFirstStepsCard.card::after{
+  content:'';
+  position:absolute;
+  left:18px;
+  right:18px;
+  top:0;
+  height:1px;
+  z-index:0;
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);
+  opacity:.75;
+}
+html.caderno-stable body #prumoFirstStepsCard .pfs-card-inner{
+  position:relative;
+  z-index:1;
+}
+
 /* Prumo glass modals — same visual language as the mobile bottom navigation */
 html.caderno-stable .modal,
 html.caderno-stable .profile-dropdown{
