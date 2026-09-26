@@ -68,12 +68,12 @@
       <div class="modal-backdrop" id="calendarQrModal">
         <div class="modal calendar-qr-modal">
           <div class="modal-head">
-            <div><h3 id="calendarQrTitle">QR Code</h3><div class="muted">Escaneie para assinar o calendário em outro aparelho.</div></div>
+            <div><h3 id="calendarQrTitle">QR Code</h3><div class="muted">Escaneie para abrir a assinatura do calendário em outro aparelho.</div></div>
             <button type="button" class="btn ghost" id="calendarQrClose">✕</button>
           </div>
           <div class="modal-body">
             <div class="calendar-qr-box"><div id="calendarQrCanvas"></div></div>
-            <div class="calendar-qr-secret">Este QR contém o link privado de leitura do seu calendário. Compartilhe apenas com dispositivos ou pessoas autorizadas.</div>
+            <div class="calendar-qr-secret">Este QR abre uma assinatura WebCal e contém o link privado de leitura do seu calendário. Compartilhe apenas com dispositivos ou pessoas autorizadas.</div>
             <div class="calendar-qr-link" id="calendarQrLink"></div>
           </div>
           <div class="modal-foot">
@@ -92,13 +92,13 @@
   function openQr(scope,label){
     const token=getLocalToken();if(!token){setMsg('Gere um link de assinatura antes de criar o QR Code.','error');return}
     if(typeof QRCode!=='function'){setMsg('O gerador de QR Code ainda não está disponível.','error');return}
-    const url=endpoint(token,scope),modal=ensureQrModal(),host=document.getElementById('calendarQrCanvas');
+    const url=endpoint(token,scope),subscribeUrl=webcal(url),modal=ensureQrModal(),host=document.getElementById('calendarQrCanvas');
     document.getElementById('calendarQrTitle').textContent=label||'Calendário do Prumo';
     document.getElementById('calendarQrLink').textContent=url;
-    document.getElementById('calendarQrSubscribe').href=webcal(url);
+    document.getElementById('calendarQrSubscribe').href=subscribeUrl;
     document.getElementById('calendarQrCopy').onclick=()=>copy(url);
     host.innerHTML='';
-    new QRCode(host,{text:url,width:240,height:240,colorDark:'#07101d',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    new QRCode(host,{text:subscribeUrl,width:240,height:240,colorDark:'#07101d',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
     modal.classList.add('open');
   }
   async function refresh(){
