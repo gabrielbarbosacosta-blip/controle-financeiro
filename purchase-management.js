@@ -7,7 +7,7 @@
   function month(v){return typeof fmtMonth==='function'?fmtMonth(v):v}
   function round(v){return typeof round2==='function'?round2(v):Math.round((Number(v)||0)*100)/100}
   function isOpen(p){return p?.openEnded===true}
-  function installmentValue(p){if(p.mode==='recorrente'||isOpen(p))return Number((p.installmentValue??p.totalAmount)||0);const n=Math.max(1,Number(p.installments)||1);if(typeof installmentAmount==='function')return installmentAmount(p,0);return round((Number(p.totalAmount)||0)/n)}
+  function installmentValue(p){if(p.mode==='recorrente'||isOpen(p))return Number((p.installmentValue??p.totalAmount)||0);const explicit=Number(p.installmentValue);if(Number.isFinite(explicit)&&explicit>0)return round(explicit);const n=Math.max(1,Number(p.installments)||1);if(typeof installmentAmount==='function')return installmentAmount(p,0);return round((Number(p.totalAmount)||0)/n)}
   function purchaseEndMonth(p){if(p.mode==='recorrente'||isOpen(p))return null;const n=Math.max(1,Number(p.installments)||1);return typeof ymAdd==='function'?ymAdd(p.firstInvoiceYm,n-1):p.firstInvoiceYm}
   function termLabel(p){if(isOpen(p))return'Parcelamento • sem prazo definido';if(p.mode==='recorrente')return p.recurringEnd?`Mensal até ${month(p.recurringEnd)}`:'Mensal • sem data final';const n=Math.max(1,Number(p.installments)||1),end=purchaseEndMonth(p);return n===1?'À vista':`${n}x • ${month(p.firstInvoiceYm)} a ${month(end)}`}
 
