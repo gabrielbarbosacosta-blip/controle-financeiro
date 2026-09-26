@@ -1,6 +1,6 @@
 (function(){
   const normalizeKey=value=>String(value??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-  const aliases={date:['data','date','data_compra','data_da_compra'],description:['descricao','description','estabelecimento','merchant','compra','historico','lancamento'],category:['categoria','category'],amount:['valor','amount','valor_total','total','preco'],installments:['parcelas','parcela','installments','qtd_parcelas','numero_parcelas','n_parcelas','total_parcelas','parcela_total'],installmentCurrent:['parcela_atual','parcela_corrente','numero_parcela','n_parcela','installment_current','current_installment'],installmentValue:['valor_parcela','valor_da_parcela','valor_parcela_atual','parcela_valor','installment_value'],firstInvoice:['primeira_fatura','fatura','competencia','mes_fatura','mes_da_fatura'],card:['cartao','card','nome_cartao'],notes:['observacao','observacoes','notes','memo'],mode:['tipo','mode','modalidade'],recurringEnd:['ultima_fatura','fim_recorrencia','fim_da_recorrencia']};
+  const aliases={date:['data','date','data_compra','data_da_compra'],description:['descricao','description','estabelecimento','merchant','compra','historico','lancamento'],category:['categoria','category'],amount:['valor','amount','valor_total','total','preco'],invoiceTotal:['valor_fatura','total_fatura','valor_total_fatura','invoice_total','statement_total'],installments:['parcelas','parcela','installments','qtd_parcelas','numero_parcelas','n_parcelas','total_parcelas','parcela_total'],installmentCurrent:['parcela_atual','parcela_corrente','numero_parcela','n_parcela','installment_current','current_installment'],installmentValue:['valor_parcela','valor_da_parcela','valor_parcela_atual','parcela_valor','installment_value'],firstInvoice:['primeira_fatura','fatura','competencia','mes_fatura','mes_da_fatura'],card:['cartao','card','nome_cartao'],notes:['observacao','observacoes','notes','memo'],mode:['tipo','mode','modalidade'],recurringEnd:['ultima_fatura','fim_recorrencia','fim_da_recorrencia']};
   function findColumn(headers,names){const n=headers.map(normalizeKey);for(const name of names){const i=n.indexOf(name);if(i>=0)return i}return-1}
   function detectDelimiter(line){let semi=0,comma=0,q=false;for(const ch of line){if(ch==='"')q=!q;else if(!q&&ch===';')semi++;else if(!q&&ch===',')comma++}return semi>=comma?';':','}
   function parseCSV(text){text=String(text||'').replace(/^\uFEFF/,'');const delimiter=detectDelimiter(text.split(/\r?\n/).find(Boolean)||''),rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='"'){if(q&&text[i+1]==='"'){cell+='"';i++}else q=!q}else if(ch===delimiter&&!q){row.push(cell);cell=''}else if((ch==='\n'||ch==='\r')&&!q){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);cell='';if(row.some(v=>String(v).trim()))rows.push(row);row=[]}else cell+=ch}if(cell!==''||row.length){row.push(cell);if(row.some(v=>String(v).trim()))rows.push(row)}return rows}
@@ -59,14 +59,23 @@ FORMATO OBRIGATÓRIO
 - Gere CSV UTF-8 separado por ponto e vírgula (;).
 - Entregue também o arquivo .csv para download, se a interface permitir.
 - A primeira linha deve ser EXATAMENTE:
-data;descricao;categoria;valor;parcelas;parcela_atual;valor_parcela;primeira_fatura;cartao;tipo;ultima_fatura;observacao
+data;descricao;categoria;valor;valor_fatura;parcelas;parcela_atual;valor_parcela;primeira_fatura;cartao;tipo;ultima_fatura;observacao
 - Não use bloco Markdown, tabela Markdown ou texto explicativo dentro do CSV.
 - Uma linha por lançamento.
 - Não use separador de milhar. Para valores, use vírgula decimal: 242,15.
 - data: formato AAAA-MM-DD.
 - primeira_fatura e ultima_fatura: formato AAAA-MM.
+- valor_fatura: valor TOTAL da fatura analisada. Repita o MESMO valor em todas as linhas do CSV.
 - cartao: use exatamente "${cardName||'Cartão'}".
 - categoria: escolha apenas uma destas categorias: ${cats}.
+
+REGRAS PARA O VALOR DA FATURA
+1. Identifique no documento o valor total da fatura / total a pagar.
+2. Preencha esse valor na coluna "valor_fatura".
+3. Repita exatamente o mesmo "valor_fatura" em TODAS as linhas.
+4. "valor_fatura" NÃO é o valor da compra, da parcela ou o somatório parcial de uma seção.
+5. Se houver mais de um total no documento, use o total final efetivamente devido na fatura analisada.
+6. Se não for possível determinar o total com segurança, deixe "valor_fatura" vazio e explique o motivo em observacao.
 
 REGRAS PARA COMPRAS PARCELADAS
 1. "valor" é o VALOR TOTAL DA COMPRA, não o valor da parcela.
@@ -110,7 +119,8 @@ VALIDAÇÃO ANTES DE GERAR
 - Para toda linha parcelada com parcelas > 1, confirme que parcela_atual, valor_parcela e primeira_fatura foram preenchidos.
 - Confira se primeira_fatura + (parcela_atual - 1 meses) = ${invoiceYm||'AAAA-MM'}.
 - Confira se nenhuma compra parcelada foi convertida para parcelas=1.
-- Confira se o CSV possui exatamente as 12 colunas solicitadas, sempre na mesma ordem.
+- Confira se o CSV possui exatamente as 13 colunas solicitadas, sempre na mesma ordem.
+- Confira se "valor_fatura" é idêntico em todas as linhas e corresponde ao total final da fatura, não ao subtotal das compras.
 - Se o valor total da fatura tiver sido informado, use-o apenas como referência de conferência. Não invente lançamentos para forçar o fechamento; o Prumo fará a conciliação de eventual diferença.
 
 Na coluna observacao, registre informações úteis para auditoria, por exemplo: "Na fatura ${invoiceYm||'AAAA-MM'} aparece como PARC 07/11; valor da parcela R$ 386,65; valor total inferido pela multiplicação da parcela pelo total de parcelas.".`;
@@ -129,19 +139,17 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     const el=document.getElementById('csvAiPrompt');if(!el)return;
     const target=getCard(csvContextCardId||selectedCardId);
     const ym=csvContextYm||selectedInvoiceYm||state.settings.selectedMonth;
-    const invoiceTotal=parseMoney(document.getElementById('csvInvoiceTotal')?.value);
-    el.value=aiCsvPrompt(target?.name||'Cartão',ym,invoiceTotal);
+    el.value=aiCsvPrompt(target?.name||'Cartão',ym,null);
   }
 
   function buildCsvModal(){
     if(document.getElementById('csvPurchaseModal'))return;
-    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal" style="max-width:980px"><form id="csvPurchaseForm"><div class="modal-head"><div><h3>Importar compras por CSV</h3><div class="muted">Prepare o arquivo com IA e importe na fatura correta</div></div><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px"><strong id="csvImportContext">Fatura selecionada</strong><br>O arquivo importado será vinculado a este cartão e a esta fatura.</div><div class="card" style="margin-bottom:14px;padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">1. Prepare o CSV com uma IA</h3><div class="muted">Anexe sua fatura à IA, cole este prompt e peça o arquivo CSV.</div></div><button type="button" class="btn primary" id="csvCopyPromptBtn">Copiar prompt</button></div><textarea id="csvAiPrompt" readonly spellcheck="false" style="width:100%;min-height:210px;resize:vertical;font:11px/1.5 'DM Mono',monospace;background:#081321;color:#cbd7e4;border:1px solid #2a3c55;border-radius:10px;padding:12px;box-sizing:border-box"></textarea></div><div class="card" style="padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">2. Importe o arquivo gerado</h3><div class="muted">O Prumo valida e cadastra os lançamentos na fatura.</div></div><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><div class="form-grid"><div class="field"><label>Cartão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Fatura em análise</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Valor da fatura (R$)</label><input id="csvInvoiceTotal" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00"><small class="muted">Opcional. O Prumo usa este valor para conciliar a soma dos itens importados.</small></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><p class="muted" style="margin-top:12px">Formato esperado: data, descricao, categoria, valor, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
+    document.body.insertAdjacentHTML('beforeend',`<div class="modal-backdrop" id="csvPurchaseModal"><div class="modal" style="max-width:980px"><form id="csvPurchaseForm"><div class="modal-head"><div><h3>Importar compras por CSV</h3><div class="muted">Prepare o arquivo com IA e importe na fatura correta</div></div><button type="button" class="btn ghost" id="csvPurchaseClose">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px"><strong id="csvImportContext">Fatura selecionada</strong><br>O arquivo importado será vinculado a este cartão e a esta fatura.</div><div class="card" style="margin-bottom:14px;padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">1. Prepare o CSV com uma IA</h3><div class="muted">Anexe sua fatura à IA, cole este prompt e peça o arquivo CSV.</div></div><button type="button" class="btn primary" id="csvCopyPromptBtn">Copiar prompt</button></div><textarea id="csvAiPrompt" readonly spellcheck="false" style="width:100%;min-height:210px;resize:vertical;font:11px/1.5 'DM Mono',monospace;background:#081321;color:#cbd7e4;border:1px solid #2a3c55;border-radius:10px;padding:12px;box-sizing:border-box"></textarea></div><div class="card" style="padding:16px"><div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">2. Importe o arquivo gerado</h3><div class="muted">O Prumo valida e cadastra os lançamentos na fatura.</div></div><button type="button" class="btn" id="csvTemplateBtn">Baixar modelo CSV</button></div><div class="form-grid"><div class="field"><label>Cartão</label><select id="csvPurchaseCard"></select></div><div class="field"><label>Fatura em análise</label><input type="month" id="csvPurchaseInvoice" required></div><div class="field"><label>Categoria padrão</label><select id="csvPurchaseCategory"></select></div><div class="field"><label>Arquivo CSV</label><input type="file" id="csvPurchaseFile" accept=".csv,text/csv" required></div><div class="field full"><label class="toggle"><input type="checkbox" id="csvSkipDuplicates" checked> Ignorar compras já importadas</label></div></div><p class="muted" style="margin-top:12px">Formato esperado: data, descricao, categoria, valor, valor_fatura, parcelas, parcela_atual, valor_parcela, primeira_fatura, cartao, tipo, ultima_fatura e observacao.</p><div id="csvImportSummary" class="notice" style="display:none;margin-top:14px"></div></div></div><div class="modal-foot"><button type="button" class="btn" id="csvPurchaseCancel">Cancelar</button><button class="btn primary" type="submit">Importar compras</button></div></form></div></div>`);
     document.getElementById('csvPurchaseClose').onclick=closeCsvImport;
     document.getElementById('csvPurchaseCancel').onclick=closeCsvImport;
     document.getElementById('csvPurchaseModal').addEventListener('click',e=>{if(e.target.id==='csvPurchaseModal')closeCsvImport()});
     document.getElementById('csvTemplateBtn').onclick=downloadTemplate;
     document.getElementById('csvCopyPromptBtn').onclick=copyAiPrompt;
-    document.getElementById('csvInvoiceTotal').addEventListener('input',updateAiPrompt);
     document.getElementById('csvPurchaseForm').onsubmit=importPurchases;
   }
   function refreshCsvOptions(){const card=document.getElementById('csvPurchaseCard'),cat=document.getElementById('csvPurchaseCategory');if(!card||!cat)return;card.innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');cat.innerHTML=categories.map(c=>`<option>${c}</option>`).join('');card.value=selectedCardId||state.cards[0]?.id||'';cat.value='Compras';document.getElementById('csvPurchaseInvoice').value=selectedInvoiceYm||state.settings.selectedMonth}
@@ -153,9 +161,6 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     if(card){card.value=csvContextCardId;card.disabled=true}
     if(invoice){invoice.value=csvContextYm;invoice.disabled=true}
     const target=getCard(csvContextCardId);
-    const targetInvoice=getInvoice(csvContextCardId,csvContextYm);
-    const totalInput=document.getElementById('csvInvoiceTotal');
-    if(totalInput)totalInput.value=Number(targetInvoice?.statementTotal)>0?Number(targetInvoice.statementTotal).toFixed(2):'';
     if(ctx)ctx.textContent=`${target?.name||'Cartão'} • ${typeof fmtMonth==='function'?fmtMonth(csvContextYm):csvContextYm}`;
     updateAiPrompt();
     const s=document.getElementById('csvImportSummary');s.style.display='none';s.textContent='';
@@ -168,7 +173,7 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     const card=document.getElementById('csvPurchaseCard'),invoice=document.getElementById('csvPurchaseInvoice');
     if(card)card.disabled=false;if(invoice)invoice.disabled=false;
   }
-  function downloadTemplate(){const csv='\ufeffdata;descricao;categoria;valor;parcelas;parcela_atual;valor_parcela;primeira_fatura;cartao;tipo;ultima_fatura;observacao\n2026-09-12;Amazon;Compras;1452,90;6;1;242,15;2026-09;BB Gabriel;parcelada;;Exemplo de compra parcelada',blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='modelo-compras.csv';a.click();URL.revokeObjectURL(a.href)}
+  function downloadTemplate(){const csv='\ufeffdata;descricao;categoria;valor;valor_fatura;parcelas;parcela_atual;valor_parcela;primeira_fatura;cartao;tipo;ultima_fatura;observacao\n2026-09-12;Amazon;Compras;1452,90;4012,70;6;1;242,15;2026-09;BB Gabriel;parcelada;;Exemplo de compra parcelada',blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='modelo-compras.csv';a.click();URL.revokeObjectURL(a.href)}
   async function importPurchases(e){
     e.preventDefault();
     const file=document.getElementById('csvPurchaseFile').files[0];if(!file)return;
@@ -176,7 +181,6 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
       fallbackInvoice=document.getElementById('csvPurchaseInvoice').value||state.settings.selectedMonth,
       fallbackCategory=document.getElementById('csvPurchaseCategory').value||'Compras',
       skip=document.getElementById('csvSkipDuplicates').checked,
-      invoiceTotal=parseMoney(document.getElementById('csvInvoiceTotal')?.value),
       summary=document.getElementById('csvImportSummary');
     summary.style.display='block';summary.textContent='Lendo arquivo…';
     try{
@@ -184,13 +188,18 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
       const headers=rows[0].map(v=>String(v).trim()),col={};
       Object.entries(aliases).forEach(([k,v])=>col[k]=findColumn(headers,v));
       if(col.description<0||col.amount<0)throw new Error('O CSV precisa ter as colunas descricao e valor.');
-      let imported=0,duplicates=0,ignored=0,installmentRows=0,first=null;
+      let imported=0,duplicates=0,ignored=0,installmentRows=0,first=null,invoiceTotal=null,invoiceTotalConflict=false;
       const importedAt=new Date().toISOString();
       for(let i=1;i<rows.length;i++){
         const r=rows[i],get=k=>col[k]>=0?(r[col[k]]??''):'',
           description=String(get('description')).trim(),amount=parseMoney(get('amount')),
           notes=String(get('notes')).trim(),rowText=r.map(v=>String(v??'')).join(' ');
         if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
+        const rowInvoiceTotal=parseMoney(get('invoiceTotal'));
+        if(Number.isFinite(rowInvoiceTotal)&&rowInvoiceTotal>=0){
+          if(invoiceTotal===null)invoiceTotal=round2(rowInvoiceTotal);
+          else if(Math.abs(invoiceTotal-round2(rowInvoiceTotal))>0.009)invoiceTotalConflict=true;
+        }
         const firstInvoiceYm=parseMonth(get('firstInvoice'),csvContextYm||fallbackInvoice),
           targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
           mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
@@ -232,6 +241,7 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
         if(skip&&duplicateExists(p)){duplicates++;continue}
         state.purchases.push(p);ensureInvoice(p.cardId,p.firstInvoiceYm);imported++;if(!first)first=p;
       }
+      if(invoiceTotalConflict)throw new Error('O CSV contém valores diferentes na coluna valor_fatura. Gere novamente o arquivo com o mesmo total da fatura em todas as linhas.');
       let reconciliationText='';
       if(Number.isFinite(invoiceTotal)&&invoiceTotal>=0&&csvContextCardId&&csvContextYm){
         const inv=ensureInvoice(csvContextCardId,csvContextYm);
