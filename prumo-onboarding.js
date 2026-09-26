@@ -109,10 +109,13 @@
         max-height:calc(100vh - 36px);
         display:flex;flex-direction:column;
         overflow:hidden;
-        border:1px solid rgba(255,255,255,.16);
+        border:1px solid rgba(255,255,255,.24);
         border-radius:28px;
-        background:rgba(13,25,41,.92);
-        box-shadow:0 30px 90px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.07);
+        background:rgba(255,255,255,.11);
+        box-shadow:0 14px 38px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.14);
+        -webkit-backdrop-filter:blur(30px) saturate(1.35);
+        backdrop-filter:blur(30px) saturate(1.35);
+        isolation:isolate;
         color:#e7edf5;
       }
       .prumo-onboarding-top{
@@ -193,8 +196,11 @@
           min-height:0;
           max-height:calc(100vh - 146px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
           border-radius:24px;
-          border:1px solid rgba(255,255,255,.14);
-          background:rgba(11,22,38,.94);
+          border:1px solid rgba(255,255,255,.24);
+          background:rgba(255,255,255,.11);
+          box-shadow:0 14px 38px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.14);
+          -webkit-backdrop-filter:blur(30px) saturate(1.35);
+          backdrop-filter:blur(30px) saturate(1.35);
         }
         .prumo-onboarding-top{padding:14px 18px 5px}
         .prumo-onboarding-stage{padding:8px 22px 14px;justify-content:flex-start}
