@@ -35,7 +35,7 @@
     s.textContent=
       '#prumoFirstStepsCard{margin:0 0 14px;border:1px solid rgba(221,234,172,.22)!important;background:radial-gradient(circle at 0 0,rgba(221,234,172,.10),transparent 34%),linear-gradient(145deg,rgba(13,25,41,.94),rgba(10,21,36,.92))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;overflow:hidden}'+
       '.pfs-card-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:18px}.pfs-kicker{font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#ddeaac;margin-bottom:6px}.pfs-title{margin:0;color:#f3f7fb;font-size:18px;letter-spacing:-.025em}.pfs-copy{margin:6px 0 0;color:#91a1b4;font-size:11px;line-height:1.5;max-width:680px}.pfs-card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.pfs-progress{margin-top:12px;height:5px;border-radius:999px;background:#1b2a3d;overflow:hidden;max-width:520px}.pfs-progress>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#65aaff,#ddeaac)}.pfs-meta{margin-top:7px;color:#71849b;font-size:9px;font-weight:750}'+
-      '.pfs-panel{position:fixed;right:20px;bottom:20px;z-index:24;width:min(390px,calc(100vw - 28px));border:1px solid rgba(255,255,255,.20);border-radius:22px;background:rgba(10,21,36,.88);-webkit-backdrop-filter:blur(28px) saturate(1.25);backdrop-filter:blur(28px) saturate(1.25);box-shadow:0 24px 70px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);color:#e7edf5;overflow:hidden}.pfs-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 15px 8px}.pfs-panel-head strong{font-size:11px;color:#ddeaac}.pfs-close{appearance:none;border:0;background:transparent;color:#8292a7;font-size:17px;line-height:1;padding:3px 5px;cursor:pointer}.pfs-panel-body{padding:4px 15px 14px}.pfs-step-num{font-size:9px;color:#72849a;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.pfs-step-title{font-size:18px;line-height:1.15;margin:6px 0 7px;color:#f5f7fb;letter-spacing:-.025em}.pfs-step-text{font-size:11px;line-height:1.55;color:#9dadbf;margin:0}.pfs-panel-progress{display:flex;gap:5px;margin:13px 0 14px}.pfs-panel-progress span{height:4px;flex:1;border-radius:999px;background:#223249}.pfs-panel-progress span.done,.pfs-panel-progress span.active{background:#ddeaac}.pfs-panel-actions{display:flex;gap:8px;flex-wrap:wrap}.pfs-panel-actions .btn.primary{margin-left:auto}.pfs-highlight{outline:none!important;box-shadow:inset 0 0 0 1px rgba(221,234,172,.58),0 0 0 1px rgba(221,234,172,.10),0 0 16px rgba(221,234,172,.10)!important;filter:brightness(1.06);border-radius:inherit!important}.pfs-settings-card{grid-column:1/-1}.pfs-settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}'+
+      '.pfs-panel{position:fixed;right:20px;bottom:20px;z-index:24;width:min(390px,calc(100vw - 28px));border:1px solid rgba(255,255,255,.20);border-radius:22px;background:rgba(10,21,36,.88);-webkit-backdrop-filter:blur(28px) saturate(1.25);backdrop-filter:blur(28px) saturate(1.25);box-shadow:0 24px 70px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.08);color:#e7edf5;overflow:hidden}.pfs-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 15px 8px}.pfs-panel-head strong{font-size:11px;color:#ddeaac}.pfs-close{appearance:none;border:0;background:transparent;color:#8292a7;font-size:17px;line-height:1;padding:3px 5px;cursor:pointer}.pfs-panel-body{padding:4px 15px 14px}.pfs-step-num{font-size:9px;color:#72849a;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.pfs-step-title{font-size:18px;line-height:1.15;margin:6px 0 7px;color:#f5f7fb;letter-spacing:-.025em}.pfs-step-text{font-size:11px;line-height:1.55;color:#9dadbf;margin:0}.pfs-panel-progress{display:flex;gap:5px;margin:13px 0 14px}.pfs-panel-progress span{height:4px;flex:1;border-radius:999px;background:#223249}.pfs-panel-progress span.done,.pfs-panel-progress span.active{background:#ddeaac}.pfs-panel-actions{display:flex;gap:8px;flex-wrap:wrap}.pfs-panel-actions .btn.primary{margin-left:auto}.pfs-focus-ring{position:fixed;left:0;top:0;z-index:2147482400;pointer-events:none;opacity:0;transform:translate3d(0,0,0);border:1px solid rgba(221,234,172,.62);background:linear-gradient(145deg,rgba(221,234,172,.10),rgba(101,170,255,.045));box-shadow:0 0 0 1px rgba(221,234,172,.08),0 0 18px rgba(221,234,172,.12),inset 0 1px 0 rgba(255,255,255,.10);-webkit-backdrop-filter:blur(10px) saturate(1.08);backdrop-filter:blur(10px) saturate(1.08);transition:left .42s cubic-bezier(.22,1,.36,1),top .42s cubic-bezier(.22,1,.36,1),width .42s cubic-bezier(.22,1,.36,1),height .42s cubic-bezier(.22,1,.36,1),border-radius .42s ease,opacity .18s ease}.pfs-focus-ring.visible{opacity:1}.pfs-focus-ring.pulse{animation:pfsFocusPulse .95s ease both}@keyframes pfsFocusPulse{0%,100%{box-shadow:0 0 0 1px rgba(221,234,172,.08),0 0 18px rgba(221,234,172,.12),inset 0 1px 0 rgba(255,255,255,.10)}50%{box-shadow:0 0 0 1px rgba(221,234,172,.18),0 0 26px rgba(221,234,172,.22),inset 0 1px 0 rgba(255,255,255,.14)}}.pfs-settings-card{grid-column:1/-1}.pfs-settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}'+
       '@media(max-width:700px){.pfs-card-inner{grid-template-columns:1fr;padding:15px}.pfs-card-actions{justify-content:flex-start}.pfs-panel{right:12px;left:12px;bottom:calc(96px + env(safe-area-inset-bottom,0px));width:auto}}';
     document.head.appendChild(s);
   }
@@ -46,13 +46,46 @@
     if(btn&&!btn.classList.contains('active'))btn.click();
     return btn;
   }
-  function highlight(el,duration){
-    document.querySelectorAll('.pfs-highlight').forEach(function(x){x.classList.remove('pfs-highlight')});
-    if(!el)return;
-    el.classList.add('pfs-highlight');
-    try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_e){}
-    setTimeout(function(){el.classList.remove('pfs-highlight')},duration||1200);
+  var focusRing=null,focusHideTimer=null,focusTarget=null;
+  function ensureFocusRing(){
+    if(focusRing&&document.body.contains(focusRing))return focusRing;
+    focusRing=document.createElement('div');
+    focusRing.className='pfs-focus-ring';
+    document.body.appendChild(focusRing);
+    return focusRing;
   }
+  function placeFocus(el,options){
+    options=options||{};
+    if(!el)return;
+    var ring=ensureFocusRing();
+    focusTarget=el;
+    clearTimeout(focusHideTimer);
+    try{el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'})}catch(_e){}
+    var move=function(){
+      if(!focusTarget||!document.body.contains(focusTarget))return;
+      var r=focusTarget.getBoundingClientRect(),pad=options.pad==null?5:options.pad;
+      ring.style.left=(r.left-pad)+'px';
+      ring.style.top=(r.top-pad)+'px';
+      ring.style.width=(r.width+pad*2)+'px';
+      ring.style.height=(r.height+pad*2)+'px';
+      var radius=parseFloat(getComputedStyle(focusTarget).borderRadius)||10;
+      ring.style.borderRadius=(radius+Math.max(2,pad*.55))+'px';
+      ring.classList.add('visible');
+      ring.classList.remove('pulse');void ring.offsetWidth;ring.classList.add('pulse');
+      if(options.duration){
+        focusHideTimer=setTimeout(function(){ring.classList.remove('visible');focusTarget=null},options.duration);
+      }
+    };
+    requestAnimationFrame(function(){requestAnimationFrame(move)});
+    setTimeout(move,360);
+  }
+  function hideFocus(){
+    clearTimeout(focusHideTimer);
+    if(focusRing)focusRing.classList.remove('visible');
+    focusTarget=null;
+  }
+  window.addEventListener('resize',function(){if(focusTarget)placeFocus(focusTarget,{})},{passive:true});
+  window.addEventListener('scroll',function(){if(focusTarget)placeFocus(focusTarget,{})},{passive:true,capture:true});
 
   function menuTarget(page){
     var el=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
@@ -66,12 +99,12 @@
   function stagedOpen(page,getButton,openAction,options){
     options=options||{};
     var menu=menuTarget(page);
-    if(menu)highlight(menu,900);
+    if(menu)placeFocus(menu,{duration:900,pad:4});
     setTimeout(function(){
       navigate(page);
       setTimeout(function(){
         var button=typeof getButton==='function'?getButton():null;
-        if(button)highlight(button,1000);
+        if(button)placeFocus(button,{duration:1000,pad:5});
         setTimeout(function(){
           if(typeof openAction==='function')openAction(button);
         },options.openDelay||900);
@@ -107,7 +140,7 @@
     panel=document.createElement('div');panel.className='pfs-panel';panel.id='prumoFirstStepsPanel';
     panel.innerHTML='<div class="pfs-panel-head"><strong>Primeiros passos</strong><button type="button" class="pfs-close" aria-label="Fechar">✕</button></div><div class="pfs-panel-body"><div class="pfs-step-num"></div><div class="pfs-step-title"></div><p class="pfs-step-text"></p><div class="pfs-panel-progress"></div><div class="pfs-panel-actions"><button type="button" class="btn" data-pfs-skip-step>Pular etapa</button><button type="button" class="btn" data-pfs-done-step>Concluir etapa</button><button type="button" class="btn primary" data-pfs-action></button></div></div>';
     document.body.appendChild(panel);
-    panel.querySelector('.pfs-close').onclick=function(){panel.remove();panel=null};
+    panel.querySelector('.pfs-close').onclick=function(){hideFocus();panel.remove();panel=null};
     panel.querySelector('[data-pfs-skip-step]').onclick=function(){advance(false)};
     panel.querySelector('[data-pfs-done-step]').onclick=function(){markStep(steps[state.current].id)};
     panel.querySelector('[data-pfs-action]').onclick=function(){perform(steps[state.current])};
@@ -125,7 +158,7 @@
   }
   function openPanel(){state.status='active';save();ensurePanel();renderPanel();renderCard()}
   function start(){state.status='active';state.current=0;save();renderCard();openPanel();setTimeout(function(){perform(steps[0])},120)}
-  function skipAll(){state.status='skipped';save();renderCard();if(panel){panel.remove();panel=null}}
+  function skipAll(){hideFocus();state.status='skipped';save();renderCard();if(panel){panel.remove();panel=null}}
   function advance(mark){
     var step=steps[state.current];
     if(mark!==false&&step&&!state.done.includes(step.id))state.done.push(step.id);
@@ -143,13 +176,13 @@
   function perform(step){
     if(!step)return;
     if(step.target==='settings'){
-      var menu=menuTarget('settings');if(menu)highlight(menu,900);
+      var menu=menuTarget('settings');if(menu)placeFocus(menu,{duration:900,pad:4});
       setTimeout(function(){
         navigate('settings');
         setTimeout(function(){
           var field=document.getElementById('setBaseBalance');
           var target=field&&field.closest?field.closest('.card'):field;
-          highlight(target,1800);
+          placeFocus(target,{duration:1800,pad:6});
           if(field)try{field.focus({preventScroll:true})}catch(_e){}
         },650);
       },800);
@@ -172,19 +205,19 @@
       stagedOpen('goals',function(){return document.getElementById('addGoalBtn')||document.querySelector('[data-add-goal],.goal-add-button')},function(button){if(button)button.click()},{buttonDelay:750});return;
     }
     if(step.target==='calendar'){
-      var settingsMenu=menuTarget('settings');if(settingsMenu)highlight(settingsMenu,900);
+      var settingsMenu=menuTarget('settings');if(settingsMenu)placeFocus(settingsMenu,{duration:900,pad:4});
       setTimeout(function(){
         navigate('settings');
         setTimeout(function(){
           var activate=document.getElementById('calendarActivateBtn');
-          highlight(activate||document.getElementById('calendarSubscriptionCard'),1800);
+          placeFocus(activate||document.getElementById('calendarSubscriptionCard'),{duration:1800,pad:6});
         },650);
       },800);
       return;
     }
     if(step.target==='install'){
       var installBtn=document.querySelector('[data-pwa-install],#installPwaBtn,#pwaInstallBtn');
-      if(installBtn){highlight(installBtn,1000);setTimeout(function(){installBtn.click()},900);return}
+      if(installBtn){placeFocus(installBtn,{duration:1000,pad:5});setTimeout(function(){installBtn.click()},900);return}
       panel.querySelector('.pfs-step-text').textContent='No iPhone: Compartilhar → Adicionar à Tela de Início. No Chrome ou Edge, use a opção Instalar aplicativo no menu do navegador.';
     }
   }
@@ -193,6 +226,7 @@
     if(!panel||!document.body.contains(panel))return;
     var openModal=document.querySelector('.modal-backdrop.open');
     panel.style.display=openModal?'none':'';
+    if(openModal)hideFocus();
   }
 
   function observeModals(){
@@ -228,7 +262,7 @@
   async function boot(){
     addStyles();await resolveUser();ensureCard();renderCard();addSettingsEntry();bindHooks();observeModals();
     window.addEventListener('prumo:onboarding-finished',function(){
-      if(state.status==='intro'){navigate('dashboard');setTimeout(function(){renderCard();highlight(card)},260)}
+      if(state.status==='intro'){navigate('dashboard');setTimeout(function(){renderCard();placeFocus(card,{duration:1600,pad:6})},260)}
     });
     window.addEventListener('finance:cloud-ready',function(){setTimeout(function(){ensureCard();renderCard();addSettingsEntry()},180)});
   }
