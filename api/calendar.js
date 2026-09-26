@@ -2,14 +2,14 @@ const SUPABASE_URL='https://eqolnqnsyomgybyrtrzt.supabase.co';
 const SUPABASE_KEY='sb_publishable_koTIgLL07Qe1Wf-ZY81LCA_0UO310ks';
 
 async function rpc(name,args){
-  const response=await fetch(\`\${SUPABASE_URL}/rest/v1/rpc/\${name}\`,{
+  const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`,{
     method:'POST',
-    headers:{apikey:SUPABASE_KEY,Authorization:\`Bearer \${SUPABASE_KEY}\`,'Content-Type':'application/json'},
+    headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
     body:JSON.stringify(args),
     signal:AbortSignal.timeout(15000)
   });
   const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(payload?.message||payload?.error||\`Supabase RPC \${name} failed\`);
+  if(!response.ok)throw new Error(payload?.message||payload?.error||`Supabase RPC ${name} failed`);
   return payload;
 }
 
@@ -51,20 +51,20 @@ function invoiceTotal(state,cardId,ym){
 }
 function invoiceDueDate(card,ym){
   const [y,m]=String(ym).split('-').map(Number),last=new Date(Date.UTC(y,m,0)).getUTCDate(),day=Math.min(last,Math.max(1,Number(card?.dueDay)||1));
-  return \`\${y}-\${pad(m)}-\${pad(day)}\`;
+  return `${y}-${pad(m)}-${pad(day)}`;
 }
 function eventBlock({uid,date,title,description,status,categories}){
   const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
   return [
     'BEGIN:VEVENT',
-    \`UID:\${escapeText(uid)}@prumo.finance\`,
-    \`DTSTAMP:\${now}\`,
-    \`DTSTART;VALUE=DATE:\${toIcsDate(date)}\`,
-    \`DTEND;VALUE=DATE:\${toIcsDate(addDays(date,1))}\`,
-    fold(\`SUMMARY:\${escapeText(title)}\`),
-    fold(\`DESCRIPTION:\${escapeText(description)}\`),
-    \`STATUS:\${statusSettled(status)?'CONFIRMED':'TENTATIVE'}\`,
-    categories?\`CATEGORIES:\${escapeText(categories)}\`:'',
+    `UID:${escapeText(uid)}@prumo.finance`,
+    `DTSTAMP:${now}`,
+    `DTSTART;VALUE=DATE:${toIcsDate(date)}`,
+    `DTEND;VALUE=DATE:${toIcsDate(addDays(date,1))}`,
+    fold(`SUMMARY:${escapeText(title)}`),
+    fold(`DESCRIPTION:${escapeText(description)}`),
+    `STATUS:${statusSettled(status)?'CONFIRMED':'TENTATIVE'}`,
+    categories?`CATEGORIES:${escapeText(categories)}`:'',
     'TRANSP:TRANSPARENT',
     'END:VEVENT'
   ].filter(Boolean).join('\r\n');
@@ -87,11 +87,11 @@ module.exports=async function handler(req,res){
         if(t.type!=='Receita')continue;
         const date=normDate(t.date);if(!date)continue;
         if(opt.pendingOnly===true&&statusSettled(t.status))continue;
-        const amount=opt.showAmount!==false?\` — \${money(t.amount)}\`:'';
+        const amount=opt.showAmount!==false?` — ${money(t.amount)}`:'';
         items.push(eventBlock({
-          uid:\`tx-\${t.id}\`,date,
-          title:\`↓ \${t.description||'Receita'}\${amount}\`,
-          description:['Receita no Prumo',t.category?\`Categoria: \${t.category}\`:'',t.account?\`Conta: \${t.account}\`:'',t.status?\`Status: \${t.status}\`:''].filter(Boolean).join('\n'),
+          uid:`tx-${t.id}`,date,
+          title:`↓ ${t.description||'Receita'}${amount}`,
+          description:['Receita no Prumo',t.category?`Categoria: ${t.category}`:'',t.account?`Conta: ${t.account}`:'',t.status?`Status: ${t.status}`:''].filter(Boolean).join('\n'),
           status:t.status,categories:'Prumo,Receita'
         }));
       }
@@ -102,11 +102,11 @@ module.exports=async function handler(req,res){
         if(t.type!=='Despesa')continue;
         const date=normDate(t.date);if(!date)continue;
         if(opt.pendingOnly===true&&statusSettled(t.status))continue;
-        const amount=opt.showAmount!==false?\` — \${money(t.amount)}\`:'';
+        const amount=opt.showAmount!==false?` — ${money(t.amount)}`:'';
         items.push(eventBlock({
-          uid:\`tx-\${t.id}\`,date,
-          title:\`↑ \${t.description||'Despesa'}\${amount}\`,
-          description:['Despesa no Prumo',t.category?\`Categoria: \${t.category}\`:'',t.account?\`Conta: \${t.account}\`:'',t.status?\`Status: \${t.status}\`:''].filter(Boolean).join('\n'),
+          uid:`tx-${t.id}`,date,
+          title:`↑ ${t.description||'Despesa'}${amount}`,
+          description:['Despesa no Prumo',t.category?`Categoria: ${t.category}`:'',t.account?`Conta: ${t.account}`:'',t.status?`Status: ${t.status}`:''].filter(Boolean).join('\n'),
           status:t.status,categories:'Prumo,Despesa'
         }));
       }
@@ -119,11 +119,11 @@ module.exports=async function handler(req,res){
         if(opt.pendingOnly===true&&statusSettled(inv.status))continue;
         const ym=String(inv.ym||'');if(!/^\d{4}-\d{2}$/.test(ym))continue;
         const date=invoiceDueDate(card,ym),total=invoiceTotal(state,inv.cardId,ym);
-        const amount=opt.showAmount!==false?\` — \${money(total)}\`:'';
+        const amount=opt.showAmount!==false?` — ${money(total)}`:'';
         items.push(eventBlock({
-          uid:\`invoice-\${inv.id||inv.cardId+'-'+ym}\`,date,
-          title:\`↑ Fatura \${card.name||'Cartão'}\${amount}\`,
-          description:['Fatura no Prumo',card.account?\`Conta: \${card.account}\`:'',inv.status?\`Status: \${inv.status}\`:''].filter(Boolean).join('\n'),
+          uid:`invoice-${inv.id||inv.cardId+'-'+ym}`,date,
+          title:`↑ Fatura ${card.name||'Cartão'}${amount}`,
+          description:['Fatura no Prumo',card.account?`Conta: ${card.account}`:'',inv.status?`Status: ${inv.status}`:''].filter(Boolean).join('\n'),
           status:inv.status,categories:'Prumo,Fatura'
         }));
       }
@@ -136,7 +136,7 @@ module.exports=async function handler(req,res){
       'PRODID:-//Prumo//Calendário Financeiro//PT-BR',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      \`X-WR-CALNAME:\${name}\`,
+      `X-WR-CALNAME:${name}`,
       'X-WR-TIMEZONE:America/Cuiaba',
       'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
       'X-PUBLISHED-TTL:PT1H',
@@ -147,7 +147,7 @@ module.exports=async function handler(req,res){
 
     res.status(200);
     res.setHeader('Content-Type','text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition',\`inline; filename="prumo-\${scope}.ics"\`);
+    res.setHeader('Content-Disposition',`inline; filename="prumo-${scope}.ics"`);
     res.setHeader('Cache-Control','public, max-age=300, stale-while-revalidate=300');
     return res.send(ics);
   }catch(error){
