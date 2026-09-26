@@ -90,13 +90,18 @@
           description=String(get('description')).trim(),amount=parseMoney(get('amount')),
           notes=String(get('notes')).trim(),rowText=r.map(v=>String(v??'')).join(' ');
         if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
-        const firstInvoiceYm=csvContextYm||parseMonth(get('firstInvoice'),fallbackInvoice),
+        const firstInvoiceYm=parseMonth(get('firstInvoice'),csvContextYm||fallbackInvoice),
           targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
           mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
         let installments=null,installmentValue=null,installmentCurrent=null,installmentTotal=null;
         if(mode!=='recorrente'){
           const info=parseInstallmentInfo(get('installments'),get('installmentCurrent'),rowText);
-          installmentCurrent=info.current;installmentTotal=info.total;installments=info.total;
+          installmentTotal=info.total;installments=info.total;
+          installmentCurrent=info.current;
+          const hasExplicitCurrent=/\bparc(?:ela)?\.?\s*\d{1,3}\s*[\/-]\s*\d{1,3}\b/i.test(rowText)||String(get('installmentCurrent')||'').trim()!=='';
+          if(!hasExplicitCurrent&&installments>1&&firstInvoiceYm&&csvContextYm){
+            installmentCurrent=Math.max(1,Math.min(installments,monthDiff(firstInvoiceYm,csvContextYm)+1));
+          }
           installmentValue=parseInstallmentValue(get('installmentValue'),rowText,amount,installments);
           if(installments>1||installmentCurrent>1)installmentRows++;
         }
