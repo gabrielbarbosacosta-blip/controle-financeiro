@@ -380,6 +380,9 @@
     document.body.classList.remove('prumo-onboarding-open','prumo-tour-open');
     clearTourHighlights();
     goDashboardAfterTour();
+    if(remember){
+      try{window.dispatchEvent(new CustomEvent('prumo:onboarding-finished',{detail:{userKey}}))}catch(_e){}
+    }
   }
 
   async function maybeOpen(){
