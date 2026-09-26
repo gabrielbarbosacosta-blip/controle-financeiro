@@ -67,11 +67,11 @@
     document.head.appendChild(modeScript);
   }
 
-  if(!document.querySelector('script[data-smart-purchase-import]')){
+  if(window.__prumoCsvPromptUiVersion!=='ai-prompt-v3'&&!document.querySelector('script[data-prumo-csv-prompt-v3]')){
     const importScript=document.createElement('script');
-    importScript.src='smart-purchase-import.js';
+    importScript.src='csv-import.js?v=20260926-aiprompt3';
     importScript.async=false;
-    importScript.dataset.smartPurchaseImport='1';
+    importScript.dataset.prumoCsvPromptV3='1';
     document.head.appendChild(importScript);
   }
 
