@@ -202,6 +202,7 @@
     try{
       const {data,error}=await sb.from('finance_profiles').select('user_id,full_name,nickname,cpf,avatar_path,share_code').eq('user_id',userId).maybeSingle();
       if(error)throw error;
+      if(currentUser?.id!==userId)return null;
       const nextProfile=data||{user_id:userId,full_name:'',nickname:'',cpf:null,avatar_path:null,share_code:null};
       const nextPath=nextProfile.avatar_path||null;
       profile=nextProfile;
@@ -345,10 +346,10 @@
         return;
       }
       if(event==='SIGNED_OUT'){
-        // Do not mutate the visible profile card during logout.
-        // The app shell is about to be hidden; changing avatar/name here causes
-        // a visible flash from the photo to the email/initials.
         loadedProfileUserId=null;
+        profile=null;
+        signedAvatarUrl='';
+        avatarUrlCache.clear();
       }
     });
   }
