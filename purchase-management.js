@@ -33,8 +33,39 @@
   function openManager(cardId=selectedCardId){buildManager();managerCardId=cardId||selectedCardId||state.cards[0]?.id||null;document.getElementById('purchaseManagerModal').classList.add('open');renderManager()}
   function closeManager(){document.getElementById('purchaseManagerModal')?.classList.remove('open')}
   function renderManager(){const body=document.getElementById('purchaseManagerBody');if(!body)return;const card=getCard(managerCardId),ym=selectedInvoiceYm||state.settings.selectedMonth,q=(document.getElementById('purchaseManagerSearch')?.value||'').trim().toLowerCase(),scope=document.getElementById('purchaseManagerScope')?.value||'all';let rows=state.purchases.filter(p=>p.cardId===managerCardId);if(scope==='invoice')rows=rows.filter(p=>enhancedAllocation(p,ym));if(q)rows=rows.filter(p=>`${p.description||''} ${p.category||''} ${p.notes||''}`.toLowerCase().includes(q));rows=[...rows].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));document.getElementById('purchaseManagerSubtitle').textContent=`${card?.name||'Cartão'} • ${rows.length} compra(s) • fatura em foco: ${month(ym)}`;body.innerHTML=rows.length?rows.map(p=>{const alloc=enhancedAllocation(p,ym),n=isOpen(p)?'∞':p.mode==='recorrente'?'Mensal':Math.max(1,Number(p.installments)||1),total=isOpen(p)?'<span class="muted">Indefinido</span>':money(p.totalAmount);return `<tr><td><strong>${esc(p.description||'Sem descrição')}</strong><div class="muted">${esc(p.category||'Outros')} • ${esc(termLabel(p))}</div></td><td>${esc(p.date||'—')}</td><td>${month(p.firstInvoiceYm)}</td><td class="num">${total}</td><td class="num">${n}</td><td class="num"><strong>${money(installmentValue(p))}</strong></td><td class="num">${alloc?money(alloc.amount):'—'}</td><td style="white-space:nowrap"><button class="btn small pm-edit" data-id="${esc(p.id)}">Editar</button> <button class="btn small pm-go" data-id="${esc(p.id)}">Ver fatura</button> <button class="btn small danger pm-delete" data-id="${esc(p.id)}">Excluir</button></td></tr>`}).join(''):'<tr><td colspan="8" class="empty">Nenhuma compra encontrada.</td></tr>';body.querySelectorAll('.pm-edit').forEach(b=>b.onclick=()=>editManagedPurchase(b.dataset.id));body.querySelectorAll('.pm-go').forEach(b=>b.onclick=()=>goToPurchase(b.dataset.id));body.querySelectorAll('.pm-delete').forEach(b=>b.onclick=()=>deletePurchase(b.dataset.id))}
-  function enhanceInvoiceItems(){const tools=document.querySelector('#cardDetail .invoice-tools');if(tools&&!document.getElementById('manageCardPurchasesBtn')){const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='manageCardPurchasesBtn';btn.textContent='Gerenciar compras';btn.onclick=()=>openManager(selectedCardId);tools.insertBefore(btn,tools.lastElementChild)}document.querySelectorAll('#cardDetail button[onclick*="editPurchase("]').forEach(edit=>{const holder=edit.parentElement;if(!holder||holder.querySelector('.purchase-delete-inline'))return;const m=(edit.getAttribute('onclick')||'').match(/editPurchase\(['\"]([^'\"]+)['\"]\)/);if(!m)return;const del=document.createElement('button');del.type='button';del.className='btn small danger purchase-delete-inline';del.textContent='Excluir';del.style.marginLeft='5px';del.onclick=()=>deletePurchase(m[1]);holder.appendChild(del)})}
+  function enhanceInvoiceItems(){
+    const tools=document.querySelector('#cardDetail .invoice-tools');
+    if(tools){
+      if(!document.getElementById('manageCardPurchasesBtn')){
+        const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='manageCardPurchasesBtn';btn.textContent='Gerenciar compras';btn.onclick=()=>openManager(selectedCardId);
+        tools.insertBefore(btn,tools.lastElementChild);
+      }
+      if(!document.getElementById('invoiceCsvImportBtn')){
+        const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.id='invoiceCsvImportBtn';btn.textContent='Importar compras CSV';
+        btn.onclick=()=>{
+          const cardId=selectedCardId;
+          const ym=selectedInvoiceYm||state.settings.selectedMonth;
+          if(typeof window.openCsvImport==='function')window.openCsvImport(cardId,ym);
+          else console.error('Módulo csv-import.js não está disponível.');
+        };
+        const add=Array.from(tools.querySelectorAll('button')).find(b=>/adicionar compra/i.test(b.textContent||''));
+        tools.insertBefore(btn,add||tools.lastElementChild||null);
+      }
+    }
+    document.querySelectorAll('#cardDetail button[onclick*="editPurchase("]').forEach(edit=>{const holder=edit.parentElement;if(!holder||holder.querySelector('.purchase-delete-inline'))return;const m=(edit.getAttribute('onclick')||'').match(/editPurchase\(['\"]([^'\"]+)['\"]\)/);if(!m)return;const del=document.createElement('button');del.type='button';del.className='btn small danger purchase-delete-inline';del.textContent='Excluir';del.style.marginLeft='5px';del.onclick=()=>deletePurchase(m[1]);holder.appendChild(del)})
+  }
   const baseRender=window.renderCardDetail;if(typeof baseRender==='function')window.renderCardDetail=function(){const r=baseRender.apply(this,arguments);enhanceInvoiceItems();return r};
   const form=document.getElementById('purchaseForm');if(form)form.addEventListener('submit',()=>{if(!reopenAfterEdit)return;reopenAfterEdit=false;setTimeout(()=>openManager(managerCardId),120)});
-  buildManager();enhancePurchaseForm();enhanceInvoiceItems();window.openPurchaseManager=openManager;
+  buildManager();enhancePurchaseForm();enhanceInvoiceItems();
+  const detailHost=document.getElementById('cardDetail');
+  if(detailHost&&!detailHost.dataset.purchaseActionsObserved){
+    detailHost.dataset.purchaseActionsObserved='1';
+    let queued=false;
+    new MutationObserver(()=>{
+      if(queued)return;
+      queued=true;
+      requestAnimationFrame(()=>{queued=false;enhanceInvoiceItems()});
+    }).observe(detailHost,{childList:true,subtree:true});
+  }
+  window.openPurchaseManager=openManager;
 })();
