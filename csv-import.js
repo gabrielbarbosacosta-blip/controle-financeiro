@@ -40,6 +40,73 @@
     return totalInstallments>1?round2(totalAmount/totalInstallments):round2(totalAmount);
   }
   function duplicateExists(p){return state.purchases.some(x=>x.cardId===p.cardId&&x.date===p.date&&normalizeKey(x.description)===normalizeKey(p.description)&&round2(x.totalAmount)===round2(p.totalAmount)&&(x.firstInvoiceYm||'')===(p.firstInvoiceYm||'')&&Number(x.installments||0)===Number(p.installments||0)&&(x.mode||'parcelada')===(p.mode||'parcelada'))}
+  function normalizeDescription(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')}
+  function descriptionSimilarity(a,b){
+    const x=normalizeDescription(a),y=normalizeDescription(b);if(!x||!y)return 0;if(x===y)return 1;
+    const A=new Set(x.split(' ').filter(t=>t.length>1)),B=new Set(y.split(' ').filter(t=>t.length>1));let common=0;
+    A.forEach(t=>{if(B.has(t))common++});return common/Math.max(A.size||1,B.size||1);
+  }
+  function daysApart(a,b){
+    const x=Date.parse(String(a||'')+'T12:00:00Z'),y=Date.parse(String(b||'')+'T12:00:00Z');
+    return Number.isFinite(x)&&Number.isFinite(y)?Math.abs(x-y)/86400000:999;
+  }
+  function cents(value){return Math.round((Number(value)||0)*100)}
+  function candidateInvoiceAmount(p){
+    if((p.mode||'parcelada')==='recorrente')return round2(Number(p.totalAmount)||0);
+    if(Number.isFinite(Number(p.installmentValue))&&Number(p.installmentValue)>0)return round2(Number(p.installmentValue));
+    const n=Math.max(1,Number(p.installments)||1);return round2((Number(p.totalAmount)||0)/n);
+  }
+  function existingInvoiceEntries(cardId,ym){
+    try{return invoiceItems(cardId,ym).map(x=>({purchase:x.purchase,amount:round2(Number(x.alloc?.amount)||0)}))}
+    catch(_e){return[]}
+  }
+  function exactPurchaseMatch(p){
+    return state.purchases.find(x=>x.cardId===p.cardId&&x.date===p.date&&normalizeKey(x.description)===normalizeKey(p.description)&&round2(x.totalAmount)===round2(p.totalAmount)&&(x.firstInvoiceYm||'')===(p.firstInvoiceYm||'')&&Number(x.installments||0)===Number(p.installments||0)&&(x.mode||'parcelada')===(p.mode||'parcelada'))||null;
+  }
+  function classifyCsvCandidates(candidates,cardId,invoiceYm){
+    const existing=existingInvoiceEntries(cardId,invoiceYm),used=new Set();
+    return candidates.map((item,index)=>{
+      const p=item.purchase,amount=candidateInvoiceAmount(p),structural=exactPurchaseMatch(p);
+      if(structural){
+        const j=existing.findIndex((e,k)=>!used.has(k)&&e.purchase?.id===structural.id);if(j>=0)used.add(j);
+        return{...item,index,status:'duplicate',existing:structural,existingAmount:j>=0?existing[j].amount:null};
+      }
+      let j=existing.findIndex((e,k)=>!used.has(k)&&cents(e.amount)===cents(amount)&&e.purchase?.date===p.date&&descriptionSimilarity(e.purchase?.description,p.description)>=.72);
+      if(j>=0){used.add(j);return{...item,index,status:'duplicate',existing:existing[j].purchase,existingAmount:existing[j].amount}}
+      j=existing.findIndex((e,k)=>!used.has(k)&&cents(e.amount)===cents(amount)&&descriptionSimilarity(e.purchase?.description,p.description)>=.72&&daysApart(e.purchase?.date,p.date)<=3);
+      if(j>=0){used.add(j);return{...item,index,status:'possible',existing:existing[j].purchase,existingAmount:existing[j].amount}}
+      return{...item,index,status:'new',existing:null,existingAmount:null};
+    });
+  }
+  function csvFileKey(file){return file?String(file.name||'')+'|'+String(file.size||0)+'|'+String(file.lastModified||0):''}
+  let csvReviewState=null;
+  function csvSubmitButton(){return document.querySelector('#csvPurchaseForm button[type="submit"]')}
+  function resetCsvReview(){
+    csvReviewState=null;document.getElementById('csvImportReview')?.remove();
+    const btn=csvSubmitButton();if(btn)btn.textContent='Verificar compras';
+  }
+  function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+  function reviewMoney(value){try{return fmtMoney(Number(value)||0)}catch(_e){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0)}}
+  function renderCsvReview(review){
+    document.getElementById('csvImportReview')?.remove();
+    const summary=document.getElementById('csvImportSummary'),panel=document.createElement('div');panel.id='csvImportReview';panel.className='card';
+    panel.style.cssText='margin-top:14px;padding:16px;border-color:#334155';
+    const counts={new:review.candidates.filter(x=>x.status==='new').length,duplicate:review.candidates.filter(x=>x.status==='duplicate').length,possible:review.candidates.filter(x=>x.status==='possible').length};
+    panel.innerHTML='<div class="section-head" style="margin-bottom:10px"><div><h3 style="font-size:15px">3. Revise antes de importar</h3><div class="muted">'+counts.new+' nova(s) • '+counts.duplicate+' já cadastrada(s) • '+counts.possible+' possível(is) duplicata(s)</div></div></div><div class="notice" style="margin-bottom:12px">Compras já cadastradas e possíveis duplicatas começam desmarcadas. Marque <strong>Importar mesmo assim</strong> somente se forem lançamentos diferentes.</div><div id="csvImportReviewList" style="display:grid;gap:9px;max-height:390px;overflow:auto"></div>';
+    const list=panel.querySelector('#csvImportReviewList');
+    review.candidates.forEach((item,i)=>{
+      const p=item.purchase,label=item.status==='new'?'Nova compra':item.status==='duplicate'?'Já cadastrada':'Possível duplicata';
+      const color=item.status==='new'?'#86efac':item.status==='duplicate'?'#fca5a5':'#fde68a';
+      const checked=item.status==='new'||(item.status==='duplicate'&&!review.skipDuplicates);
+      const row=document.createElement('label');row.style.cssText='display:block;padding:11px 12px;border:1px solid #29394f;border-radius:12px;background:#0b1625;cursor:pointer';
+      const existing=item.existing?'<div style="margin-top:7px;padding:8px 10px;border-radius:9px;background:#081321;border:1px solid #25364d"><div class="muted" style="font-size:9px;margin-bottom:3px">JÁ CADASTRADA</div><div style="font-size:11px"><strong>'+escapeHtml(item.existing.description||'Compra')+'</strong> • '+escapeHtml(item.existing.date||'—')+' • '+reviewMoney(item.existingAmount??candidateInvoiceAmount(item.existing))+'</div></div>':'';
+      row.innerHTML='<div style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" data-csv-review-index="'+i+'" '+(checked?'checked':'')+' style="margin-top:3px"><div style="min-width:0;flex:1"><div style="display:flex;gap:8px;justify-content:space-between;align-items:center"><strong style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(p.description)+'</strong><span style="font-size:9px;font-weight:800;color:'+color+';white-space:nowrap">'+label+'</span></div><div class="muted" style="font-size:10px;margin-top:4px">'+escapeHtml(p.date)+' • '+reviewMoney(candidateInvoiceAmount(p))+(Number(p.installments)>1?' • parcela '+(item.installmentCurrent||'?')+'/'+p.installments:'')+'</div>'+existing+'<div class="muted" style="font-size:9px;margin-top:6px">'+(item.status==='new'?'Será importada.':'Importar mesmo assim')+'</div></div></div>';
+      list.appendChild(row);
+    });
+    summary.insertAdjacentElement('afterend',panel);
+    const btn=csvSubmitButton();if(btn)btn.textContent='Confirmar importação';
+  }
+
 
   let csvContextCardId='';
   let csvContextYm='';
@@ -153,6 +220,8 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     document.getElementById('csvPurchaseModal').addEventListener('click',e=>{if(e.target.id==='csvPurchaseModal')closeCsvImport()});
     document.getElementById('csvCopyPromptBtn').onclick=copyAiPrompt;
     document.getElementById('csvPurchaseForm').onsubmit=importPurchases;
+    document.getElementById('csvPurchaseFile').onchange=resetCsvReview;
+    const csvSubmit=csvSubmitButton();if(csvSubmit)csvSubmit.textContent='Verificar compras';
   }
   function refreshCsvOptions(){const card=document.getElementById('csvPurchaseCard'),cat=document.getElementById('csvPurchaseCategory');if(!card||!cat)return;card.innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');cat.innerHTML=categories.map(c=>`<option>${c}</option>`).join('');card.value=selectedCardId||state.cards[0]?.id||'';cat.value='Compras';document.getElementById('csvPurchaseInvoice').value=selectedInvoiceYm||state.settings.selectedMonth}
   function openCsvImport(cardId=selectedCardId,ym=selectedInvoiceYm||state.settings.selectedMonth){
@@ -165,12 +234,14 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
     const target=getCard(csvContextCardId);
     if(ctx)ctx.textContent=`${target?.name||'Cartão'} • ${typeof fmtMonth==='function'?fmtMonth(csvContextYm):csvContextYm}`;
     updateAiPrompt();
+    resetCsvReview();
     const s=document.getElementById('csvImportSummary');s.style.display='none';s.textContent='';
     document.getElementById('csvPurchaseFile').value='';
     document.getElementById('csvPurchaseModal').classList.add('open');
   }
   function closeCsvImport(){
     document.getElementById('csvPurchaseModal')?.classList.remove('open');
+    resetCsvReview();
     csvContextCardId='';csvContextYm='';
     const card=document.getElementById('csvPurchaseCard'),invoice=document.getElementById('csvPurchaseInvoice');
     if(card)card.disabled=false;if(invoice)invoice.disabled=false;
@@ -183,85 +254,83 @@ Na coluna observacao, registre informações úteis para auditoria, por exemplo:
       fallbackInvoice=document.getElementById('csvPurchaseInvoice').value||state.settings.selectedMonth,
       fallbackCategory=document.getElementById('csvPurchaseCategory').value||'Compras',
       skip=document.getElementById('csvSkipDuplicates').checked,
-      summary=document.getElementById('csvImportSummary');
-    summary.style.display='block';summary.textContent='Lendo arquivo…';
-    try{
-      const rows=parseCSV(await file.text());if(rows.length<2)throw new Error('O arquivo não contém linhas de dados.');
-      const headers=rows[0].map(v=>String(v).trim()),col={};
-      Object.entries(aliases).forEach(([k,v])=>col[k]=findColumn(headers,v));
-      if(col.description<0||col.amount<0)throw new Error('O CSV precisa ter as colunas descricao e valor.');
-      let imported=0,duplicates=0,ignored=0,installmentRows=0,first=null,invoiceTotal=null,invoiceTotalConflict=false;
-      const importedAt=new Date().toISOString();
-      for(let i=1;i<rows.length;i++){
-        const r=rows[i],get=k=>col[k]>=0?(r[col[k]]??''):'',
-          description=String(get('description')).trim(),amount=parseMoney(get('amount')),
-          notes=String(get('notes')).trim(),rowText=r.map(v=>String(v??'')).join(' ');
-        if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
-        const rowInvoiceTotal=parseMoney(get('invoiceTotal'));
-        if(Number.isFinite(rowInvoiceTotal)&&rowInvoiceTotal>=0){
-          if(invoiceTotal===null)invoiceTotal=round2(rowInvoiceTotal);
-          else if(Math.abs(invoiceTotal-round2(rowInvoiceTotal))>0.009)invoiceTotalConflict=true;
-        }
-        const firstInvoiceYm=parseMonth(get('firstInvoice'),csvContextYm||fallbackInvoice),
-          targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
-          mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
-        let installments=null,installmentValue=null,installmentCurrent=null,installmentTotal=null;
-        if(mode!=='recorrente'){
-          const info=parseInstallmentInfo(get('installments'),get('installmentCurrent'),rowText);
-          installmentTotal=info.total;installments=info.total;
-          installmentCurrent=info.current;
-          const hasExplicitCurrent=/\bparc(?:ela)?\.?\s*\d{1,3}\s*[\/-]\s*\d{1,3}\b/i.test(rowText)||String(get('installmentCurrent')||'').trim()!=='';
-          if(!hasExplicitCurrent&&installments>1&&firstInvoiceYm&&csvContextYm){
-            installmentCurrent=Math.max(1,Math.min(installments,monthDiff(firstInvoiceYm,csvContextYm)+1));
+      summary=document.getElementById('csvImportSummary'),
+      fileKey=csvFileKey(file);
+
+    if(!csvReviewState||csvReviewState.fileKey!==fileKey){
+      summary.style.display='block';summary.textContent='Verificando compras já cadastradas…';
+      try{
+        const rows=parseCSV(await file.text());if(rows.length<2)throw new Error('O arquivo não contém linhas de dados.');
+        const headers=rows[0].map(v=>String(v).trim()),col={};Object.entries(aliases).forEach(([k,v])=>col[k]=findColumn(headers,v));
+        if(col.description<0||col.amount<0)throw new Error('O CSV precisa ter as colunas descricao e valor.');
+        let ignored=0,installmentRows=0,invoiceTotal=null,invoiceTotalConflict=false;
+        const candidates=[],importedAt=new Date().toISOString();
+        for(let i=1;i<rows.length;i++){
+          const r=rows[i],get=k=>col[k]>=0?(r[col[k]]??''):'',
+            description=String(get('description')).trim(),amount=parseMoney(get('amount')),
+            notes=String(get('notes')).trim(),rowText=r.map(v=>String(v??'')).join(' ');
+          if(!description||!Number.isFinite(amount)||amount<=0){ignored++;continue}
+          const rowInvoiceTotal=parseMoney(get('invoiceTotal'));
+          if(Number.isFinite(rowInvoiceTotal)&&rowInvoiceTotal>=0){
+            if(invoiceTotal===null)invoiceTotal=round2(rowInvoiceTotal);
+            else if(Math.abs(invoiceTotal-round2(rowInvoiceTotal))>0.009)invoiceTotalConflict=true;
           }
-          installmentValue=parseInstallmentValue(get('installmentValue'),rowText,amount,installments);
-          if(installments>1||installmentCurrent>1)installmentRows++;
+          const firstInvoiceYm=parseMonth(get('firstInvoice'),csvContextYm||fallbackInvoice),
+            targetCardId=csvContextCardId||resolveCard(get('card'),fallbackCard),
+            mode=normalizeKey(get('mode')).includes('recorr')?'recorrente':'parcelada';
+          let installments=null,installmentValue=null,installmentCurrent=null,installmentTotal=null;
+          if(mode!=='recorrente'){
+            const info=parseInstallmentInfo(get('installments'),get('installmentCurrent'),rowText);
+            installmentTotal=info.total;installments=info.total;installmentCurrent=info.current;
+            const hasExplicitCurrent=/\bparc(?:ela)?\.?\s*\d{1,3}\s*[\/-]\s*\d{1,3}\b/i.test(rowText)||String(get('installmentCurrent')||'').trim()!=='';
+            if(!hasExplicitCurrent&&installments>1&&firstInvoiceYm&&csvContextYm)installmentCurrent=Math.max(1,Math.min(installments,monthDiff(firstInvoiceYm,csvContextYm)+1));
+            installmentValue=parseInstallmentValue(get('installmentValue'),rowText,amount,installments);
+            if(installments>1||installmentCurrent>1)installmentRows++;
+          }
+          const p={id:uid(),cardId:targetCardId,date:parseDate(get('date'),firstInvoiceYm),description,category:resolveCategory(get('category'),fallbackCategory),mode,totalAmount:amount,installments,installmentValue,firstInvoiceYm,recurringEnd:mode==='recorrente'?parseMonth(get('recurringEnd'),null):null,notes};
+          if(mode!=='recorrente')p.chatgptImport={source:'csv',importedAt,invoiceYm:csvContextYm||fallbackInvoice,installmentCurrent,installmentTotal};
+          candidates.push({purchase:p,installmentCurrent,installmentTotal});
         }
-        const p={
-          id:uid(),
-          cardId:targetCardId,
-          date:parseDate(get('date'),firstInvoiceYm),
-          description,
-          category:resolveCategory(get('category'),fallbackCategory),
-          mode,
-          totalAmount:amount,
-          installments,
-          installmentValue,
-          firstInvoiceYm,
-          recurringEnd:mode==='recorrente'?parseMonth(get('recurringEnd'),null):null,
-          notes
-        };
-        if(mode!=='recorrente'){
-          p.chatgptImport={
-            source:'csv',
-            importedAt,
-            invoiceYm:firstInvoiceYm,
-            installmentCurrent,
-            installmentTotal
-          };
-        }
-        if(skip&&duplicateExists(p)){duplicates++;continue}
-        state.purchases.push(p);ensureInvoice(p.cardId,p.firstInvoiceYm);imported++;if(!first)first=p;
+        if(invoiceTotalConflict)throw new Error('O CSV contém valores diferentes na coluna valor_fatura. Gere novamente o arquivo com o mesmo total da fatura em todas as linhas.');
+        const targetCardId=csvContextCardId||fallbackCard,invoiceYm=csvContextYm||fallbackInvoice;
+        const classified=classifyCsvCandidates(candidates,targetCardId,invoiceYm);
+        csvReviewState={fileKey,candidates:classified,ignored,installmentRows,invoiceTotal,targetCardId,invoiceYm,skipDuplicates:skip};
+        const counts={n:classified.filter(x=>x.status==='new').length,d:classified.filter(x=>x.status==='duplicate').length,p:classified.filter(x=>x.status==='possible').length};
+        summary.textContent='Verificação concluída: '+counts.n+' nova(s), '+counts.d+' já cadastrada(s), '+counts.p+' possível(is) duplicata(s) e '+ignored+' linha(s) inválida(s).';
+        renderCsvReview(csvReviewState);return;
+      }catch(err){
+        console.error(err);summary.textContent='Não foi possível verificar: '+(err.message||'arquivo inválido.');resetCsvReview();return;
       }
-      if(invoiceTotalConflict)throw new Error('O CSV contém valores diferentes na coluna valor_fatura. Gere novamente o arquivo com o mesmo total da fatura em todas as linhas.');
+    }
+
+    summary.style.display='block';summary.textContent='Importando compras selecionadas…';
+    try{
+      const selected=new Set([...document.querySelectorAll('[data-csv-review-index]:checked')].map(el=>Number(el.dataset.csvReviewIndex)));
+      let imported=0,first=null,forcedDuplicates=0,forcedPossible=0;
+      csvReviewState.candidates.forEach((item,i)=>{
+        if(!selected.has(i))return;
+        const p=item.purchase;state.purchases.push(p);ensureInvoice(p.cardId,p.firstInvoiceYm);imported++;if(!first)first=p;
+        if(item.status==='duplicate')forcedDuplicates++;if(item.status==='possible')forcedPossible++;
+      });
       let reconciliationText='';
-      if(Number.isFinite(invoiceTotal)&&invoiceTotal>=0&&csvContextCardId&&csvContextYm){
-        const inv=ensureInvoice(csvContextCardId,csvContextYm);
-        const allocated=round2(invoiceItems(csvContextCardId,csvContextYm).reduce((sum,x)=>sum+(Number(x.alloc?.amount)||0),0));
-        inv.statementTotal=round2(invoiceTotal);
-        inv.adjustment=round2(invoiceTotal-allocated);
-        inv.reconciledAt=new Date().toISOString();
-        reconciliationText=` Valor da fatura: ${fmtMoney(invoiceTotal)}; itens: ${fmtMoney(allocated)}; ajuste de conciliação: ${fmtMoney(inv.adjustment)}.`;
+      const invoiceTotal=csvReviewState.invoiceTotal;
+      if(Number.isFinite(invoiceTotal)&&invoiceTotal>=0&&csvReviewState.targetCardId&&csvReviewState.invoiceYm){
+        const inv=ensureInvoice(csvReviewState.targetCardId,csvReviewState.invoiceYm);
+        const allocated=round2(invoiceItems(csvReviewState.targetCardId,csvReviewState.invoiceYm).reduce((sum,x)=>sum+(Number(x.alloc?.amount)||0),0));
+        inv.statementTotal=round2(invoiceTotal);inv.adjustment=round2(invoiceTotal-allocated);inv.reconciledAt=new Date().toISOString();
+        reconciliationText=' Valor da fatura: '+fmtMoney(invoiceTotal)+'; itens: '+fmtMoney(allocated)+'; ajuste de conciliação: '+fmtMoney(inv.adjustment)+'.';
       }
+      const excludedDuplicates=csvReviewState.candidates.filter((x,i)=>x.status==='duplicate'&&!selected.has(i)).length;
+      const excludedPossible=csvReviewState.candidates.filter((x,i)=>x.status==='possible'&&!selected.has(i)).length;
       if(imported){
-        selectedCardId=first.cardId;selectedInvoiceYm=csvContextYm||first.firstInvoiceYm;state.settings.selectedMonth=selectedInvoiceYm;renderAll();
-      }else if(Number.isFinite(invoiceTotal)&&csvContextCardId&&csvContextYm){
-        selectedCardId=csvContextCardId;selectedInvoiceYm=csvContextYm;state.settings.selectedMonth=csvContextYm;renderAll();
+        selectedCardId=first.cardId;selectedInvoiceYm=csvReviewState.invoiceYm||first.firstInvoiceYm;state.settings.selectedMonth=selectedInvoiceYm;renderAll();
+      }else if(Number.isFinite(invoiceTotal)&&csvReviewState.targetCardId&&csvReviewState.invoiceYm){
+        selectedCardId=csvReviewState.targetCardId;selectedInvoiceYm=csvReviewState.invoiceYm;state.settings.selectedMonth=selectedInvoiceYm;renderAll();
       }
-      summary.textContent=`Importação concluída: ${imported} compra(s) adicionada(s), ${installmentRows} parcelada(s) reconhecida(s), ${duplicates} duplicata(s) ignorada(s) e ${ignored} linha(s) inválida(s).${reconciliationText}`;
-      document.getElementById('csvPurchaseFile').value='';
+      summary.textContent='Importação concluída: '+imported+' compra(s) adicionada(s), '+excludedDuplicates+' já cadastrada(s) mantida(s) fora da importação e '+excludedPossible+' possível(is) duplicata(s) não importada(s).'+(forcedDuplicates||forcedPossible?' Importadas manualmente apesar do alerta: '+(forcedDuplicates+forcedPossible)+'.':'')+reconciliationText;
+      document.getElementById('csvPurchaseFile').value='';resetCsvReview();
     }catch(err){
-      console.error(err);summary.textContent=`Não foi possível importar: ${err.message||'arquivo inválido.'}`;
+      console.error(err);summary.textContent='Não foi possível importar: '+(err.message||'arquivo inválido.');
     }
   }
 
