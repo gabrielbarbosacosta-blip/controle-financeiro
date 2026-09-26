@@ -73,14 +73,15 @@
   }
   function placeFocus(el,options){
     options=options||{};
-    if(!el)return;
+    if(!el||!isVisibleTarget(el))return;
     var ring=ensureFocusRing();
     focusTarget=el;
     focusPad=options.pad==null?5:options.pad;
     clearTimeout(focusHideTimer);
     try{
       var rr=el.getBoundingClientRect();
-      if(rr.top<8||rr.bottom>window.innerHeight-8)el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
+      var isNav=!!el.closest('.sidebar,.prumo-bottom-nav');
+      if(!isNav&&(rr.top<8||rr.bottom>window.innerHeight-8))el.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});
     }catch(_e){}
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
@@ -102,15 +103,21 @@
     focusTarget=null;
   }
   window.addEventListener('resize',scheduleFocusPosition,{passive:true});
-  window.addEventListener('scroll',scheduleFocusPosition,{passive:true});
+  /* Focus is repositioned explicitly between guide stages. Avoid a global scroll listener. */
 
+  function isVisibleTarget(el){
+    if(!el||!document.body.contains(el))return false;
+    var r=el.getBoundingClientRect(),cs=getComputedStyle(el);
+    return r.width>2&&r.height>2&&cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity||1)>0;
+  }
   function menuTarget(page){
-    var el=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
-    if(!el&&(page==='goals'||page==='objectives'))el=Array.from(document.querySelectorAll('.sidebar .nav button[data-page]')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
-    if(el)return el;
-    el=document.querySelector('.prumo-bottom-nav-item[data-page="'+page+'"]');
-    if(!el&&(page==='goals'||page==='objectives'))el=Array.from(document.querySelectorAll('.prumo-bottom-nav-item')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
-    return el;
+    var bottom=document.querySelector('.prumo-bottom-nav-item[data-page="'+page+'"]');
+    if(!bottom&&(page==='goals'||page==='objectives'))bottom=Array.from(document.querySelectorAll('.prumo-bottom-nav-item')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
+    var side=document.querySelector('.sidebar .nav button[data-page="'+page+'"]');
+    if(!side&&(page==='goals'||page==='objectives'))side=Array.from(document.querySelectorAll('.sidebar .nav button[data-page]')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
+    if(isVisibleTarget(bottom))return bottom;
+    if(isVisibleTarget(side))return side;
+    return bottom||side||null;
   }
 
   function stagedOpen(page,getButton,openAction,options){
