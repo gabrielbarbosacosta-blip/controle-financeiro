@@ -161,12 +161,14 @@ window.__prumoSplashManagedByApp=true;
 let authenticatedSplashStartedAt=0;
 let authenticatedSplashReleaseTimer=null;
 let authenticatedSplashExitTimer=null;
+let authenticatedSplashWatchdogTimer=null;
 let authenticatedUiRevealBound=false;
 
 function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
   const body=document.body,root=document.documentElement;
   clearTimeout(authenticatedSplashReleaseTimer);
   clearTimeout(authenticatedSplashExitTimer);
+  clearTimeout(authenticatedSplashWatchdogTimer);
   body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit','prumo-ui-loading');
   body?.classList.add('caderno-splash-done');
   root?.classList.add('prumo-current-ui-ready');
@@ -261,6 +263,18 @@ function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=doc
   body?.classList.add('prumo-app-splash');
   root?.classList.remove('prumo-current-ui-ready');
 
+  // Never leave the authenticated app trapped behind the splash.
+  clearTimeout(authenticatedSplashWatchdogTimer);
+  authenticatedSplashWatchdogTimer=setTimeout(()=>{
+    if(document.body?.classList.contains('prumo-app-splash')&&!document.body.classList.contains('caderno-splash-done')){
+      console.warn('Splash watchdog liberou a interface após timeout de inicialização.');
+      finalizeAuthenticatedApp(
+        document.getElementById('authScreen'),
+        document.getElementById('appRoot')
+      );
+    }
+  },8000);
+
   // O app pode montar por baixo da splash, mas não fica visível enquanto
   // a interface atual não estiver pronta e a animação não terminar.
   if(app){
@@ -291,6 +305,7 @@ function showAuthenticatedApp(auth=document.getElementById('authScreen'),app=doc
 function showLoginScreen(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot'),{reveal=true}={}){
   clearTimeout(authenticatedSplashReleaseTimer);
   clearTimeout(authenticatedSplashExitTimer);
+  clearTimeout(authenticatedSplashWatchdogTimer);
   document.documentElement?.classList.remove('prumo-current-ui-ready');
   document.body?.classList.remove('prumo-ui-loading','prumo-app-splash','caderno-splash-exit');
   if(app){
