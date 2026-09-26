@@ -2,7 +2,7 @@
   if(window.__prumoFirstStepsLoaded)return;
   window.__prumoFirstStepsLoaded=true;
 
-  var VERSION='v1', userKey='device', card=null, panel=null;
+  var VERSION='v1', userKey='device', card=null, panel=null, installTimer=null;
   var defaults={status:'intro',current:0,done:[]};
   var state={status:'intro',current:0,done:[]};
   var steps=[
@@ -215,7 +215,7 @@
     panel.querySelector('.pfs-step-num').textContent='Etapa '+(state.current+1)+' de '+steps.length;
     panel.querySelector('.pfs-step-title').textContent=step.title;
     panel.querySelector('.pfs-step-text').textContent=step.text;
-    panel.querySelector('[data-pfs-action]').textContent=step.action;
+    panel.querySelector('[data-pfs-action]').textContent=step.id==='install'&&state.installViewed?'Concluir':step.action;
     panel.querySelector('.pfs-panel-progress').innerHTML=steps.map(function(s,i){return '<span class="'+(state.done.includes(s.id)?'done':i===state.current?'active':'')+'"></span>'}).join('');
   }
   function openPanel(){state.status='active';save();ensurePanel();renderPanel();renderCard()}
@@ -286,8 +286,10 @@
       return;
     }
     if(step.target==='install'){
+      if(state.installViewed){clearTimeout(installTimer);hideFocus();advance(true);return}
+      state.installViewed=true;save();renderPanel();
       var installBtn=document.querySelector('[data-pwa-install],#installPwaBtn,#pwaInstallBtn');
-      if(installBtn){placeFocus(installBtn,{duration:1000,pad:5});setTimeout(function(){installBtn.click()},900);return}
+      if(installBtn){placeFocus(installBtn,{duration:1000,pad:5});installTimer=setTimeout(function(){installBtn.click()},900);return}
       panel.querySelector('.pfs-step-text').textContent='No iPhone: Compartilhar → Adicionar à Tela de Início. No Chrome ou Edge, use a opção Instalar aplicativo no menu do navegador.';
     }
   }
