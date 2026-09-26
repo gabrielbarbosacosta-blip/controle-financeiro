@@ -183,13 +183,23 @@
     }
   }
 
-  function showIncomePage(){
-    if(!ensureIncomeState())return;buildUi();
+  function activateIncomePageShell(){
+    if(!ensureIncomeState())return false;buildUi();
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-incomes'));
     document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page==='incomes'));
     const title=document.getElementById('pageTitle'),sub=document.getElementById('pageSubtitle');
-    if(title)title.textContent='Receitas';if(sub)sub.textContent='Recebimentos únicos, recorrentes e projeção';renderIncomePage();
+    if(title)title.textContent='Receitas';
+    if(sub)sub.textContent='Recebimentos únicos, recorrentes e projeção';
+    return true;
   }
+  function showIncomePage(){
+    if(!activateIncomePageShell())return;
+    renderIncomePage();
+  }
+  function showIncomeSetupPage(){
+    return activateIncomePageShell();
+  }
+  window.showIncomeSetupPage=showIncomeSetupPage;
 
   function linkedTransactions(planId){
     if(!ensureIncomeState())return[];
@@ -363,18 +373,38 @@
 
   function renderIncomePage(){
     if(!ensureIncomeState())return;buildUi();
-    const plans=state.incomePlans||[],allLinked=state.transactions.filter(t=>t.incomeManaged===true),pending=allLinked.filter(t=>String(t.status).toLowerCase()==='pendente');
+    const plans=state.incomePlans||[],byPlan=new Map();
+    let pendingCount=0,pendingTotal=0,nextPending=null;
+    for(const t of state.transactions){
+      if(t.incomeManaged!==true)continue;
+      const pid=String(t.incomePlanId||'');
+      if(!byPlan.has(pid))byPlan.set(pid,[]);
+      byPlan.get(pid).push(t);
+      if(String(t.status).toLowerCase()==='pendente'){
+        pendingCount++;
+        pendingTotal+=Number(t.amount)||0;
+        if(!nextPending||String(t.date).localeCompare(String(nextPending.date))<0)nextPending=t;
+      }
+    }
+    byPlan.forEach(list=>list.sort((a,b)=>String(a.date).localeCompare(String(b.date))));
     const count=document.getElementById('incomePlanCount'),pc=document.getElementById('incomePendingCount'),pt=document.getElementById('incomePendingTotal'),nd=document.getElementById('incomeNextDue');
-    if(count)count.textContent=String(plans.length);if(pc)pc.textContent=String(pending.length);if(pt)pt.textContent=money(pending.reduce((s,t)=>s+(Number(t.amount)||0),0));
-    if(nd){const next=[...pending].sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0];nd.textContent=next?`${monthLabel(String(next.date).slice(0,7))} • ${money(next.amount)}`:'—'}
+    if(count)count.textContent=String(plans.length);
+    if(pc)pc.textContent=String(pendingCount);
+    if(pt)pt.textContent=money(pendingTotal);
+    if(nd)nd.textContent=nextPending?`${monthLabel(String(nextPending.date).slice(0,7))} • ${money(nextPending.amount)}`:'—';
     const body=document.getElementById('incomeTableBody');if(!body)return;
     body.innerHTML=plans.length?plans.map(p=>{
-      const txs=linkedTransactions(p.id).sort((a,b)=>String(a.date).localeCompare(String(b.date))),pend=txs.filter(t=>String(t.status).toLowerCase()==='pendente'),received=txs.length-pend.length,next=pend[0],remaining=pend.reduce((s,t)=>s+(Number(t.amount)||0),0),pct=p.openEnded?0:(txs.length?Math.round(received/txs.length*100):0),selected=state?.settings?.selectedMonth||p.firstMonth,currentValue=amountForMonth(p,selected<p.firstMonth?p.firstMonth:selected),hasVersions=amountVersions(p).length||Object.keys(monthOverrides(p)).length;
+      const txs=byPlan.get(String(p.id))||[];
+      let pendingItems=[],remaining=0;
+      for(const t of txs){
+        if(String(t.status).toLowerCase()==='pendente'){pendingItems.push(t);remaining+=Number(t.amount)||0}
+      }
+      const received=txs.length-pendingItems.length,next=pendingItems[0],pct=p.openEnded?0:(txs.length?Math.round(received/txs.length*100):0),selected=state?.settings?.selectedMonth||p.firstMonth,currentValue=amountForMonth(p,selected<p.firstMonth?p.firstMonth:selected),hasVersions=amountVersions(p).length||Object.keys(monthOverrides(p)).length;
       const period=p.mode==='mensal'?(p.openEnded?`${monthLabel(p.firstMonth)} → Sem fim`:`${monthLabel(p.firstMonth)} → ${monthLabel(p.lastMonth)}`):monthLabel(p.firstMonth);
       const progress=p.openEnded?'':`<div class="income-progress"><span style="width:${pct}%"></span></div>`;
       return `<tr>
         <td><button type="button" class="income-name pfp-name-button pfp-panel-btn" data-pfp-kind="income" data-pfp-id="${esc(p.id)}">${esc(p.name)}</button><div class="income-sub">${esc(p.account||'Conta não informada')} • ${esc(p.category||'Salário')}${p.counterpartyCpf?`<br>Devedor: ${esc(p.counterpartyName||'Pessoa externa')} · ${esc(incomeCpfMask(p.counterpartyCpf))}`:''}</div>${progress}</td>
-        <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pend.length} pendente(s)</div></td>
+        <td>${p.mode==='mensal'?'Mensal':'Única'}<div class="income-sub">${received} recebida(s) • ${pendingItems.length} pendente(s)</div></td>
         <td>${period}</td>
         <td>${next?`${monthLabel(String(next.date).slice(0,7))}<div class="income-sub">${money(next.amount)}</div>`:(p.openEnded?'—':'Concluída')}</td>
         <td class="num">${money(currentValue)}${hasVersions?'<div class="income-sub">valor vigente</div>':''}</td>
