@@ -55,7 +55,8 @@
     return focusRing;
   }
   function positionFocus(){
-    if(!focusTarget||!document.body.contains(focusTarget))return;
+    if(!focusTarget)return;
+    if(!isVisibleTarget(focusTarget)){hideFocus();return}
     var ring=ensureFocusRing();
     var r=focusTarget.getBoundingClientRect(),pad=focusPad;
     ring.style.transform='translate3d('+(r.left-pad)+'px,'+(r.top-pad)+'px,0)';
@@ -100,8 +101,28 @@
 
   function isVisibleTarget(el){
     if(!el||!document.body.contains(el))return false;
-    var r=el.getBoundingClientRect(),cs=getComputedStyle(el);
-    return r.width>2&&r.height>2&&cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity||1)>0;
+    var r=el.getBoundingClientRect();
+    if(r.width<=2||r.height<=2)return false;
+    var clip={left:0,top:0,right:window.innerWidth,bottom:window.innerHeight};
+    for(var node=el;node&&node.nodeType===1;node=node.parentElement){
+      var cs=getComputedStyle(node);
+      if(cs.display==='none'||cs.visibility==='hidden'||cs.visibility==='collapse'||Number(cs.opacity||1)===0)return false;
+      if(node===el)continue;
+      var bounds=node.getBoundingClientRect();
+      if(/^(auto|scroll|hidden|clip)$/.test(cs.overflowX)){
+        clip.left=Math.max(clip.left,bounds.left+node.clientLeft);
+        clip.right=Math.min(clip.right,bounds.left+node.clientLeft+node.clientWidth);
+      }
+      if(/^(auto|scroll|hidden|clip)$/.test(cs.overflowY)){
+        clip.top=Math.max(clip.top,bounds.top+node.clientTop);
+        clip.bottom=Math.min(clip.bottom,bounds.top+node.clientTop+node.clientHeight);
+      }
+    }
+    if(el.matches('.prumo-bottom-nav-item,.sidebar .nav button')){
+      // A partially clipped menu item must not cast a ring over its neighbours.
+      return r.left>=clip.left&&r.right<=clip.right&&r.top>=clip.top&&r.bottom<=clip.bottom;
+    }
+    return Math.min(r.right,clip.right)>Math.max(r.left,clip.left)&&Math.min(r.bottom,clip.bottom)>Math.max(r.top,clip.top);
   }
   function menuTarget(page){
     var bottom=document.querySelector('.prumo-bottom-nav-item[data-page="'+page+'"]');
@@ -110,7 +131,22 @@
     if(!side&&(page==='goals'||page==='objectives'))side=Array.from(document.querySelectorAll('.sidebar .nav button[data-page]')).find(function(b){return /objetiv|meta/i.test(b.textContent||'')})||null;
     if(isVisibleTarget(bottom))return bottom;
     if(isVisibleTarget(side))return side;
-    return bottom||side||null;
+    // Reveal the item inside the scrollable menu before measuring its ring.
+    // Ignore the alternative navigation that is hidden at this breakpoint.
+    var candidates=[bottom,side];
+    for(var i=0;i<candidates.length;i++){
+      var item=candidates[i];
+      if(!item)continue;
+      var rect=item.getBoundingClientRect(),rendered=rect.width>2&&rect.height>2;
+      for(var node=item;rendered&&node;node=node.parentElement){
+        var cs=getComputedStyle(node);
+        rendered=cs.display!=='none'&&cs.visibility!=='hidden'&&Number(cs.opacity||1)>0;
+      }
+      if(!rendered)continue;
+      item.scrollIntoView({behavior:'instant',block:'nearest',inline:'center'});
+      if(isVisibleTarget(item))return item;
+    }
+    return null;
   }
 
   function stagedOpen(page,getButton,openAction,options){

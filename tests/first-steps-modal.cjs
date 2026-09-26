@@ -25,7 +25,7 @@ for (const kind of ['income', 'debt']) test(`guide opens and closes ${kind} with
       });
     }
   };
-  w.HTMLElement.prototype.getBoundingClientRect = () => ({left:10,top:10,width:100,height:30});
+  w.HTMLElement.prototype.getBoundingClientRect = () => ({left:10,top:10,right:110,bottom:40,width:100,height:30});
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   try {
     for (const name of ['Income', 'Debt']) w.document.getElementById(`add${name}Btn`).onclick = () => w.document.getElementById(`${name.toLowerCase()}Modal`).classList.add('open');
@@ -68,7 +68,8 @@ for (const [step, cardId] of [[0, 'balanceCard'], [5, 'calendarSubscriptionCard'
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     w.HTMLElement.prototype.scrollIntoView = function(options) { scrolled.push(this.id); this.dataset.scrolled = 'true'; };
     w.HTMLElement.prototype.getBoundingClientRect = function() {
-      return {left:20,top:this.dataset.scrolled ? 100 : 1800,width:this.classList.contains('card') ? 500 : 100,height:200};
+      const top=this.matches('.nav button') ? 10 : this.dataset.scrolled ? 100 : 1800, width=this.classList.contains('card') ? 500 : 100;
+      return {left:20,top,right:20+width,bottom:top+200,width,height:200};
     };
     try {
       w.eval(source);
@@ -86,3 +87,23 @@ for (const [step, cardId] of [[0, 'balanceCard'], [5, 'calendarSubscriptionCard'
     } finally { w.close(); }
   });
 }
+
+test('reveals a clipped menu item before highlighting it', async () => {
+  const dom = new JSDOM(`<!doctype html><body><div class="sidebar"><nav class="nav" style="overflow-x:auto"><button data-page="settings">Settings</button></nav></div><section id="page-dashboard"><div class="grid-kpi"></div></section></body>`, {url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true});
+  const w=dom.window, wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const nav=w.document.querySelector('nav'), item=nav.querySelector('button');
+  let revealed=false;
+  Object.defineProperty(nav,'clientWidth',{value:200});
+  nav.getBoundingClientRect=()=>({left:0,top:0,right:200,bottom:50,width:200,height:50});
+  item.getBoundingClientRect=()=>({left:revealed?50:250,top:10,right:revealed?150:350,bottom:40,width:100,height:30});
+  item.scrollIntoView=()=>{revealed=true};
+  try {
+    w.eval(source);await wait(30);w.prumoFirstSteps.open();
+    w.document.querySelector('[data-pfs-action]').click();
+    await wait(80);
+    assert.equal(revealed,true,'menu must scroll to its clipped item');
+    const ring=w.document.querySelector('.pfs-focus-ring');
+    assert.ok(ring.classList.contains('visible'));
+    assert.equal(ring.style.transform,'translate3d(46px,6px,0)');
+  } finally {w.close();}
+});
