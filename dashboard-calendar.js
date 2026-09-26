@@ -134,12 +134,20 @@
               <button type="button" class="btn ghost" id="dashboardCalendarDayClose">✕</button>
             </div>
             <div class="modal-body"><div class="prumo-cal-modal-list" id="dashboardCalendarDayList"></div></div>
-            <div class="modal-foot"><button type="button" class="btn" id="dashboardCalendarDayDone">Fechar</button></div>
+            <div class="modal-foot" style="justify-content:space-between;gap:8px;flex-wrap:wrap">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn primary" id="dashboardCalendarNewExpense">+ Nova despesa</button>
+                <button type="button" class="btn" id="dashboardCalendarNewIncome">+ Nova receita</button>
+              </div>
+              <button type="button" class="btn" id="dashboardCalendarDayDone">Fechar</button>
+            </div>
           </div>
         </div>`;
       document.body.appendChild(wrap.firstElementChild);
       document.getElementById('dashboardCalendarDayClose').onclick=closeDayModal;
       document.getElementById('dashboardCalendarDayDone').onclick=closeDayModal;
+      document.getElementById('dashboardCalendarNewExpense').onclick=()=>openNewFromCalendar('expense');
+      document.getElementById('dashboardCalendarNewIncome').onclick=()=>openNewFromCalendar('income');
       document.getElementById('dashboardCalendarDayModal').addEventListener('click',e=>{if(e.target.id==='dashboardCalendarDayModal')closeDayModal()});
     }
   }
@@ -161,9 +169,37 @@
     return out;
   }
 
+  let selectedCalendarDate=null;
+
   function closeDayModal(){document.getElementById('dashboardCalendarDayModal')?.classList.remove('open')}
 
-  function openEventPanel(event){
+  function openNewFromCalendar(kind){
+    const date=selectedCalendarDate||ym()+'-01';
+    closeDayModal();
+
+    if(kind==='expense'&&typeof window.editDebtPlan==='function'){
+      window.editDebtPlan();
+      requestAnimationFrame(()=>{
+        const first=document.getElementById('debtFirstMonth');
+        const due=document.getElementById('debtDueDay');
+        if(first)first.value=String(date).slice(0,7);
+        if(due)due.value=String(Number(String(date).slice(8,10))||1);
+      });
+      return;
+    }
+
+    if(kind==='income'&&typeof window.editIncomePlan==='function'){
+      window.editIncomePlan();
+      requestAnimationFrame(()=>{
+        const first=document.getElementById('incomeFirstMonth');
+        const due=document.getElementById('incomeDueDay');
+        if(first)first.value=String(date).slice(0,7);
+        if(due)due.value=String(Number(String(date).slice(8,10))||1);
+      });
+    }
+  }
+
+  function openEntityPanel(event){
     closeDayModal();
     if(event.kind==='invoice'){
       if(typeof window.openInvoiceModal==='function')window.openInvoiceModal(event.cardId,event.ym);
@@ -176,26 +212,43 @@
     }
     if(event.debtManaged&&event.debtId&&typeof window.editDebtPlan==='function'){window.editDebtPlan(event.debtId);return}
     if(event.incomeManaged&&event.incomePlanId&&typeof window.editIncomePlan==='function'){window.editIncomePlan(event.incomePlanId);return}
+    if(typeof window.openTransactionModal==='function')window.openTransactionModal(event.id);
+  }
+
+  function openDirectTransaction(event){
+    closeDayModal();
+    if(event.kind==='invoice'){
+      if(typeof window.openInvoiceModal==='function')window.openInvoiceModal(event.cardId,event.ym);
+      return;
+    }
+    if(typeof window.openTransactionModal==='function'){window.openTransactionModal(event.id);return}
     if(typeof window.editTx==='function')window.editTx(event.id);
   }
+
 
   function openDayModal(day,events){
     const list=events.filter(e=>Number(String(e.date).slice(8,10))===day);
     const modal=document.getElementById('dashboardCalendarDayModal'),host=document.getElementById('dashboardCalendarDayList');
     if(!modal||!host)return;
     const date=list[0]?.date||ym()+'-'+String(day).padStart(2,'0');
+    selectedCalendarDate=date;
     document.getElementById('dashboardCalendarDayTitle').textContent='Movimentações do dia '+day;
     document.getElementById('dashboardCalendarDaySub').textContent=typeof fmtDate==='function'?fmtDate(date):date;
 
     host.innerHTML=list.length?list.map((e,i)=>{
       const incoming=e.type==='Receita';
-      const buttonLabel=e.kind==='invoice'?'Abrir fatura':incoming?'Abrir receita':'Abrir despesa';
-      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+' · '+esc(e.status||'')+(e.category?' · '+esc(e.category):'')+'</div></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><button type="button" class="btn small" data-cal-event="'+i+'">'+buttonLabel+'</button></div></div>'
+      const entityLabel=e.kind==='invoice'?'Abrir fatura':incoming?'Abrir receita':'Abrir despesa';
+      const directButton=e.kind==='invoice'?'':'<button type="button" class="btn small" data-cal-direct="'+i+'">Abrir lançamento</button>';
+      return '<div class="prumo-cal-modal-item"><div class="prumo-cal-modal-main"><div class="prumo-cal-modal-name">'+esc(e.description)+'</div><div class="prumo-cal-modal-meta">'+esc(e.type)+' · '+esc(e.status||'')+(e.category?' · '+esc(e.category):'')+'</div></div><div class="prumo-cal-modal-side"><div class="prumo-cal-modal-value '+(incoming?'positive':'negative')+'">'+(typeof fmtMoney==='function'?fmtMoney(e.amount):e.amount)+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn small" data-cal-entity="'+i+'">'+entityLabel+'</button>'+directButton+'</div></div></div>'
     }).join(''):'<div class="prumo-cal-modal-empty">Nenhuma despesa ou receita neste dia.</div>';
 
-    host.querySelectorAll('[data-cal-event]').forEach(btn=>btn.onclick=()=>{
-      const item=list[Number(btn.dataset.calEvent)];
-      if(item)openEventPanel(item);
+    host.querySelectorAll('[data-cal-entity]').forEach(btn=>btn.onclick=()=>{
+      const item=list[Number(btn.dataset.calEntity)];
+      if(item)openEntityPanel(item);
+    });
+    host.querySelectorAll('[data-cal-direct]').forEach(btn=>btn.onclick=()=>{
+      const item=list[Number(btn.dataset.calDirect)];
+      if(item)openDirectTransaction(item);
     });
     modal.classList.add('open');
   }
