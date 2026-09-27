@@ -200,6 +200,8 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
   // the user never sees "finished chart -> animation".
   const dashboardChart=document.getElementById('projectionChart');
   if(dashboardChart){
+    dashboardChart.dataset.prumoHideUntilIntro='1';
+    dashboardChart.style.visibility='hidden';
     if(dashboardChart.__prumoChartAnimationFrame){
       cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
       dashboardChart.__prumoChartAnimationFrame=0;
