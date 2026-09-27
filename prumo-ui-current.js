@@ -188,9 +188,15 @@
 
   function equalizeWebCardRowsByShortest(){
     const isStandalone=window.matchMedia?.('(display-mode: standalone)')?.matches||window.navigator.standalone===true;
+    document.querySelectorAll('.grid-kpi>*').forEach(card=>{
+      card.style.height='auto';
+      card.style.minHeight='';
+      card.style.removeProperty('--web-row-height');
+      card.classList.remove('web-card-scroll');
+    });
     if(isStandalone||!window.matchMedia('(min-width: 901px)').matches)return;
 
-    const selectors=['.grid-kpi','.summary-strip','.card-grid','.dashboard-grid'];
+    const selectors=['.summary-strip','.card-grid','.dashboard-grid'];
     selectors.forEach(selector=>{
       document.querySelectorAll(selector).forEach(grid=>{
         const cards=Array.from(grid.children).filter(el=>el instanceof HTMLElement);
@@ -236,8 +242,8 @@
       requestAnimationFrame(()=>{
         scheduled=false;
         if(!window.matchMedia('(min-width: 901px)').matches){
-          document.querySelectorAll('.grid-kpi,.summary-strip,.card-grid,.dashboard-grid').forEach(grid=>grid.style.removeProperty('align-items'));
-          document.querySelectorAll('.grid-kpi>*,.summary-strip>*,.card-grid>*,.dashboard-grid>*').forEach(card=>{
+          document.querySelectorAll('.summary-strip,.card-grid,.dashboard-grid').forEach(grid=>grid.style.removeProperty('align-items'));
+          document.querySelectorAll('.summary-strip>*,.card-grid>*,.dashboard-grid>*').forEach(card=>{
             card.style.height='auto';
             card.style.removeProperty('--web-row-height');
             card.classList.remove('web-card-scroll');
