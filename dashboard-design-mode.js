@@ -18,13 +18,30 @@
     {key:'projection',selector:'#projectionChart'},
     {key:'categories',selector:'#categoryList'}
   ];
+  var TEXT_DEFS=[
+    {key:'dashboardSubtitle',selector:'#pageSubtitle',defaultText:'Aqui está a leitura do seu mês.',dashboardOnly:true},
+    {key:'openingLabel',anchor:'#kpiOpening',within:'.label',defaultText:'Saldo inicial'},
+    {key:'openingHint',anchor:'#kpiOpening',within:'.hint',defaultText:'Base do mês'},
+    {key:'incomeLabel',anchor:'#kpiIncome',within:'.label',defaultText:'Entradas'},
+    {key:'incomeHint',anchor:'#kpiIncome',within:'.hint',defaultText:'Receitas recebidas'},
+    {key:'expenseLabel',anchor:'#kpiExpense',within:'.label',defaultText:'Saídas'},
+    {key:'expenseHint',anchor:'#kpiExpense',within:'.hint',defaultText:'Inclui faturas pagas'},
+    {key:'invoicesLabel',anchor:'#kpiInvoices',within:'.label',defaultText:'Faturas pagas'},
+    {key:'invoicesHint',anchor:'#kpiInvoices',within:'.hint',defaultText:'Um valor por fatura'},
+    {key:'closingLabel',anchor:'#kpiClosing',within:'.label',defaultText:'Saldo final'},
+    {key:'projectionTitle',anchor:'#projectionChart',within:'.section-head h3',defaultText:'Saldo projetado'},
+    {key:'projectionSubtitle',anchor:'#projectionChart',within:'.section-head .muted',defaultText:'Próximos 12 meses • inclui projeção dos cartões'},
+    {key:'categoriesTitle',anchor:'#categoryList',within:'.section-head h3',defaultText:'Gastos por categoria'},
+    {key:'categoriesSubtitle',anchor:'#categoryList',within:'.section-head .muted',defaultText:'Compras de cartão são classificadas sem duplicar o caixa'}
+  ];
   var DEFAULT_CONFIG={
     schemaVersion:1,
     dashboard:{
       kpiOrder:['opening','income','expense','invoices','closing'],
       panelOrder:['projection','categories'],
       hidden:{},
-      sizes:{}
+      sizes:{},
+      texts:{}
     }
   };
 
@@ -53,11 +70,17 @@
     var dash=src.dashboard&&typeof src.dashboard==='object'?src.dashboard:{};
     var hidden=dash.hidden&&typeof dash.hidden==='object'?dash.hidden:{};
     var sizes=dash.sizes&&typeof dash.sizes==='object'?dash.sizes:{};
-    var cleanHidden={},cleanSizes={};
+    var texts=dash.texts&&typeof dash.texts==='object'?dash.texts:{};
+    var cleanHidden={},cleanSizes={},cleanTexts={};
     KPI_DEFS.concat(PANEL_DEFS).forEach(function(def){
       if(hidden[def.key]===true)cleanHidden[def.key]=true;
       var size=String(sizes[def.key]||'normal');
       if(size==='wide'||size==='full')cleanSizes[def.key]=size;
+    });
+    TEXT_DEFS.forEach(function(def){
+      if(!Object.prototype.hasOwnProperty.call(texts,def.key))return;
+      var text=String(texts[def.key]??'').replace(/\s+/g,' ').trim().slice(0,180);
+      cleanTexts[def.key]=text;
     });
     return {
       schemaVersion:1,
@@ -65,7 +88,8 @@
         kpiOrder:validOrder(dash.kpiOrder,KPI_DEFS),
         panelOrder:validOrder(dash.panelOrder,PANEL_DEFS),
         hidden:cleanHidden,
-        sizes:cleanSizes
+        sizes:cleanSizes,
+        texts:cleanTexts
       }
     };
   }
@@ -73,6 +97,13 @@
   function cardFor(def){
     var target=document.querySelector(def.selector);
     return target?(target.closest('.card')||target.closest('.kpi')):null;
+  }
+  function textElement(def){
+    if(def.selector)return document.querySelector(def.selector);
+    var anchor=document.querySelector(def.anchor);
+    if(!anchor)return null;
+    var scope=anchor.closest('.card')||anchor.closest('.kpi');
+    return scope?scope.querySelector(def.within):null;
   }
   function activeConfig(){return designMode?draftConfig:publishedConfig}
   function editingChromeVisible(){return designMode&&!previewMode}
@@ -102,6 +133,88 @@
     });
   }
 
+  function applyTextConfig(config){
+    var normalized=normalize(config);
+    var dashboardActive=document.getElementById('page-dashboard')?.classList.contains('active');
+    TEXT_DEFS.forEach(function(def){
+      if(def.dashboardOnly&&!dashboardActive)return;
+      var el=textElement(def);
+      if(!el||el.classList.contains('prumo-global-text-editing'))return;
+      var texts=normalized.dashboard.texts||{};
+      var value=Object.prototype.hasOwnProperty.call(texts,def.key)?texts[def.key]:def.defaultText;
+      if(el.textContent!==value)el.textContent=value;
+    });
+  }
+
+  function commitTextEdit(el,def,cancel){
+    if(!el||!def)return;
+    var original=String(el.dataset.prumoTextOriginal??def.defaultText);
+    var next=cancel?original:String(el.textContent??'').replace(/\s+/g,' ').trim().slice(0,180);
+    el.textContent=next;
+    el.contentEditable='false';
+    el.classList.remove('prumo-global-text-editing');
+    delete el.dataset.prumoTextOriginal;
+    if(cancel)return;
+    draftConfig.dashboard.texts=draftConfig.dashboard.texts||{};
+    if(next===def.defaultText)delete draftConfig.dashboard.texts[def.key];
+    else draftConfig.dashboard.texts[def.key]=next;
+    markDirty();
+  }
+
+  function beginTextEdit(el,def){
+    if(!editingChromeVisible()||!el||el.classList.contains('prumo-global-text-editing'))return;
+    el.dataset.prumoTextOriginal=el.textContent||'';
+    el.contentEditable='true';
+    el.spellcheck=true;
+    el.classList.add('prumo-global-text-editing');
+    el.focus();
+    try{
+      var range=document.createRange();
+      range.selectNodeContents(el);
+      var selection=window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }catch(_e){}
+  }
+
+  function bindEditableText(el,def){
+    if(el.dataset.prumoGlobalTextBound==='1')return;
+    el.dataset.prumoGlobalTextBound='1';
+    el.addEventListener('dblclick',function(event){
+      if(!editingChromeVisible())return;
+      event.preventDefault();
+      event.stopPropagation();
+      beginTextEdit(el,def);
+    });
+    el.addEventListener('keydown',function(event){
+      if(!el.classList.contains('prumo-global-text-editing'))return;
+      if(event.key==='Enter'){
+        event.preventDefault();
+        el.blur();
+      }else if(event.key==='Escape'){
+        event.preventDefault();
+        commitTextEdit(el,def,true);
+        el.blur();
+      }
+    });
+    el.addEventListener('blur',function(){
+      if(el.classList.contains('prumo-global-text-editing'))commitTextEdit(el,def,false);
+    });
+    el.addEventListener('dragstart',function(event){
+      if(editingChromeVisible())event.stopPropagation();
+    });
+  }
+
+  function decorateTexts(){
+    TEXT_DEFS.forEach(function(def){
+      var el=textElement(def);
+      if(!el)return;
+      el.dataset.globalTextKey=def.key;
+      el.title=editingChromeVisible()?'Duplo clique para editar texto':'';
+      bindEditableText(el,def);
+    });
+  }
+
   function applyConfig(config,redraw){
     if(applying)return;
     applying=true;
@@ -109,7 +222,9 @@
       var normalized=normalize(config);
       applyGroup(document.querySelector('#page-dashboard .grid-kpi'),KPI_DEFS,normalized.dashboard.kpiOrder,normalized);
       applyGroup(document.querySelector('#page-dashboard .dashboard-grid'),PANEL_DEFS,normalized.dashboard.panelOrder,normalized);
+      applyTextConfig(normalized);
       decorateCards();
+      decorateTexts();
       updateBar();
       if(redraw!==false){
         requestAnimationFrame(function(){
@@ -323,7 +438,7 @@
     card.dataset.prumoGlobalDragBound='1';
 
     card.addEventListener('dragstart',function(event){
-      if(!editingChromeVisible()||event.target.closest('.prumo-global-design-controls')){
+      if(!editingChromeVisible()||event.target.closest('.prumo-global-design-controls')||event.target.closest('[data-global-text-key]')){
         event.preventDefault();
         return;
       }
@@ -424,6 +539,10 @@
       'body.prumo-global-design-mode:not(.prumo-global-design-preview) #page-dashboard .prumo-global-design-hidden::before{content:"OCULTO";position:absolute;left:10px;top:10px;z-index:29;padding:3px 6px;border-radius:999px;background:#6e7779;color:#fff;font:700 8px "DM Mono",monospace;letter-spacing:.08em}',
       '.prumo-global-dragging{opacity:.32!important}',
       '.prumo-global-drop-target{box-shadow:-5px 0 0 #36816b!important}',
+      'body.prumo-global-design-mode:not(.prumo-global-design-preview) [data-global-text-key]{cursor:text;border-radius:5px;transition:background .12s ease,outline-color .12s ease}',
+      'body.prumo-global-design-mode:not(.prumo-global-design-preview) [data-global-text-key]:hover{background:rgba(54,129,107,.08);outline:1px dashed rgba(54,129,107,.45);outline-offset:3px}',
+      'body.prumo-global-design-mode:not(.prumo-global-design-preview) [data-global-text-key].prumo-global-text-editing{background:#fffef9;outline:2px solid rgba(54,129,107,.72);outline-offset:4px;cursor:text;user-select:text;min-width:24px}',
+
       '@media(min-width:901px){#page-dashboard .grid-kpi>[data-global-ui-size="wide"]{grid-column:span 2}#page-dashboard .grid-kpi>[data-global-ui-size="full"]{grid-column:1/-1}#page-dashboard .dashboard-grid>[data-global-ui-size="wide"],#page-dashboard .dashboard-grid>[data-global-ui-size="full"]{grid-column:1/-1}}',
       '@media(max-width:900px){#page-dashboard .grid-kpi>[data-global-ui-size],#page-dashboard .dashboard-grid>[data-global-ui-size]{grid-column:1/-1}#prumoGlobalDesignBar{bottom:76px;overflow-x:auto;justify-content:flex-start}#prumoGlobalDesignStatus{min-width:120px}}'
     ].join('');
@@ -444,7 +563,7 @@
     var toggle=document.getElementById('prumoGlobalDesignToggle');
     if(toggle){toggle.classList.add('active');toggle.textContent='Editando site'}
     applyConfig(draftConfig);
-    setStatus('Rascunho global · v'+draftMeta.version);
+    setStatus('Rascunho v'+draftMeta.version+' · duplo clique nos textos');
     updateBar();
   }
 
@@ -496,6 +615,32 @@
       bar.querySelector('#prumoGlobalExit').onclick=exitDesignMode;
     }
     decorateCards();
+    decorateTexts();
+
+    var dashboard=document.getElementById('page-dashboard');
+    if(dashboard&&!dashboard.__prumoGlobalTextObserver){
+      var observer=new MutationObserver(function(){
+        if(dashboard.classList.contains('active')){
+          applyTextConfig(activeConfig());
+          decorateTexts();
+        }
+      });
+      observer.observe(dashboard,{attributes:true,attributeFilter:['class']});
+      dashboard.__prumoGlobalTextObserver=observer;
+    }
+
+    if(!document.body.__prumoGlobalTextNavBound){
+      document.body.__prumoGlobalTextNavBound=true;
+      document.addEventListener('click',function(event){
+        if(!event.target.closest('.nav button,[data-page]'))return;
+        setTimeout(function(){
+          if(document.getElementById('page-dashboard')?.classList.contains('active')){
+            applyTextConfig(activeConfig());
+            decorateTexts();
+          }
+        },0);
+      },true);
+    }
   }
 
   async function refreshPublished(){
