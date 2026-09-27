@@ -600,20 +600,6 @@ function monthChange(current,previous){
  if(prev===0)return null;
  return((cur-prev)/Math.abs(prev))*100
 }
-function renderKpiSparkline(id,previous,current,tone='positive'){
- const svg=document.getElementById(id);if(!svg)return;
- const line=svg.querySelector('.kpi-sparkline-line'),area=svg.querySelector('.kpi-sparkline-area');
- if(!line||!area)return;
- const prev=Number(previous)||0,cur=Number(current)||0;
- const vals=[prev,prev+(cur-prev)*.35,prev+(cur-prev)*.68,cur];
- const min=Math.min(...vals),max=Math.max(...vals),range=Math.max(1,max-min);
- const xs=[2,26,50,74];
- const pts=vals.map((v,i)=>[xs[i],24-((v-min)/range)*18]);
- const d=`M ${pts[0][0]} ${pts[0][1]} C ${pts[0][0]+8} ${pts[0][1]} ${pts[1][0]-8} ${pts[1][1]} ${pts[1][0]} ${pts[1][1]} S ${pts[2][0]-8} ${pts[2][1]} ${pts[2][0]} ${pts[2][1]} S ${pts[3][0]-8} ${pts[3][1]} ${pts[3][0]} ${pts[3][1]}`;
- line.setAttribute('d',d);
- area.setAttribute('d',d+` L 74 28 L 2 28 Z`);
- svg.dataset.tone=tone;
-}
 function renderKpiMonthChange(id,value,{inverse=false,sparkId=null,previous=0,current=0}={}){
  const el=document.getElementById(id);if(!el)return;
  el.classList.remove('positive','negative','neutral');
@@ -640,8 +626,8 @@ function renderDashboard(){
  const incomePending=document.getElementById('kpiIncomePending'),expensePending=document.getElementById('kpiExpensePending');
  if(incomePending)incomePending.textContent=`Pendente: ${fmtMoney(pending.income)}`;
  if(expensePending)expensePending.textContent=`Pendente: ${fmtMoney(pending.expense)}`;
- renderKpiMonthChange('kpiIncomeChange',monthChange(a.income,prev.income),{sparkId:'kpiIncomeSpark',previous:prev.income,current:a.income});
- renderKpiMonthChange('kpiExpenseChange',monthChange(a.expense,prev.expense),{inverse:true,sparkId:'kpiExpenseSpark',previous:prev.expense,current:a.expense});
+ renderKpiMonthChange('kpiIncomeChange',monthChange(a.income,prev.income));
+ renderKpiMonthChange('kpiExpenseChange',monthChange(a.expense,prev.expense),{inverse:true});
  const cats=monthlySpendingCategories(ym),entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]),max=entries[0]?.[1]||1;document.getElementById('categoryList').innerHTML=entries.length?entries.map(([c,v])=>`<div class="cat-row"><div><div>${c}</div><div class="bar"><span style="width:${Math.min(100,v/max*100)}%"></span></div></div><strong>${fmtMoney(v)}</strong></div>`).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
  drawLineChart('projectionChart',projectionFrom(ym).map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
