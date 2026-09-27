@@ -936,33 +936,3 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   color:#7e90a6;
   white-space:nowrap;
 }
-
-.kpi-sparkline{
-  width:76px;
-  height:28px;
-  flex:0 0 76px;
-  overflow:visible;
-}
-
-.kpi-sparkline-line{
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.6;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-
-.kpi-sparkline-area{
-  stroke:none;
-  fill:currentColor;
-  opacity:.14;
-}
-
-.kpi-sparkline[data-tone="positive"]{color:#91d6b9}
-.kpi-sparkline[data-tone="negative"]{color:#ef8a81}
-.kpi-sparkline[data-tone="neutral"]{color:#7e90a6}
-
-html:not(.caderno-stable) .kpi-trend-caption{color:#758083}
-html:not(.caderno-stable) .kpi-sparkline[data-tone="positive"]{color:#36816b}
-html:not(.caderno-stable) .kpi-sparkline[data-tone="negative"]{color:#b75552}
-html:not(.caderno-stable) .kpi-sparkline[data-tone="neutral"]{color:#758083}
