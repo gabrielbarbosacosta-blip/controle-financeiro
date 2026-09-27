@@ -241,5 +241,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified3',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified4',drawSingle,drawComparison};
 })();
