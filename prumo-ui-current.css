@@ -873,3 +873,41 @@ html.caderno-stable .topbar .caderno-month-switcher select{
     height:auto!important;
   }
 }
+
+
+/* KPI — pendente + comparação com mês anterior */
+.kpi-compare{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid rgba(143,160,181,.10);
+  display:grid;
+  gap:4px;
+  position:relative;
+  z-index:1;
+}
+
+.kpi-pending{
+  font-size:10px;
+  line-height:1.25;
+  color:#8fa0b5;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.kpi-month-change{
+  font-size:10px;
+  line-height:1.25;
+  font-weight:700;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+}
+
+.kpi-month-change.positive{color:#91d6b9!important}
+.kpi-month-change.negative{color:#ef8a81!important}
+.kpi-month-change.neutral{color:#7e90a6!important}
+
+html:not(.caderno-stable) .kpi-pending{color:#758083}
+html:not(.caderno-stable) .kpi-month-change.positive{color:#36816b!important}
+html:not(.caderno-stable) .kpi-month-change.negative{color:#b75552!important}
+html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
