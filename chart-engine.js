@@ -206,7 +206,7 @@
       clipStroke(Math.max(p.t,zeroY),bottom,opts.negativeColor||'#ef8a81');
       ctx.restore();
 
-      if(progress>=1&&opts.showLastBadge===true){
+      if(false&&progress>=1&&opts.showLastBadge===true){
         const last=points[points.length-1];
         const color=last.value<0?(opts.negativeColor||'#ef8a81'):(opts.positiveColor||'#91d6b9');
         const boxW=Math.max(94,Math.min(150,36+String(last.label||'').length*5.4)),boxH=42;
@@ -265,5 +265,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified12',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified13',drawSingle,drawComparison};
 })();
