@@ -731,8 +731,7 @@ function drawLineChart(id,data){
  const strokeRegion=(top,clipBottom,color)=>{
    if(clipBottom<=top)return;
    ctx.save();ctx.beginPath();ctx.rect(p.l-10,top,right-p.l+20,clipBottom-top);ctx.clip();
-   ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=8;ctx.globalAlpha=.13;ctx.shadowColor=color;ctx.shadowBlur=16;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-   ctx.globalAlpha=1;ctx.shadowBlur=8;ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=3.2;ctx.stroke();ctx.restore();
+   ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=3.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
  };
  strokeRegion(p.t,Math.min(bottom,zeroY),'#91d6b9');
  strokeRegion(Math.max(p.t,zeroY),bottom,'#ef8a81');
