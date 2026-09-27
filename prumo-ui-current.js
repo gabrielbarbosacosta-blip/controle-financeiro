@@ -196,6 +196,8 @@
         const cards=Array.from(grid.children).filter(el=>el instanceof HTMLElement);
         if(cards.length<2)return;
 
+        grid.style.alignItems='start';
+
         cards.forEach(card=>{
           card.style.height='auto';
           card.style.removeProperty('--web-row-height');
@@ -234,6 +236,7 @@
       requestAnimationFrame(()=>{
         scheduled=false;
         if(!window.matchMedia('(min-width: 901px)').matches){
+          document.querySelectorAll('.grid-kpi,.summary-strip,.card-grid,.dashboard-grid').forEach(grid=>grid.style.removeProperty('align-items'));
           document.querySelectorAll('.grid-kpi>*,.summary-strip>*,.card-grid>*,.dashboard-grid>*').forEach(card=>{
             card.style.height='auto';
             card.style.removeProperty('--web-row-height');
