@@ -193,8 +193,8 @@
         ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.restore();
       };
 
-      fillRegion(p.t,Math.min(bottom,zeroY),'rgba(145,214,185,.30)','rgba(145,214,185,.025)');
-      fillRegion(Math.max(p.t,zeroY),bottom,'rgba(239,138,129,.025)','rgba(239,138,129,.26)');
+      fillRegion(p.t,Math.min(bottom,zeroY),'rgba(145,214,185,.42)','rgba(145,214,185,.055)');
+      fillRegion(Math.max(p.t,zeroY),bottom,'rgba(239,138,129,.055)','rgba(239,138,129,.38)');
 
       const clipStroke=(top,clipBottom,color)=>{
         if(clipBottom<=top)return;
@@ -250,7 +250,7 @@
       const focus=rendered[rendered.length-1];
       if(focus?.fill!==false){
         const positive=ctx.createLinearGradient(0,p.t,0,Math.max(p.t,zeroY));
-        positive.addColorStop(0,'rgba(145,214,185,.20)');positive.addColorStop(1,'rgba(145,214,185,.015)');
+        positive.addColorStop(0,'rgba(145,214,185,.32)');positive.addColorStop(1,'rgba(145,214,185,.04)');
         ctx.save();ctx.beginPath();ctx.rect(p.l,p.t,right-p.l,Math.max(0,Math.min(bottom,zeroY)-p.t));ctx.clip();
         ctx.beginPath();smoothPath(ctx,focus.points);ctx.lineTo(focus.points.at(-1).x,zeroY);ctx.lineTo(focus.points[0].x,zeroY);ctx.closePath();ctx.fillStyle=positive;ctx.fill();ctx.restore();
       }
@@ -265,5 +265,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified10',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified11',drawSingle,drawComparison};
 })();
