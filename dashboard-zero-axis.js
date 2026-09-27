@@ -34,6 +34,7 @@
 
   function redraw(canvas,data){
     if(!canvas||!Array.isArray(data)||!data.length)return;
+    if(window.PrumoChartEngine?.drawSingle){window.PrumoChartEngine.drawSingle(canvas,data,{showLastBadge:true});return;}
     const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
     const {W,H,p,min,max,x,y}=geometry(canvas,data);
     canvas.width=W*dpr;canvas.height=H*dpr;
