@@ -100,11 +100,19 @@
     select.style.removeProperty('clip');
     select.style.removeProperty('pointer-events');
 
+    const syncArrows=wrap=>{
+      const buttons=[...wrap.querySelectorAll('button')];
+      const prev=buttons[0],next=buttons[1];
+      if(prev)prev.style.display=select.selectedIndex<=0?'none':'';
+      if(next)next.style.display=select.selectedIndex<0||select.selectedIndex>=select.options.length-1?'none':'';
+    };
+
     const existing=select.closest('.caderno-month-switcher');
     if(existing){
       existing.style.setProperty('display','flex','important');
       existing.style.removeProperty('visibility');
       existing.style.removeProperty('opacity');
+      syncArrows(existing);
       return;
     }
 
@@ -114,6 +122,8 @@
     select.parentNode.insertBefore(wrap,select);wrap.append(prev,select,next);
     const move=delta=>{const ni=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(ni===select.selectedIndex)return;select.selectedIndex=ni;select.dispatchEvent(new Event('change',{bubbles:true}))};
     prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
+    select.addEventListener('change',()=>syncArrows(wrap));
+    syncArrows(wrap);
   }
 
 
