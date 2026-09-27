@@ -114,7 +114,7 @@
       try{
         if(typeof renderCards==='function'&&document.getElementById('page-cards')?.classList.contains('active'))renderCards();
         if(typeof renderProjection==='function'&&document.getElementById('page-projection')?.classList.contains('active'))renderProjection();
-        if(typeof renderDashboard==='function'&&document.getElementById('page-dashboard')?.classList.contains('active'))renderDashboard();
+        if(document.body?.classList.contains('caderno-splash-done')&&typeof renderDashboard==='function'&&document.getElementById('page-dashboard')?.classList.contains('active'))renderDashboard();
       }catch(error){console.error('recurring projection refresh',error)}
       return true;
     }
