@@ -23,7 +23,8 @@
 
   function refresh(){
     const changed=materializeProjectedInvoices();
-    if(changed&&typeof save==='function')save();
+    if(!changed)return;
+    if(typeof save==='function')save();
     if(typeof renderHistory==='function')renderHistory();
     if(typeof renderDashboard==='function')renderDashboard();
   }
