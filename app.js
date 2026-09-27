@@ -195,19 +195,17 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
   }
-  // All pre-renders happen under the splash without consuming the dashboard
-  // intro. Reset once and render synchronously now that caderno-splash-done is
-  // active; the chart engine paints frame 0 before scheduling its RAF sequence.
+  // The dashboard chart intro is explicitly owned here. Startup renders only
+  // prepare data; this forced draw is the single animation allowed per reload.
   const dashboardChart=document.getElementById('projectionChart');
-  if(dashboardChart){
+  if(dashboardChart&&document.getElementById('page-dashboard')?.classList.contains('active')){
     if(dashboardChart.__prumoChartAnimationFrame){
       cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
       dashboardChart.__prumoChartAnimationFrame=0;
     }
+    dashboardChart.__prumoChartIntroLock=false;
     dashboardChart.__prumoChartIntroPlayed=false;
-    if(document.getElementById('page-dashboard')?.classList.contains('active')){
-      try{renderDashboard()}catch(_e){}
-    }
+    try{drawDashboardProjectionChart({forceIntro:true,animationDuration:760})}catch(_e){}
   }
   try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
@@ -668,6 +666,14 @@ function populateGlobalSelects(){
  const months=allMonthOptions(),sel=document.getElementById('monthSelect');sel.innerHTML=months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('');sel.value=state.settings.selectedMonth;
  document.getElementById('purchaseCard').innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
 }
+function drawDashboardProjectionChart(opts={}){
+ const ym=state.settings.selectedMonth;
+ const rows=typeof window.getDashboardProjectionRows==='function'
+   ?window.getDashboardProjectionRows(ym)
+   :projectionFrom(ym);
+ const data=rows.map(r=>({label:fmtMonth(r.ym),value:r.closing}));
+ return drawLineChart('projectionChart',data,opts);
+}
 function renderDashboard(){
  const ym=state.settings.selectedMonth,start=financialStartMonth(),a=actualForMonth(ym),prev=ym>start?actualForMonth(ymAdd(ym,-1)):null,pending=pendingForMonth(ym);
  document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');document.getElementById('kpiResultHint').textContent=`Resultado: ${fmtMoney(a.result)}`;
@@ -711,10 +717,7 @@ function renderDashboard(){
      return `<div class="category-rank-row"><span class="category-dot" style="--category-color:${palette[i%palette.length]}"></span><div class="category-rank-copy"><strong>${name}</strong><small>${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</small></div><span class="category-rank-value">${fmtMoney(value)}</span></div>`
    }).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
  }
- const dashboardProjectionRows=typeof window.getDashboardProjectionRows==='function'
-   ?window.getDashboardProjectionRows(ym)
-   :projectionFrom(ym);
- drawLineChart('projectionChart',dashboardProjectionRows.map(r=>({label:fmtMonth(r.ym),value:r.closing})))
+ drawDashboardProjectionChart()
 }
 function historyRowsForMonth(ym){
  const txs=state.transactions.filter(t=>monthKey(t.date)===ym).map(t=>({kind:'tx',id:t.id,date:t.date,type:t.type,description:t.description,category:t.category,account:t.account,status:t.status,amount:t.amount,notes:t.notes||''}));
@@ -785,8 +788,8 @@ function renderSettings(){
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
 window.__prumoChartRendererVersion='unifiedchart12';
-function drawLineChart(id,data){
- if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
+function drawLineChart(id,data,opts={}){
+ if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true,...opts});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
  const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300);
