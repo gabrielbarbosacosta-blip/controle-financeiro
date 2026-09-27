@@ -630,7 +630,39 @@ function renderDashboard(){
  renderKpiMonthChange('kpiIncomeChange',monthChange(a.income,prev.income));
  renderKpiMonthChange('kpiExpenseChange',monthChange(a.expense,prev.expense),{inverse:true});
  renderKpiMonthChange('kpiInvoicesChange',monthChange(a.invoices,prev.invoices),{inverse:true});
- const cats=monthlySpendingCategories(ym),entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]),max=entries[0]?.[1]||1;document.getElementById('categoryList').innerHTML=entries.length?entries.map(([c,v])=>`<div class="cat-row"><div><div>${c}</div><div class="bar"><span style="width:${Math.min(100,v/max*100)}%"></span></div></div><strong>${fmtMoney(v)}</strong></div>`).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
+ const cats=monthlySpendingCategories(ym),entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]),total=entries.reduce((s,[,v])=>s+(Number(v)||0),0);
+ const prevCats=monthlySpendingCategories(ymAdd(ym,-1)),prevTotal=Object.values(prevCats).reduce((s,v)=>s+(Number(v)||0),0);
+ const totalEl=document.getElementById('categoryTotal'),changeEl=document.getElementById('categoryMonthChange'),donut=document.getElementById('categoryDonut'),list=document.getElementById('categoryList');
+ if(totalEl)totalEl.textContent=fmtMoney(total);
+ if(changeEl){
+   const change=monthChange(total,prevTotal);
+   changeEl.classList.remove('positive','negative','neutral');
+   if(change===null||!Number.isFinite(change)){changeEl.textContent='— vs. mês anterior';changeEl.classList.add('neutral')}
+   else{
+     const up=change>0,down=change<0,arrow=up?'↑':down?'↓':'→',pct=Math.abs(change).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+     changeEl.textContent=`${arrow} ${pct}% vs. mês anterior`;
+     changeEl.classList.add(change>0?'negative':change<0?'positive':'neutral');
+   }
+ }
+ if(donut){
+   const palette=['#65aaff','#91d6b9','#ddeaac','#ef8a81','#a78bfa','#7dd3fc'];
+   let angle=0;
+   const top=entries.slice(0,5),rest=entries.slice(5).reduce((s,[,v])=>s+(Number(v)||0),0),segments=rest>0?[...top,['Outros',rest]]:top;
+   const stops=segments.map(([,v],i)=>{
+     const start=angle,end=angle+(total>0?(Number(v)||0)/total*360:0);angle=end;
+     return `${palette[i%palette.length]} ${start.toFixed(2)}deg ${end.toFixed(2)}deg`
+   });
+   donut.style.background=total>0?`conic-gradient(${stops.join(',')})`:'rgba(127,144,164,.14)';
+   donut.dataset.empty=total>0?'0':'1';
+ }
+ if(list){
+   const palette=['#65aaff','#91d6b9','#ddeaac','#ef8a81','#a78bfa','#7dd3fc'];
+   const top=entries.slice(0,5),rest=entries.slice(5).reduce((s,[,v])=>s+(Number(v)||0),0),ranked=rest>0?[...top,['Outros',rest]]:top;
+   list.innerHTML=ranked.length?ranked.map(([name,value],i)=>{
+     const pct=total>0?(Number(value)||0)/total*100:0;
+     return `<div class="category-rank-row"><span class="category-dot" style="--category-color:${palette[i%palette.length]}"></span><div class="category-rank-copy"><strong>${name}</strong><small>${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</small></div><span class="category-rank-value">${fmtMoney(value)}</span></div>`
+   }).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
+ }
  drawLineChart('projectionChart',projectionFrom(ym).map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
 function historyRowsForMonth(ym){
