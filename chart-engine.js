@@ -44,6 +44,7 @@
     canvas.width=Math.round(W*dpr);
     canvas.height=Math.round(H*dpr);
     canvas.style.borderRadius=(opts.radius||18)+'px';
+    canvas.dataset.prumoChartRenderer='unified1';
     const ctx=canvas.getContext('2d');
     if(!ctx)return null;
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -62,6 +63,8 @@
     roundedRect(ctx,0,0,W,H,opts.radius||18);
     ctx.fillStyle=opts.background||'#081522';
     ctx.fill();
+
+    ctx.save();ctx.fillStyle='rgba(184,255,100,.92)';ctx.font='700 9px system-ui,-apple-system,sans-serif';ctx.textBaseline='top';ctx.fillText('NOVO GRÁFICO',12,10);ctx.restore();
 
     const bg=ctx.createLinearGradient(0,0,W,H);
     bg.addColorStop(0,'rgba(22,42,58,.34)');
