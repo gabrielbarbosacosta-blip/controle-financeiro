@@ -664,7 +664,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
-window.__prumoChartRendererVersion='unifiedchart8';
+window.__prumoChartRendererVersion='unifiedchart9';
 function drawLineChart(id,data){
  if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
@@ -731,7 +731,7 @@ function drawLineChart(id,data){
  const strokeRegion=(top,clipBottom,color)=>{
    if(clipBottom<=top)return;
    ctx.save();ctx.beginPath();ctx.rect(p.l-10,top,right-p.l+20,clipBottom-top);ctx.clip();
-   ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=3.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
+   ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=4.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
  };
  strokeRegion(p.t,Math.min(bottom,zeroY),'#91d6b9');
  strokeRegion(Math.max(p.t,zeroY),bottom,'#ef8a81');
