@@ -1144,3 +1144,30 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
     right:12px;
   }
 }
+
+
+/* Saldo final projetado — linha simples, no padrão de pendência */
+.kpi-closing-inline{
+  margin-top:8px!important;
+  padding-top:0!important;
+}
+
+.kpi-closing-inline .kpi-pending{
+  font-size:10.5px!important;
+  line-height:1.2;
+  font-weight:700;
+  color:#aebdce!important;
+}
+
+.kpi-closing-inline .kpi-pending strong{
+  font-size:inherit;
+  font-weight:800;
+}
+
+.kpi-closing-inline .kpi-pending strong.positive{
+  color:#91d6b9!important;
+}
+
+.kpi-closing-inline .kpi-pending strong.negative{
+  color:#ef8a81!important;
+}
