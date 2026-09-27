@@ -949,3 +949,39 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   margin-top:5px!important;
   padding-top:0!important;
 }
+
+
+/* KPI — comparativo mensal no canto superior direito */
+.kpi-with-corner-trend{
+  position:relative;
+}
+
+.kpi-corner-trend{
+  position:absolute;
+  top:14px;
+  right:14px;
+  display:grid;
+  justify-items:end;
+  gap:2px;
+  z-index:2;
+  text-align:right;
+}
+
+.kpi-with-corner-trend .label{
+  padding-right:86px;
+}
+
+.kpi-with-corner-trend .kpi-compare{
+  margin-top:7px;
+}
+
+.kpi-with-corner-trend .kpi-pending{
+  font-size:10.5px;
+}
+
+@media(max-width:1150px){
+  .kpi-corner-trend{
+    top:12px;
+    right:12px;
+  }
+}
