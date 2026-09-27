@@ -1148,8 +1148,9 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 
 /* Saldo final projetado — linha simples, no padrão de pendência */
 .kpi-closing-inline{
-  margin-top:8px!important;
+  margin-top:6px!important;
   padding-top:0!important;
+  min-height:12px;
 }
 
 .kpi-closing-inline .kpi-pending{
@@ -1170,4 +1171,24 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 
 .kpi-closing-inline .kpi-pending strong.negative{
   color:#ef8a81!important;
+}
+
+
+/* Alinha o saldo projetado à mesma linha visual dos pendentes */
+.grid-kpi .kpi:last-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.grid-kpi .kpi:last-child .hint{
+  margin-top:14px!important;
+  padding-top:0!important;
+}
+
+.grid-kpi .kpi:last-child .kpi-closing-inline{
+  margin-top:6px!important;
+}
+
+.grid-kpi .kpi:last-child .kpi-closing-inline .kpi-pending{
+  line-height:1.2;
 }
