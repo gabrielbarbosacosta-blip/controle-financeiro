@@ -12,11 +12,11 @@
     if(typeof state==='undefined'||!state?.settings?.selectedMonth)return;
     const valueEl=document.getElementById('kpiClosing'),card=valueEl?.closest('.kpi');if(!card)return;
     let box=document.getElementById('kpiProjectedClosingBox');
-    if(!box){box=document.createElement('div');box.id='kpiProjectedClosingBox';box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';box.innerHTML='<span style="color:#94a3b8">Saldo final projetado</span><strong id="kpiProjectedClosing" style="font-size:12px;font-variant-numeric:tabular-nums">—</strong>';card.appendChild(box)}
+    if(!box){box=document.createElement('div');box.id='kpiProjectedClosingBox';box.className='kpi-compare kpi-closing-inline';box.innerHTML='<div class="kpi-pending">Saldo final projetado: <strong id="kpiProjectedClosing">—</strong></div>';card.appendChild(box)}
     const ym=state.settings.selectedMonth;
     const projected=window.financeProjection?.closingAt?window.financeProjection.closingAt(ym,window.financeProjection.allSources()):fallbackProjectedClosing(ym);
     const target=document.getElementById('kpiProjectedClosing');
-    if(target){const text=typeof fmtMoney==='function'?fmtMoney(projected):String(projected);if(target.textContent!==text)target.textContent=text;target.style.color=projected<0?'#fecaca':'#bbf7d0'}
+    if(target){const text=typeof fmtMoney==='function'?fmtMoney(projected):String(projected);if(target.textContent!==text)target.textContent=text;target.className=projected<0?'negative':'positive'}
   }
   window.renderProjectedClosing=renderProjectedClosing;
   const observer=new MutationObserver(renderProjectedClosing);
