@@ -151,8 +151,9 @@
     drawLabels(f,points,total);
   }
 
-  function animateReveal(canvas,signature,drawStatic,drawAnimated,duration=760){
+  function animateReveal(canvas,signature,drawStatic,drawAnimated,duration=760,control={}){
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const forceIntro=control?.forceIntro===true;
     const played=canvas.__prumoChartIntroPlayed===true;
     const rect=canvas.getBoundingClientRect();
     const dashboardReady=canvas.id!=='projectionChart'||document.body?.classList.contains('caderno-splash-done');
@@ -167,19 +168,18 @@
       }
     };
 
-    // Pre-rendering under the authenticated splash must never consume the intro.
-    // It may keep the final image ready underneath the splash, but the first
-    // visible dashboard render remains responsible for the animation.
-    if(!visible){
+    // A forced intro owns the canvas until it finishes. Any ordinary redraw
+    // during that short window is ignored so another module cannot cancel it.
+    if(canvas.__prumoChartIntroLock===true&&!forceIntro)return;
+
+    if(!visible&&!forceIntro){
       cancelRunning();
       drawStatic();
       drawAnimated(1);
       return;
     }
 
-    // Any redraw after the intro began owns the canvas from this point forward.
-    // Cancel the old RAF so it cannot overwrite a newer static render later.
-    if(reduced||played){
+    if(reduced&&!forceIntro){
       cancelRunning();
       canvas.__prumoChartIntroPlayed=true;
       drawStatic();
@@ -187,11 +187,19 @@
       return;
     }
 
+    if(played&&!forceIntro){
+      cancelRunning();
+      drawStatic();
+      drawAnimated(1);
+      return;
+    }
+
     cancelRunning();
     canvas.__prumoChartIntroPlayed=true;
+    canvas.__prumoChartIntroLock=true;
 
-    // Paint frame zero synchronously. Without this, the complete pre-rendered
-    // chart can remain visible for one browser paint before the first RAF tick.
+    // Paint 0% synchronously so the browser can never expose a completed
+    // pre-rendered frame before the first animation frame.
     drawStatic();
     drawAnimated(0);
 
@@ -201,8 +209,12 @@
       const eased=1-Math.pow(1-raw,3);
       drawStatic();
       drawAnimated(eased);
-      if(raw<1)canvas.__prumoChartAnimationFrame=requestAnimationFrame(tick);
-      else canvas.__prumoChartAnimationFrame=0;
+      if(raw<1){
+        canvas.__prumoChartAnimationFrame=requestAnimationFrame(tick);
+      }else{
+        canvas.__prumoChartAnimationFrame=0;
+        canvas.__prumoChartIntroLock=false;
+      }
     };
     canvas.__prumoChartAnimationFrame=requestAnimationFrame(tick);
   }
@@ -272,7 +284,7 @@
     };
 
     const signature=data.map(d=>String(d?.label||'')+':'+String(Number(d?.value)||0)).join('|');
-    animateReveal(canvas,signature,()=>drawBase(f,points,data.length),drawData,opts.animationDuration||760);
+    animateReveal(canvas,signature,()=>drawBase(f,points,data.length),drawData,opts.animationDuration||760,opts);
 
     return {canvas,points,frame:f};
   }
@@ -310,10 +322,10 @@
     };
 
     const signature=rendered.map(s=>s.name+':'+s.points.map(pt=>pt.label+':'+pt.value).join(',')).join('|');
-    animateReveal(canvas,signature,()=>drawBase(f,rendered[0].points,count),drawData,opts.animationDuration||760);
+    animateReveal(canvas,signature,()=>drawBase(f,rendered[0].points,count),drawData,opts.animationDuration||760,opts);
 
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified22',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified23',drawSingle,drawComparison};
 })();
