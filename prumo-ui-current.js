@@ -196,7 +196,7 @@
     });
     if(isStandalone||!window.matchMedia('(min-width: 901px)').matches)return;
 
-    const selectors=['.summary-strip','.card-grid','.dashboard-grid'];
+    const selectors=['.summary-strip','.card-grid'];
     selectors.forEach(selector=>{
       document.querySelectorAll(selector).forEach(grid=>{
         const cards=Array.from(grid.children).filter(el=>el instanceof HTMLElement);
@@ -242,8 +242,8 @@
       requestAnimationFrame(()=>{
         scheduled=false;
         if(!window.matchMedia('(min-width: 901px)').matches){
-          document.querySelectorAll('.summary-strip,.card-grid,.dashboard-grid').forEach(grid=>grid.style.removeProperty('align-items'));
-          document.querySelectorAll('.summary-strip>*,.card-grid>*,.dashboard-grid>*').forEach(card=>{
+          document.querySelectorAll('.summary-strip,.card-grid').forEach(grid=>grid.style.removeProperty('align-items'));
+          document.querySelectorAll('.summary-strip>*,.card-grid>*').forEach(card=>{
             card.style.height='auto';
             card.style.removeProperty('--web-row-height');
             card.classList.remove('web-card-scroll');
