@@ -14,6 +14,7 @@
   try{drawLineChart=finalDrawLineChart}catch(_e){}
   window.__prumoChartRendererVersion='finalchart1';
 
+  let initialRedrawDone=false;
   function safeRedraw(){
     try{
       const appState=typeof state!=='undefined'?state:window.state;
@@ -77,14 +78,18 @@
     }
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',()=>{
-      requestAnimationFrame(()=>requestAnimationFrame(safeRedraw));
-      setTimeout(safeRedraw,250);
-    },{once:true});
-  }else{
+  function initialRedraw(){
+    if(initialRedrawDone)return;
+    initialRedrawDone=true;
+    // One initial render only: repeated startup redraws were cancelling
+    // the chart reveal animation before it became visible.
     requestAnimationFrame(()=>requestAnimationFrame(safeRedraw));
-    setTimeout(safeRedraw,250);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initialRedraw,{once:true});
+  }else{
+    initialRedraw();
   }
 
   window.addEventListener('resize',()=>{
