@@ -664,7 +664,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
-window.__prumoChartRendererVersion='unifiedchart9';
+window.__prumoChartRendererVersion='unifiedchart10';
 function drawLineChart(id,data){
  if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
@@ -706,44 +706,7 @@ function drawLineChart(id,data){
    ctx.fillStyle='rgba(184,199,211,.72)';
    ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),8,yy);
  }
- points.forEach((pt,i)=>{
-   if(data.length>12&&i%2!==0&&i!==points.length-1)return;
-   ctx.strokeStyle='rgba(145,166,184,.055)';
-   ctx.beginPath();ctx.moveTo(pt.x,p.t);ctx.lineTo(pt.x,bottom);ctx.stroke();
- });
-
- if(min<0&&max>0){
-   ctx.save();ctx.setLineDash([4,5]);ctx.strokeStyle='rgba(172,189,204,.35)';
-   ctx.beginPath();ctx.moveTo(p.l,zeroY);ctx.lineTo(right,zeroY);ctx.stroke();ctx.restore();
- }
-
- const fillRegion=(top,clipBottom,colorTop,colorBottom)=>{
-   if(clipBottom<=top)return;
-   const grad=ctx.createLinearGradient(0,top,0,clipBottom);
-   grad.addColorStop(0,colorTop);grad.addColorStop(1,colorBottom);
-   ctx.save();ctx.beginPath();ctx.rect(p.l,top,right-p.l,clipBottom-top);ctx.clip();
-   ctx.beginPath();trace();ctx.lineTo(points.at(-1).x,zeroY);ctx.lineTo(points[0].x,zeroY);ctx.closePath();
-   ctx.fillStyle=grad;ctx.fill();ctx.restore();
- };
- fillRegion(p.t,Math.min(bottom,zeroY),'rgba(145,214,185,.30)','rgba(145,214,185,.025)');
- fillRegion(Math.max(p.t,zeroY),bottom,'rgba(239,138,129,.025)','rgba(239,138,129,.26)');
-
- const strokeRegion=(top,clipBottom,color)=>{
-   if(clipBottom<=top)return;
-   ctx.save();ctx.beginPath();ctx.rect(p.l-10,top,right-p.l+20,clipBottom-top);ctx.clip();
-   ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=4.5;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
- };
- strokeRegion(p.t,Math.min(bottom,zeroY),'#91d6b9');
- strokeRegion(Math.max(p.t,zeroY),bottom,'#ef8a81');
-
- points.forEach((pt,i)=>{
-   const color=pt.value<0?'#ef8a81':'#91d6b9';
-   if(i===points.length-1){
-     ctx.save();ctx.shadowColor=color;ctx.shadowBlur=15;ctx.fillStyle=color;ctx.beginPath();ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(244,255,232,.95)';ctx.lineWidth=1.8;ctx.stroke();ctx.restore();
-   }else{
-     ctx.fillStyle='rgba(217,232,217,.88)';ctx.beginPath();ctx.arc(pt.x,pt.y,2.4,0,Math.PI*2);ctx.fill();
-   }
- });
+ // Point markers intentionally hidden in fallback renderer.
 
  ctx.textBaseline='alphabetic';ctx.font='10px system-ui,-apple-system,sans-serif';ctx.fillStyle='rgba(191,205,216,.80)';
  points.forEach((pt,i)=>{
