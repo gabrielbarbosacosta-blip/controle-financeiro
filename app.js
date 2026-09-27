@@ -664,7 +664,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
-window.__prumoChartRendererVersion='unifiedchart7';
+window.__prumoChartRendererVersion='unifiedchart8';
 function drawLineChart(id,data){
  if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
