@@ -622,7 +622,7 @@ function populateGlobalSelects(){
 }
 function renderDashboard(){
  const ym=state.settings.selectedMonth,a=actualForMonth(ym),prev=actualForMonth(ymAdd(ym,-1)),pending=pendingForMonth(ym);
- document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');document.getElementById('kpiResultHint').textContent=`Resultado: ${fmtMoney(a.result)}`;
+ document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');const resultHint=document.getElementById('kpiResultHint');if(resultHint){resultHint.textContent=fmtMoney(a.result);resultHint.className='kpi-closing-result-value '+(a.result<0?'negative':a.result>0?'positive':'neutral')};
  const incomePending=document.getElementById('kpiIncomePending'),expensePending=document.getElementById('kpiExpensePending');
  if(incomePending)incomePending.textContent=`Pendente: ${fmtMoney(pending.income)}`;
  if(expensePending)expensePending.textContent=`Pendente: ${fmtMoney(pending.expense)}`;
