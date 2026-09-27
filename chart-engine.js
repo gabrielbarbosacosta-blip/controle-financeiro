@@ -154,11 +154,20 @@
   function animateReveal(canvas,signature,drawStatic,drawAnimated,duration=760){
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const played=canvas.__prumoChartIntroPlayed===true;
+    const rect=canvas.getBoundingClientRect();
+    const visible=rect.width>40&&rect.height>40&&canvas.offsetParent!==null;
 
     canvas.__prumoChartAnimationSignature=signature;
 
-    // Animate once per document load. A full reload creates a new canvas/document,
-    // while internal redraws (month changes, data updates, navigation) stay static.
+    // Do not consume the one-per-load intro while the dashboard is still hidden
+    // (for example during auth/splash). The first visible render owns the animation.
+    if(!visible){
+      drawStatic();
+      drawAnimated(1);
+      return;
+    }
+
+    // Animate once per document load. Internal redraws remain static.
     if(reduced||played){
       canvas.__prumoChartIntroPlayed=true;
       drawStatic();
@@ -289,5 +298,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified19',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified20',drawSingle,drawComparison};
 })();
