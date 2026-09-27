@@ -44,17 +44,22 @@
     canvas.width=Math.round(W*dpr);
     canvas.height=Math.round(H*dpr);
     canvas.style.borderRadius=(opts.radius||18)+'px';
-    canvas.dataset.prumoChartRenderer='unified1';
+    canvas.dataset.prumoChartRenderer='unified3';
     const ctx=canvas.getContext('2d');
     if(!ctx)return null;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,W,H);
 
     const p=opts.padding||{l:62,r:20,t:22,b:44};
-    let min=Math.min(0,...values),max=Math.max(0,...values);
-    if(max===min){max+=1;min-=1}
-    const pad=(max-min)*(opts.rangePad??.12);
-    max+=pad;min-=pad;
+    const yStep=Number(opts.yStep)||5000;
+    const rawMin=Math.min(0,...values),rawMax=Math.max(0,...values);
+    let min=Math.floor(rawMin/yStep)*yStep,max=Math.ceil(rawMax/yStep)*yStep;
+    if(rawMin<0&&rawMin===min)min-=yStep;
+    if(rawMax>0&&rawMax===max)max+=yStep;
+    if(min===max){
+      if(max===0)max=yStep;
+      else{min-=yStep;max+=yStep}
+    }
 
     const plotW=W-p.l-p.r,plotH=H-p.t-p.b;
     const y=v=>p.t+plotH*(1-(Number(v)-min)/(max-min));
@@ -72,8 +77,8 @@
 
     ctx.font='10px system-ui,-apple-system,sans-serif';
     ctx.textBaseline='middle';
-    for(let i=0;i<=4;i++){
-      const val=min+(max-min)*i/4,yy=y(val);
+    for(let val=min;val<=max+0.001;val+=yStep){
+      const yy=y(val);
       ctx.strokeStyle='rgba(145,166,184,.12)';
       ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(right,yy);ctx.stroke();
@@ -93,7 +98,7 @@
   function addXGrid(f,points,total){
     const {ctx,p,bottom}=f;
     points.forEach((pt,i)=>{
-      if(total>12&&i%2!==0&&i!==points.length-1)return;
+      if(i%3!==0)return;
       ctx.strokeStyle='rgba(145,166,184,.055)';
       ctx.beginPath();ctx.moveTo(pt.x,p.t);ctx.lineTo(pt.x,bottom);ctx.stroke();
     });
@@ -105,7 +110,7 @@
     ctx.font='10px system-ui,-apple-system,sans-serif';
     ctx.fillStyle='rgba(191,205,216,.80)';
     points.forEach((pt,i)=>{
-      if(total>12&&i%2!==0&&i!==points.length-1)return;
+      if(i%3!==0)return;
       ctx.save();
       ctx.translate(pt.x,H-14);
       ctx.rotate(-.28);
@@ -236,5 +241,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified2',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified3',drawSingle,drawComparison};
 })();
