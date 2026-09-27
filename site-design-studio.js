@@ -174,7 +174,14 @@
         var card=dashboardCardFor(def);
         if(card)map.set(def.key,card);
       });
-      group.order.forEach(function(key){var card=map.get(key);if(card)group.container.appendChild(card)});
+      var desired=group.order.filter(function(key){return map.has(key)});
+      var current=Array.from(group.container.children).map(function(card){
+        for(var pair of map.entries()){if(pair[1]===card)return pair[0]}
+        return null;
+      }).filter(Boolean);
+      if(desired.join('|')!==current.join('|')){
+        desired.forEach(function(key){var card=map.get(key);if(card)group.container.appendChild(card)});
+      }
       group.defs.forEach(function(def){
         var card=map.get(def.key);if(!card)return;
         var hidden=!!config.dashboard.hidden[def.key];
@@ -295,7 +302,7 @@
       el.classList.remove('prumo-design-text-deleted');
       if(!override){
         if(el.dataset.prumoAppliedText==='1'){
-          el.textContent=slot.base;
+          if(el.textContent!==slot.base)el.textContent=slot.base;
           delete el.dataset.prumoAppliedText;
         }
         el.style.removeProperty('display');
@@ -306,13 +313,14 @@
         if(editable()){
           el.style.removeProperty('display');
           el.classList.add('prumo-design-text-deleted');
-          el.textContent=override.text||slot.base||'Texto excluído';
+          var ghostText=override.text||slot.base||'Texto excluído';
+          if(el.textContent!==ghostText)el.textContent=ghostText;
         }else{
           el.style.display='none';
         }
       }else{
         el.style.removeProperty('display');
-        el.textContent=override.text;
+        if(el.textContent!==override.text)el.textContent=override.text;
       }
       el.dataset.prumoAppliedText='1';
       applyTextStyles(el,override);
@@ -377,7 +385,11 @@
       var order=config.orders?.[key];
       if(!Array.isArray(order)||!order.length)return;
       var map=new Map(cards.map(function(card){return [cardKey(card,pageId),card]}));
-      order.forEach(function(cardId){var card=map.get(cardId);if(card)parent.appendChild(card)});
+      var desired=order.filter(function(cardId){return map.has(cardId)});
+      var current=cards.map(function(card){return cardKey(card,pageId)});
+      if(desired.join('|')!==current.join('|')){
+        desired.forEach(function(cardId){var card=map.get(cardId);if(card)parent.appendChild(card)});
+      }
     });
   }
 
@@ -391,6 +403,7 @@
       card.dataset.prumoCardSelector=cardSelector(card,pageId);
       card.dataset.prumoCardPage=pageId;
       card.classList.remove('prumo-design-card-hidden');
+      card.style.removeProperty('display');
       card.style.removeProperty('grid-column');
       card.style.removeProperty('padding');
       card.style.removeProperty('border-radius');
@@ -1067,7 +1080,21 @@
     if(main){
       var observer=new MutationObserver(function(mutations){
         if(applying)return;
-        var relevant=mutations.some(function(m){return m.type==='childList'||(m.type==='attributes'&&m.attributeName==='class')});
+        var relevant=mutations.some(function(m){
+          var target=m.target?.nodeType===1?m.target:m.target?.parentElement;
+          if(target?.closest?.('#prumoDesignBar,.prumo-design-panel,.prumo-custom-text-host,.prumo-design-card-tools,.prumo-custom-text-tools'))return false;
+          if(m.type==='attributes'&&m.attributeName==='class')return true;
+          if(m.type!=='childList')return false;
+          var changed=Array.from(m.addedNodes||[]).concat(Array.from(m.removedNodes||[]));
+          if(changed.length&&changed.every(function(node){
+            if(node.nodeType===3)return false;
+            return node.nodeType===1&&(
+              node.matches?.('.prumo-design-card-tools,.prumo-custom-text-host,.prumo-custom-text-tools')||
+              node.closest?.('.prumo-design-card-tools,.prumo-custom-text-host,.prumo-custom-text-tools')
+            );
+          }))return false;
+          return true;
+        });
         if(relevant)scheduleApply();
       });
       observer.observe(main,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
