@@ -26,7 +26,7 @@
     if(document.getElementById('prumo-greeting-fade-style'))return;
     const style=document.createElement('style');
     style.id='prumo-greeting-fade-style';
-    style.textContent=`.prumo-title-fade{animation:prumoGreetingFade .72s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform,filter}@keyframes prumoGreetingFade{0%{opacity:0;transform:translateY(7px);filter:blur(5px)}42%{opacity:.66;filter:blur(1.8px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}@media(prefers-reduced-motion:reduce){.prumo-title-fade{animation:none!important}}`;
+    style.textContent=`.prumo-title-prep{opacity:0!important;transform:translateY(7px)!important;filter:blur(5px)!important}.prumo-title-fade{animation:prumoGreetingFade .72s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform,filter}@keyframes prumoGreetingFade{0%{opacity:0;transform:translateY(7px);filter:blur(5px)}42%{opacity:.66;filter:blur(1.8px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}@media(prefers-reduced-motion:reduce){.prumo-title-prep{opacity:1!important;transform:none!important;filter:none!important}.prumo-title-fade{animation:none!important}}`;
     document.head.appendChild(style);
   }
 
@@ -274,7 +274,7 @@
   function observe(){
     let scheduled=false;const run=()=>{scheduled=false;decorate()},queue=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(run)};
     new MutationObserver(queue).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-    document.addEventListener('click',e=>{const navButton=e.target.closest('.nav button[data-page]');if(navButton){const page=navButton.dataset.page;setTimeout(()=>{refreshHeading();decorateNav();animatePageTitle(page)},45)}});
+    document.addEventListener('click',e=>{const navButton=e.target.closest('.nav button[data-page]');if(navButton){const page=navButton.dataset.page,title=document.getElementById('pageTitle');if(title&&!animatedPageTitles.has(page))title.classList.add('prumo-title-prep');setTimeout(()=>{refreshHeading();decorateNav();if(title)title.classList.remove('prumo-title-prep');animatePageTitle(page)},45)}});
   }
   function boot(){
     decorate();observe();watchWebCardRows();setTimeout(decorate,150);setTimeout(decorate,700);
