@@ -666,6 +666,7 @@ function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();r
 
 window.__prumoChartRendererVersion='premiumchart3';
 function drawLineChart(id,data){
+ if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
  const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300);
