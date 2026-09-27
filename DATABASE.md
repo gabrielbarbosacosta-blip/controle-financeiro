@@ -81,3 +81,17 @@ O arquivo `dashboard-design-mode.js` lê `app_ui_configs`:
 - `stage = 'draft'`: rascunho visível e editável somente por administradores.
 
 A publicação é feita pela RPC `publish_app_ui_config('dashboard')`, que copia o rascunho para a versão publicada e incrementa a versão de forma atômica. A autorização usa `user_profiles.role = 'admin'` e RLS.
+
+
+### Design Studio v3
+
+O editor administrativo global é carregado por `site-design-studio.js` e mantém rascunho/publicação em `app_ui_configs`.
+
+A configuração publicada agora pode conter:
+- `texts`: alterações, estilos e exclusões de textos estáticos;
+- `customTexts`: caixas de texto criadas pelo administrador por tela;
+- `cards`: visibilidade, largura, padding, raio e altura mínima de cards;
+- `orders`: ordem de cards dentro de um mesmo contêiner;
+- `dashboard`: compatibilidade com a organização legada dos widgets da Visão Geral.
+
+Nada disso altera os dados financeiros dos usuários. Usuários comuns recebem somente `stage = 'published'`; o administrador edita `stage = 'draft'` e publica pela RPC `publish_app_ui_config`.
