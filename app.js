@@ -731,8 +731,8 @@ function drawLineChart(id,data){
    ctx.beginPath();trace();ctx.lineTo(points.at(-1).x,zeroY);ctx.lineTo(points[0].x,zeroY);ctx.closePath();
    ctx.fillStyle=grad;ctx.fill();ctx.restore();
  };
- fillRegion(p.t,Math.min(bottom,zeroY),'rgba(184,255,100,.34)','rgba(184,255,100,.025)');
- fillRegion(Math.max(p.t,zeroY),bottom,'rgba(255,111,111,.025)','rgba(255,111,111,.28)');
+ fillRegion(p.t,Math.min(bottom,zeroY),'rgba(145,214,185,.30)','rgba(145,214,185,.025)');
+ fillRegion(Math.max(p.t,zeroY),bottom,'rgba(239,138,129,.025)','rgba(239,138,129,.26)');
 
  const strokeRegion=(top,clipBottom,color)=>{
    if(clipBottom<=top)return;
@@ -740,11 +740,11 @@ function drawLineChart(id,data){
    ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=8;ctx.globalAlpha=.13;ctx.shadowColor=color;ctx.shadowBlur=16;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
    ctx.globalAlpha=1;ctx.shadowBlur=8;ctx.beginPath();trace();ctx.strokeStyle=color;ctx.lineWidth=3.2;ctx.stroke();ctx.restore();
  };
- strokeRegion(p.t,Math.min(bottom,zeroY),'#b8ff64');
- strokeRegion(Math.max(p.t,zeroY),bottom,'#ff6f6f');
+ strokeRegion(p.t,Math.min(bottom,zeroY),'#91d6b9');
+ strokeRegion(Math.max(p.t,zeroY),bottom,'#ef8a81');
 
  points.forEach((pt,i)=>{
-   const color=pt.value<0?'#ff6f6f':'#b8ff64';
+   const color=pt.value<0?'#ef8a81':'#91d6b9';
    if(i===points.length-1){
      ctx.save();ctx.shadowColor=color;ctx.shadowBlur=15;ctx.fillStyle=color;ctx.beginPath();ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(244,255,232,.95)';ctx.lineWidth=1.8;ctx.stroke();ctx.restore();
    }else{
@@ -763,9 +763,9 @@ function drawLineChart(id,data){
    const boxW=Math.max(94,Math.min(144,36+String(last.label||'').length*5.4)),boxH=42;
    let bx=last.x-boxW/2,by=last.y-boxH-18;
    bx=Math.max(p.l,Math.min(W-p.r-boxW,bx));if(by<p.t)by=last.y+16;
-   ctx.save();ctx.shadowColor='rgba(0,0,0,.42)';ctx.shadowBlur=14;roundedRect(bx,by,boxW,boxH,9);ctx.fillStyle='rgba(7,17,29,.94)';ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(184,255,100,.24)';ctx.lineWidth=1;ctx.stroke();
+   ctx.save();ctx.shadowColor='rgba(0,0,0,.42)';ctx.shadowBlur=14;roundedRect(bx,by,boxW,boxH,9);ctx.fillStyle='rgba(7,17,29,.94)';ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(145,214,185,.24)';ctx.lineWidth=1;ctx.stroke();
    ctx.fillStyle='rgba(184,199,211,.72)';ctx.font='9px system-ui,-apple-system,sans-serif';ctx.fillText(last.label,bx+10,by+16);
-   ctx.fillStyle=last.value<0?'#ff8b8b':'#b8ff64';ctx.font='700 11px system-ui,-apple-system,sans-serif';ctx.fillText(typeof fmtMoney==='function'?fmtMoney(last.value):String(last.value),bx+10,by+32);ctx.restore();
+   ctx.fillStyle=last.value<0?'#ff8b8b':'#91d6b9';ctx.font='700 11px system-ui,-apple-system,sans-serif';ctx.fillText(typeof fmtMoney==='function'?fmtMoney(last.value):String(last.value),bx+10,by+32);ctx.restore();
  }
 }
 
