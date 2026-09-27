@@ -64,8 +64,6 @@
     ctx.fillStyle=opts.background||'#081522';
     ctx.fill();
 
-    ctx.save();ctx.fillStyle='rgba(184,255,100,.92)';ctx.font='700 9px system-ui,-apple-system,sans-serif';ctx.textBaseline='top';ctx.fillText('NOVO GRÁFICO',12,10);ctx.restore();
-
     const bg=ctx.createLinearGradient(0,0,W,H);
     bg.addColorStop(0,'rgba(22,42,58,.34)');
     bg.addColorStop(1,'rgba(5,14,23,.08)');
@@ -238,5 +236,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified1',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified2',drawSingle,drawComparison};
 })();
