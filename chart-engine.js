@@ -87,88 +87,7 @@
 
   function addXGrid(f,points,total){
     const {ctx,p,bottom}=f;
-    points.forEach((pt,i)=>{
-      if(i%3!==0)return;
-      ctx.strokeStyle='rgba(145,166,184,.055)';
-      ctx.beginPath();ctx.moveTo(pt.x,p.t);ctx.lineTo(pt.x,bottom);ctx.stroke();
-    });
-  }
-
-  function drawLabels(f,points,total){
-    const {ctx,H}=f;
-    ctx.textBaseline='alphabetic';
-    ctx.font='10px system-ui,-apple-system,sans-serif';
-    ctx.fillStyle='rgba(191,205,216,.80)';
-    points.forEach((pt,i)=>{
-      if(i%3!==0)return;
-      ctx.save();
-      ctx.translate(pt.x,H-14);
-      ctx.rotate(-.28);
-      ctx.fillText(String(pt.label||''),-16,0);
-      ctx.restore();
-    });
-  }
-
-  function strokeSeries(ctx,points,color,width=4.5){
-    if(!points.length)return;
-    ctx.save();
-    ctx.beginPath();smoothPath(ctx,points);
-    ctx.strokeStyle=color;ctx.lineWidth=width;
-    ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawSingle(target,data,opts={}){
-    const canvas=canvasFor(target);
-    if(!canvas||!Array.isArray(data)||!data.length)return null;
-    const values=data.map(d=>Number(d?.value)||0);
-    const f=frame(canvas,values,opts);
-    if(!f)return null;
-    const {ctx,W,H,p,y,zeroY,right,bottom}=f;
-    const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
-    const points=data.map((d,i)=>({x:x(i),y:y(Number(d?.value)||0),value:Number(d?.value)||0,label:String(d?.label||'')}));
-
-    addXGrid(f,points,data.length);
-
-    const fillRegion=(top,clipBottom,colorTop,colorBottom)=>{
-      if(clipBottom<=top)return;
-      const grad=ctx.createLinearGradient(0,top,0,clipBottom);
-      grad.addColorStop(0,colorTop);grad.addColorStop(1,colorBottom);
-      ctx.save();
-      ctx.beginPath();ctx.rect(p.l,top,right-p.l,clipBottom-top);ctx.clip();
-      ctx.beginPath();smoothPath(ctx,points);
-      ctx.lineTo(points[points.length-1].x,zeroY);
-      ctx.lineTo(points[0].x,zeroY);
-      ctx.closePath();ctx.fillStyle=grad;ctx.fill();ctx.restore();
-    };
-
-    fillRegion(p.t,Math.min(bottom,zeroY),'rgba(145,214,185,.30)','rgba(145,214,185,.025)');
-    fillRegion(Math.max(p.t,zeroY),bottom,'rgba(239,138,129,.025)','rgba(239,138,129,.26)');
-
-    const clipStroke=(top,clipBottom,color)=>{
-      if(clipBottom<=top)return;
-      ctx.save();ctx.beginPath();ctx.rect(p.l-10,top,right-p.l+20,clipBottom-top);ctx.clip();
-      strokeSeries(ctx,points,color,4.5);
-      ctx.restore();
-    };
-    clipStroke(p.t,Math.min(bottom,zeroY),opts.positiveColor||'#91d6b9');
-    clipStroke(Math.max(p.t,zeroY),bottom,opts.negativeColor||'#ef8a81');
-
-    points.forEach((pt,i)=>{
-      const color=pt.value<0?(opts.negativeColor||'#ef8a81'):(opts.positiveColor||'#91d6b9');
-      if(i===points.length-1){
-        ctx.save();ctx.shadowColor=color;ctx.shadowBlur=15;ctx.fillStyle=color;
-        ctx.beginPath();ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.fill();
-        ctx.shadowBlur=0;ctx.strokeStyle='rgba(244,255,232,.95)';ctx.lineWidth=1.8;ctx.stroke();ctx.restore();
-      }else if(opts.showIntermediatePoints!==false){
-        ctx.save();
-        ctx.fillStyle=color;
-        ctx.shadowColor=color;
-        ctx.shadowBlur=4;
-        ctx.beginPath();ctx.arc(pt.x,pt.y,2.8,0,Math.PI*2);ctx.fill();
-        ctx.restore();
-      }
-    });
+    // Point markers intentionally hidden; points remain available for hover tooltips.
 
     drawLabels(f,points,data.length);
 
@@ -216,17 +135,12 @@
 
     rendered.forEach((s,si)=>{
       strokeSeries(ctx,s.points,s.color,si===rendered.length-1?4.5:2.8);
-      s.points.forEach((pt,i)=>{
-        if(i!==s.points.length-1&&opts.showIntermediatePoints===false)return;
-        const pointColor=pt.value<0?'#ef8a81':'#91d6b9';
-        ctx.save();ctx.fillStyle=pointColor;ctx.shadowColor=pointColor;ctx.shadowBlur=i===s.points.length-1?10:3;
-        ctx.beginPath();ctx.arc(pt.x,pt.y,i===s.points.length-1?5:2.6,0,Math.PI*2);ctx.fill();ctx.restore();
-      });
+      // Point markers intentionally hidden; points remain available for hover tooltips.
     });
 
     drawLabels(f,rendered[0].points,count);
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified8',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified9',drawSingle,drawComparison};
 })();
