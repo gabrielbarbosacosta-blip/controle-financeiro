@@ -15,7 +15,7 @@
 
   function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect();
-    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:20,t:22,b:44};
+    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:8,r:48,t:22,b:44};
     const {min,max}=bounds(data);
     const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
     const y=v=>p.t+(H-p.t-p.b)*(1-((Number(v)||0)-min)/(max-min));
