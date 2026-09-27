@@ -105,7 +105,8 @@
     return {
       kpiOrder:KPI_DEFS.map(x=>x.key),
       panelOrder:PANEL_DEFS.map(x=>x.key),
-      hidden:{}
+      hidden:{},
+      sizes:{}
     };
   }
 
@@ -122,7 +123,8 @@
     state.settings.uiLayout={
       kpiOrder:validOrder(current.kpiOrder,KPI_DEFS),
       panelOrder:validOrder(current.panelOrder,PANEL_DEFS),
-      hidden:current.hidden&&typeof current.hidden==='object'?current.hidden:{}
+      hidden:current.hidden&&typeof current.hidden==='object'?current.hidden:{},
+      sizes:current.sizes&&typeof current.sizes==='object'?current.sizes:{}
     };
     return state.settings.uiLayout;
   }
@@ -132,8 +134,9 @@
     return target?.closest('.card')||target?.closest('.kpi')||null;
   }
 
-  function applyGroup(container,defs,order,hidden){
+  function applyGroup(container,defs,order,hidden,sizes){
     if(!container)return;
+    const designMode=document.body?.classList.contains('prumo-design-mode');
     const byKey=new Map();
     defs.forEach(def=>{
       const card=cardFor(def);
@@ -148,15 +151,20 @@
     });
     defs.forEach(def=>{
       const card=byKey.get(def.key);
-      if(card)card.style.display=hidden[def.key]?'none':'';
+      if(!card)return;
+      const isHidden=!!hidden[def.key];
+      card.style.display=isHidden&&!designMode?'none':'';
+      card.classList.toggle('prumo-design-hidden',isHidden&&designMode);
+      const size=String(sizes?.[def.key]||'normal');
+      card.dataset.uiSize=['normal','wide','full'].includes(size)?size:'normal';
     });
   }
 
   function applyUiLayout(){
     if(!state?.settings)return;
     const layout=ensureUiLayout();
-    applyGroup(document.querySelector('#page-dashboard .grid-kpi'),KPI_DEFS,layout.kpiOrder,layout.hidden);
-    applyGroup(document.querySelector('#page-dashboard .dashboard-grid'),PANEL_DEFS,layout.panelOrder,layout.hidden);
+    applyGroup(document.querySelector('#page-dashboard .grid-kpi'),KPI_DEFS,layout.kpiOrder,layout.hidden,layout.sizes);
+    applyGroup(document.querySelector('#page-dashboard .dashboard-grid'),PANEL_DEFS,layout.panelOrder,layout.hidden,layout.sizes);
   }
 
   function persistUiLayout(){
@@ -231,6 +239,15 @@
     applyUiLayout();
     return true;
   }
+
+  window.prumoUiLayout={
+    defaults:defaultUiLayout,
+    ensure:ensureUiLayout,
+    apply:applyUiLayout,
+    persist:persistUiLayout,
+    kpis:KPI_DEFS,
+    panels:PANEL_DEFS
+  };
 
   function wrapRenderAll(){
     const base=window.renderAll||((typeof renderAll==='function')?renderAll:null);
