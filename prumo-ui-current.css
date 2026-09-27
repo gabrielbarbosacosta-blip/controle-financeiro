@@ -855,3 +855,13 @@ html.caderno-stable .topbar .caderno-month-switcher select{
     background:rgba(143,160,181,.42);
   }
 }
+
+
+@media(min-width:901px){
+  .grid-kpi,
+  .summary-strip,
+  .card-grid,
+  .dashboard-grid{
+    align-items:start!important;
+  }
+}
