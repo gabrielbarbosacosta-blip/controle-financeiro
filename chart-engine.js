@@ -69,7 +69,12 @@
     ctx.textBaseline='middle';
     for(let val=min;val<=max+0.001;val+=yStep){
       const yy=y(val);
-      ctx.strokeStyle='rgba(145,166,184,.12)';
+      const hGrid=ctx.createLinearGradient(p.l,0,right,0);
+      hGrid.addColorStop(0,'rgba(145,166,184,0)');
+      hGrid.addColorStop(.12,'rgba(145,166,184,.12)');
+      hGrid.addColorStop(.88,'rgba(145,166,184,.12)');
+      hGrid.addColorStop(1,'rgba(145,166,184,0)');
+      ctx.strokeStyle=hGrid;
       ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(right,yy);ctx.stroke();
       ctx.fillStyle='rgba(184,199,211,.72)';
@@ -89,7 +94,12 @@
     const {ctx,p,bottom}=f;
     points.forEach((pt,i)=>{
       if(i%3!==0)return;
-      ctx.strokeStyle='rgba(145,166,184,.055)';
+      const vGrid=ctx.createLinearGradient(0,p.t,0,bottom);
+      vGrid.addColorStop(0,'rgba(145,166,184,0)');
+      vGrid.addColorStop(.16,'rgba(145,166,184,.055)');
+      vGrid.addColorStop(.84,'rgba(145,166,184,.055)');
+      vGrid.addColorStop(1,'rgba(145,166,184,0)');
+      ctx.strokeStyle=vGrid;
       ctx.beginPath();ctx.moveTo(pt.x,p.t);ctx.lineTo(pt.x,bottom);ctx.stroke();
     });
   }
@@ -117,7 +127,12 @@
     ctx.textBaseline='middle';
     for(let val=min;val<=max+0.001;val+=yStep){
       const yy=y(val);
-      ctx.strokeStyle='rgba(145,166,184,.12)';
+      const hGrid=ctx.createLinearGradient(p.l,0,right,0);
+      hGrid.addColorStop(0,'rgba(145,166,184,0)');
+      hGrid.addColorStop(.12,'rgba(145,166,184,.12)');
+      hGrid.addColorStop(.88,'rgba(145,166,184,.12)');
+      hGrid.addColorStop(1,'rgba(145,166,184,0)');
+      ctx.strokeStyle=hGrid;
       ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(right,yy);ctx.stroke();
       ctx.fillStyle='rgba(184,199,211,.72)';
@@ -265,5 +280,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified13',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified14',drawSingle,drawComparison};
 })();
