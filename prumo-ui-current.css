@@ -1192,3 +1192,24 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 .grid-kpi .kpi:last-child .kpi-closing-inline .kpi-pending{
   line-height:1.2;
 }
+
+
+/* Desktop: trava o saldo projetado na mesma linha dos pendentes */
+@media(min-width:901px){
+  .grid-kpi .kpi:last-child .kpi-closing-inline{
+    position:absolute!important;
+    left:16px!important;
+    right:16px!important;
+    bottom:25px!important;
+    margin:0!important;
+    padding:0!important;
+    min-height:0!important;
+  }
+}
+
+@media(max-width:900px){
+  .grid-kpi .kpi:last-child .kpi-closing-inline{
+    position:static!important;
+    margin-top:6px!important;
+  }
+}
