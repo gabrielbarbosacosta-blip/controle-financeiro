@@ -217,7 +217,7 @@ body.prumo-app-splash:not(.caderno-splash-done) .prumo-splash-progress{animation
 
   <section class="page" id="page-settings">
     <div class="settings-grid">
-      <div class="card"><h3>Configuração financeira</h3><div class="form-grid"><div class="field"><label>Saldo-base</label><input id="setBaseBalance" type="number" step="0.01"></div><div class="field"><label>Data do saldo-base</label><input id="setBaseDate" type="date"></div></div><div style="margin-top:14px"><button class="btn primary" id="saveSettings">Salvar configuração</button></div></div>
+      <div class="card"><h3>Configuração financeira</h3><div class="form-grid"><div class="field"><label>Saldo inicial</label><input id="setBaseBalance" type="number" step="0.01"></div><div class="field"><label>Início do controle</label><input id="setFinancialStartMonth" type="month"></div></div><p class="muted" style="margin:10px 0 0">Movimentações anteriores ao mês de início não entram nos saldos, comparações ou projeções.</p><div style="margin-top:14px"><button class="btn primary" id="saveSettings">Salvar configuração</button></div></div>
       <div class="card"><h3>Backup</h3><p class="muted">Exporte todos os lançamentos, cartões, faturas e compras para um arquivo JSON.</p><div class="toolbar"><button class="btn" id="backupBtn">Baixar backup</button><label class="btn">Restaurar backup<input type="file" id="restoreFile" accept="application/json" hidden></label></div></div>
       <div class="card"><h3>Exportação</h3><p class="muted">Exporte o fluxo de caixa consolidado para CSV. Cada fatura aparece em uma única linha.</p><button class="btn" id="csvBtn">Exportar CSV</button></div>
       <div class="card passkey-settings-card">
