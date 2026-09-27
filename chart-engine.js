@@ -179,7 +179,14 @@
 
     if(canvas.__prumoChartAnimationFrame)cancelAnimationFrame(canvas.__prumoChartAnimationFrame);
     const started=performance.now();
+    const revealCanvas=()=>{
+      if(canvas.dataset.prumoHideUntilIntro==='1'){
+        canvas.style.removeProperty('visibility');
+        delete canvas.dataset.prumoHideUntilIntro;
+      }
+    };
     const tick=now=>{
+      revealCanvas();
       const raw=Math.min(1,(now-started)/duration);
       const eased=1-Math.pow(1-raw,3);
       drawStatic();
@@ -298,5 +305,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified20',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified21',drawSingle,drawComparison};
 })();
