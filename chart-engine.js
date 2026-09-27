@@ -93,7 +93,7 @@
   function addXGrid(f,points,total){
     const {ctx,p,bottom}=f;
     points.forEach((pt,i)=>{
-      if(i%3!==0)return;
+      if((i+1)%3!==0)return;
       const vGrid=ctx.createLinearGradient(0,p.t,0,bottom);
       vGrid.addColorStop(0,'rgba(145,166,184,0)');
       vGrid.addColorStop(.16,'rgba(145,166,184,.055)');
@@ -110,11 +110,13 @@
     ctx.font='10px system-ui,-apple-system,sans-serif';
     ctx.fillStyle='rgba(191,205,216,.80)';
     points.forEach((pt,i)=>{
-      if(i%3!==0)return;
+      const months=i+1;
+      if(months%3!==0)return;
       ctx.save();
       ctx.translate(pt.x,H-14);
-      ctx.rotate(-.28);
-      ctx.fillText(String(pt.label||''),-16,0);
+      ctx.rotate(-.18);
+      ctx.textAlign='center';
+      ctx.fillText(months+' meses',0,0);
       ctx.restore();
     });
   }
@@ -280,5 +282,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified14',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified15',drawSingle,drawComparison};
 })();
