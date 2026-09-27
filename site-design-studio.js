@@ -403,21 +403,45 @@
       card.dataset.prumoCardSelector=cardSelector(card,pageId);
       card.dataset.prumoCardPage=pageId;
       card.classList.remove('prumo-design-card-hidden');
-      card.style.removeProperty('display');
+
+      // Preserve visibility owned by the application itself. Components such
+      // as Primeiros passos deliberately use inline display:none after they
+      // are completed. Design Studio must not revive them unless the admin
+      // has explicitly created a card override.
+      if(!card.dataset.prumoDesignOriginalDisplay){
+        card.dataset.prumoDesignOriginalDisplay=card.style.display||'__empty__';
+      }
+
       card.style.removeProperty('grid-column');
       card.style.removeProperty('padding');
       card.style.removeProperty('border-radius');
       card.style.removeProperty('min-height');
-      if(!entry)return;
+
+      if(!entry){
+        var originalDisplay=card.dataset.prumoDesignOriginalDisplay;
+        if(originalDisplay==='__empty__')card.style.removeProperty('display');
+        else card.style.display=originalDisplay;
+        return;
+      }
+
       if(entry.hidden){
         if(editable()){
-          card.style.removeProperty('display');
-          card.classList.add('prumo-design-card-hidden');
+          var appDisplay=card.dataset.prumoDesignOriginalDisplay;
+          if(appDisplay==='none'){
+            // App-hidden cards stay hidden; otherwise their decorative
+            // pseudo-elements can leak into the page as orphan separators.
+            card.style.display='none';
+          }else{
+            card.style.removeProperty('display');
+            card.classList.add('prumo-design-card-hidden');
+          }
         }else{
           card.style.display='none';
         }
       }else{
-        card.style.removeProperty('display');
+        var baseline=card.dataset.prumoDesignOriginalDisplay;
+        if(baseline==='__empty__')card.style.removeProperty('display');
+        else card.style.display=baseline;
       }
       if(entry.width==='wide')card.style.gridColumn='span 2';
       if(entry.width==='full')card.style.gridColumn='1 / -1';
