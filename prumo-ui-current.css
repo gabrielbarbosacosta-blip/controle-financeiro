@@ -869,7 +869,7 @@ html.caderno-stable .topbar .caderno-month-switcher select{
   }
 
   .grid-kpi>.kpi{
-    overflow:visible!important;
+    overflow:hidden!important;
     height:auto!important;
   }
 }
