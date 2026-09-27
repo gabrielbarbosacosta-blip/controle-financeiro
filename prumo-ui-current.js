@@ -199,6 +199,7 @@
         cards.forEach(card=>{
           card.style.height='auto';
           card.style.removeProperty('--web-row-height');
+          card.classList.remove('web-card-scroll');
         });
 
         const rows=[];
@@ -217,6 +218,8 @@
           row.cards.forEach(card=>{
             card.style.setProperty('--web-row-height',min+'px');
             card.style.height='var(--web-row-height)';
+            const needsScroll=Math.ceil(card.scrollHeight)>min+1;
+            card.classList.toggle('web-card-scroll',needsScroll);
           });
         });
       });
@@ -234,6 +237,7 @@
           document.querySelectorAll('.grid-kpi>*,.summary-strip>*,.card-grid>*,.dashboard-grid>*').forEach(card=>{
             card.style.height='auto';
             card.style.removeProperty('--web-row-height');
+            card.classList.remove('web-card-scroll');
           });
           return;
         }
