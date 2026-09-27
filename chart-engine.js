@@ -109,19 +109,11 @@
     });
   }
 
-  function strokeSeries(ctx,points,color,width=3.2,glow=true){
+  function strokeSeries(ctx,points,color,width=3.2){
     if(!points.length)return;
-    if(glow){
-      ctx.save();
-      ctx.beginPath();smoothPath(ctx,points);
-      ctx.strokeStyle=color;ctx.lineWidth=8;ctx.globalAlpha=.14;
-      ctx.shadowColor=color;ctx.shadowBlur=16;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-      ctx.restore();
-    }
     ctx.save();
     ctx.beginPath();smoothPath(ctx,points);
     ctx.strokeStyle=color;ctx.lineWidth=width;
-    ctx.shadowColor=color;ctx.shadowBlur=glow?7:0;
     ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
     ctx.restore();
   }
@@ -236,5 +228,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified6',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified7',drawSingle,drawComparison};
 })();
