@@ -16,8 +16,13 @@
 
   function safeRedraw(){
     try{
-      const ym=window.state?.settings?.selectedMonth;
+      const appState=typeof state!=='undefined'?state:window.state;
+      const ym=appState?.settings?.selectedMonth;
       if(!ym)return;
+
+      try{if(typeof renderDashboard==='function')renderDashboard()}catch(_e){}
+      try{if(document.getElementById('projectionChartLarge')&&typeof renderProjection==='function')renderProjection()}catch(_e){}
+      try{if(document.getElementById('cardProjectionChart')&&typeof renderCards==='function')renderCards()}catch(_e){}
 
       const dashboardCanvas=document.getElementById('projectionChart');
       if(dashboardCanvas){
