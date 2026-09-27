@@ -828,3 +828,30 @@ html.caderno-stable .topbar .caderno-month-switcher select{
   text-align:center!important;
   text-align-last:center!important;
 }
+
+
+@media(min-width:901px){
+  .web-card-scroll{
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+  }
+
+  .web-card-scroll::-webkit-scrollbar{
+    width:6px;
+  }
+
+  .web-card-scroll::-webkit-scrollbar-track{
+    background:transparent;
+  }
+
+  .web-card-scroll::-webkit-scrollbar-thumb{
+    background:rgba(143,160,181,.28);
+    border-radius:999px;
+  }
+
+  .web-card-scroll::-webkit-scrollbar-thumb:hover{
+    background:rgba(143,160,181,.42);
+  }
+}
