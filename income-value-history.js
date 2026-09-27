@@ -161,10 +161,11 @@
   }
 
   function applyUiLayout(){
-    if(!state?.settings)return;
-    const layout=ensureUiLayout();
-    applyGroup(document.querySelector('#page-dashboard .grid-kpi'),KPI_DEFS,layout.kpiOrder,layout.hidden,layout.sizes);
-    applyGroup(document.querySelector('#page-dashboard .dashboard-grid'),PANEL_DEFS,layout.panelOrder,layout.hidden,layout.sizes);
+    // Legacy per-user dashboard layout is intentionally disabled.
+    // The global product layout is owned by dashboard-design-mode.js.
+    if(window.prumoGlobalUi?.applyCurrent){
+      try{window.prumoGlobalUi.applyCurrent()}catch(_e){}
+    }
   }
 
   function persistUiLayout(){
@@ -217,34 +218,15 @@
   }
 
   function installUiCustomizer(){
-    const grid=document.querySelector('#page-settings .settings-grid');
-    if(!grid)return false;
-    let card=document.getElementById('uiCustomizerCard');
-    if(!card){
-      card=document.createElement('div');
-      card.className='card';
-      card.id='uiCustomizerCard';
-      card.innerHTML='<h3>Personalizar interface</h3><p class="muted">Escolha quais blocos aparecem no Dashboard e altere a ordem usando as setas. A configuração é salva na sua conta.</p><div id="uiCustomizerBody"></div><div class="toolbar" style="margin-top:14px"><button type="button" class="btn" id="uiResetLayout">Restaurar layout padrão</button><button type="button" class="btn primary" id="uiGoDashboard">Ver Dashboard</button></div>';
-      grid.appendChild(card);
-      card.querySelector('#uiResetLayout').onclick=()=>{
-        if(!confirm('Restaurar o layout padrão do Dashboard?'))return;
-        state.settings.uiLayout=defaultUiLayout();
-        persistUiLayout();
-      };
-      card.querySelector('#uiGoDashboard').onclick=()=>{
-        if(typeof showPage==='function')showPage('dashboard');
-      };
-    }
-    renderUiCustomizer();
-    applyUiLayout();
+    // Remove the old user-specific customizer. Interface design is now global
+    // and available only to product administrators.
+    document.getElementById('uiCustomizerCard')?.remove();
     return true;
   }
 
-  window.prumoUiLayout={
+  window.prumoLegacyUiLayout={
     defaults:defaultUiLayout,
     ensure:ensureUiLayout,
-    apply:applyUiLayout,
-    persist:persistUiLayout,
     kpis:KPI_DEFS,
     panels:PANEL_DEFS
   };
