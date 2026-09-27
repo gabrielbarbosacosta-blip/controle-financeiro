@@ -1174,42 +1174,47 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 
-/* Alinha o saldo projetado à mesma linha visual dos pendentes */
-.grid-kpi .kpi:last-child{
+
+
+
+/* Saldo final — mesma geometria interna dos KPIs refinados */
+.grid-kpi .kpi.kpi-closing-aligned{
+  position:relative;
+  padding:18px 16px 14px!important;
+  min-height:158px;
   display:flex;
   flex-direction:column;
 }
 
-.grid-kpi .kpi:last-child .hint{
-  margin-top:14px!important;
-  padding-top:0!important;
-}
-
-.grid-kpi .kpi:last-child .kpi-closing-inline{
-  margin-top:6px!important;
-}
-
-.grid-kpi .kpi:last-child .kpi-closing-inline .kpi-pending{
+.grid-kpi .kpi.kpi-closing-aligned .label{
+  font-size:10px!important;
   line-height:1.2;
 }
 
-
-/* Desktop: trava o saldo projetado na mesma linha dos pendentes */
-@media(min-width:901px){
-  .grid-kpi .kpi:last-child .kpi-closing-inline{
-    position:absolute!important;
-    left:16px!important;
-    right:16px!important;
-    bottom:25px!important;
-    margin:0!important;
-    padding:0!important;
-    min-height:0!important;
-  }
+.grid-kpi .kpi.kpi-closing-aligned .value{
+  margin-top:22px!important;
+  font-size:clamp(19px,1.95vw,26px)!important;
+  line-height:1.05;
+  font-weight:700!important;
+  letter-spacing:-.08em!important;
 }
 
-@media(max-width:900px){
-  .grid-kpi .kpi:last-child .kpi-closing-inline{
-    position:static!important;
-    margin-top:6px!important;
-  }
+.grid-kpi .kpi.kpi-closing-aligned .hint{
+  margin-top:14px!important;
+  padding-top:0!important;
+  font-size:10px!important;
+  line-height:1.2;
+}
+
+.grid-kpi .kpi.kpi-closing-aligned .kpi-closing-inline{
+  position:static!important;
+  margin-top:6px!important;
+  padding:0!important;
+  min-height:0!important;
+}
+
+.grid-kpi .kpi.kpi-closing-aligned .kpi-closing-inline .kpi-pending{
+  font-size:10.5px!important;
+  line-height:1.2;
+  font-weight:700;
 }
