@@ -3,29 +3,19 @@
   window.__dashboardZeroAxisRequested=true;
 
   function bounds(data){
-    const vals=(data||[]).map(d=>Number(d.value)||0);
-    if(!vals.length)return{min:0,max:1};
-    const rawMin=Math.min(...vals),rawMax=Math.max(...vals);
-    let min,max;
-    if(rawMin>=0){
-      min=0;max=rawMax;
-      if(max===0)max=1;
-      max+=Math.max(1,(max-min)*0.10);
-    }else if(rawMax<=0){
-      max=0;min=rawMin;
-      if(min===0)min=-1;
-      min-=Math.max(1,(max-min)*0.10);
-    }else{
-      min=rawMin;max=rawMax;
-      const pad=Math.max(1,(max-min)*0.10);
-      min-=pad;max+=pad;
-    }
+    const vals=(data||[]).map(d=>Number(d.value)||0),yStep=5000;
+    if(!vals.length)return{min:0,max:yStep};
+    const rawMin=Math.min(0,...vals),rawMax=Math.max(0,...vals);
+    let min=Math.floor(rawMin/yStep)*yStep,max=Math.ceil(rawMax/yStep)*yStep;
+    if(rawMin<0&&rawMin===min)min-=yStep;
+    if(rawMax>0&&rawMax===max)max+=yStep;
+    if(min===max){if(max===0)max=yStep;else{min-=yStep;max+=yStep}}
     return{min,max};
   }
 
   function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect();
-    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:18,t:20,b:42};
+    const W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:20,t:22,b:44};
     const {min,max}=bounds(data);
     const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1));
     const y=v=>p.t+(H-p.t-p.b)*(1-((Number(v)||0)-min)/(max-min));
