@@ -65,16 +65,6 @@
     const y=v=>p.t+plotH*(1-(Number(v)-min)/(max-min));
     const zeroY=y(0),right=W-p.r,bottom=H-p.b;
 
-    roundedRect(ctx,0,0,W,H,opts.radius||18);
-    ctx.fillStyle=opts.background||'#081522';
-    ctx.fill();
-
-    const bg=ctx.createLinearGradient(0,0,W,H);
-    bg.addColorStop(0,'rgba(22,42,58,.34)');
-    bg.addColorStop(1,'rgba(5,14,23,.08)');
-    roundedRect(ctx,0,0,W,H,opts.radius||18);
-    ctx.fillStyle=bg;ctx.fill();
-
     ctx.font='10px system-ui,-apple-system,sans-serif';
     ctx.textBaseline='middle';
     for(let val=min;val<=max+0.001;val+=yStep){
@@ -241,5 +231,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified4',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified5',drawSingle,drawComparison};
 })();
