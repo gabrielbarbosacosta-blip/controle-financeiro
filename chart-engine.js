@@ -155,38 +155,48 @@
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const played=canvas.__prumoChartIntroPlayed===true;
     const rect=canvas.getBoundingClientRect();
-    const visible=rect.width>40&&rect.height>40&&canvas.offsetParent!==null;
+    const dashboardReady=canvas.id!=='projectionChart'||document.body?.classList.contains('caderno-splash-done');
+    const visible=rect.width>40&&rect.height>40&&canvas.offsetParent!==null&&dashboardReady;
 
     canvas.__prumoChartAnimationSignature=signature;
 
-    // Do not consume the one-per-load intro while the dashboard is still hidden
-    // (for example during auth/splash). The first visible render owns the animation.
+    const cancelRunning=()=>{
+      if(canvas.__prumoChartAnimationFrame){
+        cancelAnimationFrame(canvas.__prumoChartAnimationFrame);
+        canvas.__prumoChartAnimationFrame=0;
+      }
+    };
+
+    // Pre-rendering under the authenticated splash must never consume the intro.
+    // It may keep the final image ready underneath the splash, but the first
+    // visible dashboard render remains responsible for the animation.
     if(!visible){
+      cancelRunning();
       drawStatic();
       drawAnimated(1);
       return;
     }
 
-    // Animate once per document load. Internal redraws remain static.
+    // Any redraw after the intro began owns the canvas from this point forward.
+    // Cancel the old RAF so it cannot overwrite a newer static render later.
     if(reduced||played){
+      cancelRunning();
       canvas.__prumoChartIntroPlayed=true;
       drawStatic();
       drawAnimated(1);
       return;
     }
 
+    cancelRunning();
     canvas.__prumoChartIntroPlayed=true;
 
-    if(canvas.__prumoChartAnimationFrame)cancelAnimationFrame(canvas.__prumoChartAnimationFrame);
+    // Paint frame zero synchronously. Without this, the complete pre-rendered
+    // chart can remain visible for one browser paint before the first RAF tick.
+    drawStatic();
+    drawAnimated(0);
+
     const started=performance.now();
-    const revealCanvas=()=>{
-      if(canvas.dataset.prumoHideUntilIntro==='1'){
-        canvas.style.removeProperty('visibility');
-        delete canvas.dataset.prumoHideUntilIntro;
-      }
-    };
     const tick=now=>{
-      revealCanvas();
       const raw=Math.min(1,(now-started)/duration);
       const eased=1-Math.pow(1-raw,3);
       drawStatic();
@@ -305,5 +315,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified21',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified22',drawSingle,drawComparison};
 })();
