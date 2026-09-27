@@ -911,3 +911,7 @@ html:not(.caderno-stable) .kpi-pending{color:#758083}
 html:not(.caderno-stable) .kpi-month-change.positive{color:#36816b!important}
 html:not(.caderno-stable) .kpi-month-change.negative{color:#b75552!important}
 html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
+
+
+/* Legacy pending KPI boxes are retired. */
+#kpiIncomeForecastBox,#kpiExpensePendingBox{display:none!important}
