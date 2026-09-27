@@ -936,3 +936,16 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   color:#7e90a6;
   white-space:nowrap;
 }
+
+
+/* Compacta apenas os KPIs de Entradas e Saídas */
+.grid-kpi .kpi:nth-child(2) .value,
+.grid-kpi .kpi:nth-child(3) .value{
+  margin-top:10px!important;
+}
+
+.grid-kpi .kpi:nth-child(2) .hint,
+.grid-kpi .kpi:nth-child(3) .hint{
+  margin-top:5px!important;
+  padding-top:0!important;
+}
