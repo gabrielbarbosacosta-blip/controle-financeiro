@@ -205,7 +205,7 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     }
     dashboardChart.__prumoChartIntroLock=false;
     dashboardChart.__prumoChartIntroPlayed=false;
-    try{drawDashboardProjectionChart({forceIntro:true,animationDuration:760})}catch(_e){}
+    try{drawDashboardProjectionChart({forceIntro:true,animationDuration:900})}catch(_e){}
   }
   try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
@@ -672,6 +672,9 @@ function drawDashboardProjectionChart(opts={}){
    ?window.getDashboardProjectionRows(ym)
    :projectionFrom(ym);
  const data=rows.map(r=>({label:fmtMonth(r.ym),value:r.closing}));
+ if(opts.forceIntro===true&&window.PrumoChartEngine?.drawSingle){
+   return window.PrumoChartEngine.drawSingle('projectionChart',data,{showLastBadge:true,...opts});
+ }
  return drawLineChart('projectionChart',data,opts);
 }
 function renderDashboard(){
