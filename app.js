@@ -195,25 +195,16 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
   }
-  // The dashboard chart may already contain its final frame underneath the splash.
-  // Clear it before the splash is released, then start the reveal immediately so
-  // the user never sees "finished chart -> animation".
+  // All pre-renders happen under the splash without consuming the dashboard
+  // intro. Reset once and render synchronously now that caderno-splash-done is
+  // active; the chart engine paints frame 0 before scheduling its RAF sequence.
   const dashboardChart=document.getElementById('projectionChart');
   if(dashboardChart){
-    dashboardChart.dataset.prumoHideUntilIntro='1';
-    dashboardChart.style.visibility='hidden';
     if(dashboardChart.__prumoChartAnimationFrame){
       cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
       dashboardChart.__prumoChartAnimationFrame=0;
     }
     dashboardChart.__prumoChartIntroPlayed=false;
-    const dashboardCtx=dashboardChart.getContext?.('2d');
-    if(dashboardCtx){
-      dashboardCtx.save();
-      dashboardCtx.setTransform(1,0,0,1,0,0);
-      dashboardCtx.clearRect(0,0,dashboardChart.width,dashboardChart.height);
-      dashboardCtx.restore();
-    }
     if(document.getElementById('page-dashboard')?.classList.contains('active')){
       try{renderDashboard()}catch(_e){}
     }
