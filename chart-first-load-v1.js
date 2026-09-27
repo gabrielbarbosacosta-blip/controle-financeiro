@@ -96,6 +96,7 @@
 
   const originalDraw=window.drawLineChart;
   const wrapped=function(id,data){
+    if(window.PrumoChartEngine?.drawSingle)return originalDraw.apply(this,arguments);
     if(id!==TARGET_ID||!Array.isArray(data)||!data.length||reducedMotion())return originalDraw.apply(this,arguments);
     const canvas=document.getElementById(id);latestData=data.slice();if(active)return;
     if(!played&&splashActive())return originalDraw.apply(this,arguments);
@@ -113,6 +114,7 @@
     }catch(e){return[]}
   }
   function triggerIntro(){
+    if(window.PrumoChartEngine?.drawSingle)return false;
     if(reducedMotion()||played||active)return false;
     const canvas=document.getElementById(TARGET_ID),data=currentData(),app=document.getElementById('appRoot');
     if(canvas&&data.length&&!app?.classList.contains('auth-hidden')&&canvas.getBoundingClientRect().width>40)return start(canvas,data);
