@@ -81,62 +81,6 @@
   }
 
 
-  function equalizePwaCardRowsByShortest(){
-    if(!standalone)return;
-    const selectors=['.grid-kpi','.summary-strip','.card-grid','.dashboard-grid'];
-    selectors.forEach(selector=>{
-      document.querySelectorAll(selector).forEach(grid=>{
-        const cards=Array.from(grid.children).filter(el=>el instanceof HTMLElement);
-        if(cards.length<2)return;
-        cards.forEach(card=>card.style.removeProperty('--pwa-row-height'));
-
-        const rows=[];
-        cards.forEach(card=>{
-          const top=Math.round(card.getBoundingClientRect().top);
-          let row=rows.find(r=>Math.abs(r.top-top)<=2);
-          if(!row){row={top,cards:[]};rows.push(row)}
-          row.cards.push(card);
-        });
-
-        rows.forEach(row=>{
-          if(row.cards.length<2)return;
-          row.cards.forEach(card=>{
-            card.style.height='auto';
-            card.style.minHeight='0';
-          });
-          const heights=row.cards.map(card=>Math.ceil(card.getBoundingClientRect().height));
-          const min=Math.min(...heights);
-          if(!Number.isFinite(min)||min<=0)return;
-          row.cards.forEach(card=>{
-            card.style.setProperty('--pwa-row-height',min+'px');
-            card.style.height='var(--pwa-row-height)';
-            card.style.minHeight='var(--pwa-row-height)';
-          });
-        });
-      });
-    });
-  }
-
-  function watchPwaCardHeights(){
-    if(!standalone)return;
-    let scheduled=false;
-    const queue=()=>{
-      if(scheduled)return;
-      scheduled=true;
-      requestAnimationFrame(()=>{
-        scheduled=false;
-        equalizePwaCardRowsByShortest();
-      });
-    };
-    queue();
-    window.addEventListener('resize',queue,{passive:true});
-    window.addEventListener('orientationchange',queue,{passive:true});
-    const observer=new MutationObserver(queue);
-    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
-    setTimeout(queue,250);
-    setTimeout(queue,900);
-  }
-
   function watchPwaProfileHeader(){
     if(!standalone)return;
     let scheduled=false;
@@ -156,13 +100,8 @@
     window.addEventListener('prumo:profile-updated',queue);
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',watchPwaProfileHeader,{once:true});
-    document.addEventListener('DOMContentLoaded',watchPwaCardHeights,{once:true});
-  }else{
-    watchPwaProfileHeader();
-    watchPwaCardHeights();
-  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchPwaProfileHeader,{once:true});
+  else watchPwaProfileHeader();
 
   function ensureHead(){
     if(!document.querySelector('link[rel="manifest"]')){const link=document.createElement('link');link.rel='manifest';link.href='/manifest.webmanifest';document.head.appendChild(link)}
