@@ -23,6 +23,7 @@ O Controle Financeiro usa Supabase/PostgreSQL como fonte de verdade. O frontend 
 
 ### Configuração e autenticação
 - `user_profiles`: perfil/controle administrativo.
+- `app_ui_configs`: configuração visual global do produto, separada em `draft` e `published`. Usuários autenticados leem somente a versão publicada; administradores gerenciam o rascunho e a publicação.
 - `chatgpt_action_tokens`: hashes das chaves da integração com ChatGPT.
 
 ## Relações principais
@@ -69,3 +70,14 @@ Essas RPCs agora leem e escrevem as tabelas relacionais; a Edge Function não ac
 `finance_states_legacy` contém o último snapshot do modelo anterior e está sem acesso para `anon`/`authenticated`. Ele existe somente como rollback da migração e não é fonte ativa do aplicativo.
 
 Snapshots financeiros antigos em `auth.users.raw_user_meta_data` foram removidos. O `localStorage` financeiro legado também é limpo após o primeiro carregamento relacional.
+
+## Modo Design global
+
+A interface do Dashboard não usa mais `finance_settings.ui_layout` como personalização individual. O campo permanece apenas por compatibilidade com dados antigos.
+
+O arquivo `dashboard-design-mode.js` lê `app_ui_configs`:
+
+- `stage = 'published'`: configuração aplicada a todos os usuários autenticados.
+- `stage = 'draft'`: rascunho visível e editável somente por administradores.
+
+A publicação é feita pela RPC `publish_app_ui_config('dashboard')`, que copia o rascunho para a versão publicada e incrementa a versão de forma atômica. A autorização usa `user_profiles.role = 'admin'` e RLS.
