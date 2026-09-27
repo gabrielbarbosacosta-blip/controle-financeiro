@@ -1218,3 +1218,27 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   line-height:1.2;
   font-weight:700;
 }
+
+
+/* Dashboard: o card do gráfico mantém tamanho próprio e nunca recebe scroll interno */
+@media(min-width:901px){
+  .dashboard-grid{
+    align-items:start!important;
+  }
+
+  .dashboard-grid>.card:first-child{
+    height:auto!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+
+  .dashboard-grid>.card:first-child.web-card-scroll{
+    overflow:hidden!important;
+  }
+
+  .dashboard-grid>.card:first-child .chart-wrap{
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+  }
+}
