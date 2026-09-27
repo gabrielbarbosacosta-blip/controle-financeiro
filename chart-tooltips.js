@@ -25,7 +25,7 @@
 
   function geometry(canvas,data){
     const rect=canvas.getBoundingClientRect(),W=Math.max(300,rect.width||700),H=Math.max(220,rect.height||300),p={l:62,r:20,t:22,b:44};
-    const vals=(data||[]).map(d=>Number(d.value)||0);let min=Math.min(0,...vals),max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.12;max+=pad;min-=pad;
+    const vals=(data||[]).map(d=>Number(d.value)||0),yStep=5000,rawMin=Math.min(0,...vals),rawMax=Math.max(0,...vals);let min=Math.floor(rawMin/yStep)*yStep,max=Math.ceil(rawMax/yStep)*yStep;if(rawMin<0&&rawMin===min)min-=yStep;if(rawMax>0&&rawMax===max)max+=yStep;if(min===max){if(max===0)max=yStep;else{min-=yStep;max+=yStep}}
     const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1)),y=v=>p.t+(H-p.t-p.b)*(1-((Number(v)||0)-min)/(max-min));return{W,H,p,min,max,x,y};
   }
   function pointsFor(canvas,data,series){const{x,y}=geometry(canvas,data);return data.map((d,i)=>({x:x(i),y:y(d.value),label:d.label,value:Number(d.value)||0,series}))}
