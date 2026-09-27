@@ -153,14 +153,25 @@
 
   function animateReveal(canvas,signature,drawStatic,drawAnimated,duration=760){
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const previous=canvas.__prumoChartAnimationSignature;
-    if(reduced||previous===signature){
-      canvas.__prumoChartAnimationSignature=signature;
+    const canvasKey=String(canvas?.id||'chart');
+    const sessionKey='prumo-chart-intro-played:'+canvasKey;
+    let played=canvas.__prumoChartIntroPlayed===true;
+    if(!played){
+      try{played=sessionStorage.getItem(sessionKey)==='1'}catch(_e){}
+    }
+
+    canvas.__prumoChartAnimationSignature=signature;
+
+    if(reduced||played){
+      canvas.__prumoChartIntroPlayed=true;
       drawStatic();
       drawAnimated(1);
       return;
     }
-    canvas.__prumoChartAnimationSignature=signature;
+
+    canvas.__prumoChartIntroPlayed=true;
+    try{sessionStorage.setItem(sessionKey,'1')}catch(_e){}
+
     if(canvas.__prumoChartAnimationFrame)cancelAnimationFrame(canvas.__prumoChartAnimationFrame);
     const started=performance.now();
     const tick=now=>{
@@ -282,5 +293,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified17',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified18',drawSingle,drawComparison};
 })();
