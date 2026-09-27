@@ -169,8 +169,12 @@
         ctx.beginPath();ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.fill();
         ctx.shadowBlur=0;ctx.strokeStyle='rgba(244,255,232,.95)';ctx.lineWidth=1.8;ctx.stroke();ctx.restore();
       }else if(opts.showIntermediatePoints!==false){
-        ctx.fillStyle='rgba(217,232,217,.88)';
-        ctx.beginPath();ctx.arc(pt.x,pt.y,2.4,0,Math.PI*2);ctx.fill();
+        ctx.save();
+        ctx.fillStyle=color;
+        ctx.shadowColor=color;
+        ctx.shadowBlur=4;
+        ctx.beginPath();ctx.arc(pt.x,pt.y,2.8,0,Math.PI*2);ctx.fill();
+        ctx.restore();
       }
     });
 
@@ -222,7 +226,8 @@
       strokeSeries(ctx,s.points,s.color,si===rendered.length-1?3.2:2.2,si===rendered.length-1);
       s.points.forEach((pt,i)=>{
         if(i!==s.points.length-1&&opts.showIntermediatePoints===false)return;
-        ctx.save();ctx.fillStyle=s.color;ctx.shadowColor=s.color;ctx.shadowBlur=i===s.points.length-1?10:0;
+        const pointColor=pt.value<0?'#ef8a81':'#91d6b9';
+        ctx.save();ctx.fillStyle=pointColor;ctx.shadowColor=pointColor;ctx.shadowBlur=i===s.points.length-1?10:3;
         ctx.beginPath();ctx.arc(pt.x,pt.y,i===s.points.length-1?5:2.6,0,Math.PI*2);ctx.fill();ctx.restore();
       });
     });
@@ -231,5 +236,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified5',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified6',drawSingle,drawComparison};
 })();
