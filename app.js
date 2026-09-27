@@ -174,11 +174,34 @@ let authenticatedSplashExitTimer=null;
 let authenticatedSplashWatchdogTimer=null;
 let authenticatedUiRevealBound=false;
 
+function startDashboardChartIntro(){
+  const dashboardChart=document.getElementById('projectionChart');
+  if(!dashboardChart||!document.getElementById('page-dashboard')?.classList.contains('active'))return;
+  if(dashboardChart.dataset.prumoIntroStarted==='1')return;
+
+  if(dashboardChart.__prumoChartAnimationFrame){
+    cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
+    dashboardChart.__prumoChartAnimationFrame=0;
+  }
+  dashboardChart.__prumoChartIntroLock=false;
+  dashboardChart.__prumoChartIntroPlayed=false;
+  dashboardChart.dataset.prumoIntroStarted='1';
+
+  // This must run before caderno-splash-exit is added. That class exposes the
+  // app underneath the fading splash, so frame 0 has to be on the canvas first.
+  try{drawDashboardProjectionChart({forceIntro:true,animationDuration:900})}catch(_e){}
+}
+
 function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app=document.getElementById('appRoot')){
   const body=document.body,root=document.documentElement;
   clearTimeout(authenticatedSplashReleaseTimer);
   clearTimeout(authenticatedSplashExitTimer);
   clearTimeout(authenticatedSplashWatchdogTimer);
+
+  // Watchdog/zero-motion paths may reach finalize without the normal splash-exit
+  // callback. Start the intro while the splash still covers the app.
+  startDashboardChartIntro();
+
   body?.classList.remove('prumo-login-mode','prumo-app-splash','caderno-splash-exit','prumo-ui-loading');
   body?.classList.add('caderno-splash-done');
   root?.classList.add('prumo-current-ui-ready');
@@ -194,18 +217,6 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.removeAttribute('aria-hidden');
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
-  }
-  // The dashboard chart intro is explicitly owned here. Startup renders only
-  // prepare data; this forced draw is the single animation allowed per reload.
-  const dashboardChart=document.getElementById('projectionChart');
-  if(dashboardChart&&document.getElementById('page-dashboard')?.classList.contains('active')){
-    if(dashboardChart.__prumoChartAnimationFrame){
-      cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
-      dashboardChart.__prumoChartAnimationFrame=0;
-    }
-    dashboardChart.__prumoChartIntroLock=false;
-    dashboardChart.__prumoChartIntroPlayed=false;
-    try{drawDashboardProjectionChart({forceIntro:true,animationDuration:900})}catch(_e){}
   }
   try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
@@ -227,7 +238,12 @@ function scheduleAuthenticatedSplashRelease(auth=document.getElementById('authSc
   clearTimeout(authenticatedSplashExitTimer);
   authenticatedSplashReleaseTimer=setTimeout(()=>{
     const body=document.body;
+
+    // caderno-splash-exit makes the app visible immediately underneath the
+    // fading overlay. Paint the chart at 0% before exposing that content.
+    startDashboardChartIntro();
     body?.classList.add('caderno-splash-exit');
+
     const exitMs=reduce?0:650;
     authenticatedSplashExitTimer=setTimeout(()=>finalizeAuthenticatedApp(auth,app),exitMs);
   },wait);
