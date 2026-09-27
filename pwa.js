@@ -6,6 +6,22 @@
   const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone=window.matchMedia?.('(display-mode: standalone)')?.matches||window.navigator.standalone===true;
 
+  function enablePwaMode(){
+    if(!standalone)return;
+    document.documentElement.classList.add('prumo-pwa');
+    if(document.body)document.body.classList.add('prumo-pwa');
+    if(!document.getElementById('prumo-pwa-ui')){
+      const link=document.createElement('link');
+      link.id='prumo-pwa-ui';
+      link.rel='stylesheet';
+      link.href='/pwa-app.css?v=20260927-pwa1';
+      document.head.appendChild(link);
+    }
+  }
+
+  enablePwaMode();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enablePwaMode,{once:true});
+
   function ensureHead(){
     if(!document.querySelector('link[rel="manifest"]')){const link=document.createElement('link');link.rel='manifest';link.href='/manifest.webmanifest';document.head.appendChild(link)}
     if(!document.querySelector('meta[name="theme-color"]')){const meta=document.createElement('meta');meta.name='theme-color';meta.content='#07101d';document.head.appendChild(meta)}
