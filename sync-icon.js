@@ -68,6 +68,19 @@
     document.getElementById('kpiExpensePendingBox')?.remove();
   }
 
+  function watchLegacyPendingBoxes(){
+    removeLegacyPendingBoxes();
+    const root=document.getElementById('page-dashboard')||document.body;
+    if(!root||root.__prumoLegacyPendingObserver)return;
+    const observer=new MutationObserver(()=>{
+      if(document.getElementById('kpiIncomeForecastBox')||document.getElementById('kpiExpensePendingBox')){
+        removeLegacyPendingBoxes();
+      }
+    });
+    observer.observe(root,{childList:true,subtree:true});
+    root.__prumoLegacyPendingObserver=observer;
+  }
+
   function anchorMainToTop(){
     const main=document.querySelector('.main');
     if(!main)return;
@@ -87,7 +100,7 @@
     anchorMainToTop();
     const el=document.getElementById('syncStatus');
     if(el){const initial=String(el.textContent||'');paint(statusFromText(initial,false));}
-    removeLegacyPendingBoxes();
+    watchLegacyPendingBoxes();
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
