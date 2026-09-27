@@ -57,6 +57,7 @@
   var dragging=null;
   var refreshTimer=0;
   var applying=false;
+  var routeBaseTexts={};
 
   function clone(value){return JSON.parse(JSON.stringify(value))}
   function validOrder(value,defs){
@@ -167,11 +168,12 @@
   function eligibleTextElement(el){
     if(!el||el.nodeType!==1)return false;
     if(el.closest('#prumoGlobalDesignBar,#prumoGlobalTextEditor,.modal,.modal-backdrop'))return false;
+    if(el.matches('.nav button'))return false;
     if(el.matches('input,select,textarea,option,canvas,svg,path,table,thead,tbody,tr,td,th'))return false;
     if(el.closest('table,.category-ranking,.category-donut-hole,.history-sections'))return false;
     if(el.matches('.value,.num,.kpi-pending,.kpi-month-change,.history-section-count,[data-history-body]'))return false;
     if(el.closest('.value,.num,.kpi-pending,.kpi-month-change,[data-history-body]'))return false;
-    if(el.children.length>0&&!el.matches('button'))return false;
+    if(el.children.length>0)return false;
     var text=String(el.textContent||'').replace(/\s+/g,' ').trim();
     if(!text||text.length>240)return false;
     return el.matches('h1,h2,h3,h4,p,small,label,.label,.hint,.muted,.t,.notice,.nav button,.btn,[role="heading"]');
@@ -192,26 +194,41 @@
   function discoverTextSlots(){
     var slots=[];
     var seen=new Set();
+    var keyCounts={};
     var pageId=activePageId();
     var activePage=document.getElementById(pageId);
     var roots=[];
     if(activePage)roots.push(activePage);
-    var nav=document.querySelector('.nav');if(nav)roots.push(nav);
     var title=document.getElementById('pageTitle');if(title)roots.push(title);
     var subtitle=document.getElementById('pageSubtitle');if(subtitle)roots.push(subtitle);
 
     roots.forEach(function(root){
       var nodes=[];
       if(eligibleTextElement(root))nodes.push(root);
-      if(root.querySelectorAll)nodes=nodes.concat(Array.from(root.querySelectorAll('h1,h2,h3,h4,p,small,label,.label,.hint,.muted,.t,.notice,.nav button,.btn,[role="heading"]')));
+      if(root.querySelectorAll)nodes=nodes.concat(Array.from(root.querySelectorAll('h1,h2,h3,h4,p,small,label,.label,.hint,.muted,.t,.notice,.btn,[role="heading"]')));
       nodes.forEach(function(el){
         if(!eligibleTextElement(el)||seen.has(el))return;
         seen.add(el);
-        if(!el.dataset.prumoGlobalBaseText)el.dataset.prumoGlobalBaseText=String(el.textContent||'').replace(/\s+/g,' ').trim();
-        var routePage=el.id==='pageTitle'||el.id==='pageSubtitle'?pageId:pageId;
-        var key=(el.id==='pageTitle'||el.id==='pageSubtitle')?'route:'+routePage+':'+el.id:generatedTextKey(el,routePage);
-        var selector=stableSelector(el,routePage);
-        slots.push({key:key,selector:selector,base:el.dataset.prumoGlobalBaseText,el:el});
+
+        var current=String(el.textContent||'').replace(/\s+/g,' ').trim();
+        var routeText=el.id==='pageTitle'||el.id==='pageSubtitle';
+        var routeBaseKey=pageId+':'+el.id;
+        var base;
+        if(routeText){
+          if(!routeBaseTexts[routeBaseKey])routeBaseTexts[routeBaseKey]=current;
+          base=routeBaseTexts[routeBaseKey];
+        }else{
+          if(!el.dataset.prumoGlobalBaseText)el.dataset.prumoGlobalBaseText=current;
+          base=el.dataset.prumoGlobalBaseText;
+        }
+
+        var rawKey=routeText?'route:'+pageId+':'+el.id:generatedTextKey(el,pageId);
+        keyCounts[rawKey]=(keyCounts[rawKey]||0)+1;
+        var key=rawKey+(keyCounts[rawKey]>1?':'+keyCounts[rawKey]:'');
+        var selector=stableSelector(el,pageId);
+
+        el.dataset.prumoGlobalBaseText=base;
+        slots.push({key:key,selector:selector,base:base,el:el});
       });
     });
     return slots;
