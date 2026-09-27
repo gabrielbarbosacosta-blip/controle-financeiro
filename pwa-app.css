@@ -112,3 +112,30 @@ html.prumo-pwa .profile-dropdown.pwa-profile-dropdown{
     min-width:44px;
   }
 }
+
+
+/* PWA — valores dos cards com maior destaque */
+html.prumo-pwa .grid-kpi .kpi .value{
+  font-size:clamp(24px,7vw,34px)!important;
+  line-height:1.05;
+  letter-spacing:-.055em;
+  margin-top:14px;
+}
+
+html.prumo-pwa .grid-kpi .kpi{
+  min-height:156px;
+}
+
+html.prumo-pwa .grid-kpi .kpi .label{
+  font-size:11px;
+}
+
+html.prumo-pwa .grid-kpi .kpi .hint{
+  font-size:10.5px;
+}
+
+@media(max-width:420px){
+  html.prumo-pwa .grid-kpi .kpi .value{
+    font-size:clamp(23px,8vw,31px)!important;
+  }
+}
