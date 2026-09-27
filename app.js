@@ -664,7 +664,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
-window.__prumoChartRendererVersion='unifiedchart4';
+window.__prumoChartRendererVersion='unifiedchart5';
 function drawLineChart(id,data){
  if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
@@ -697,12 +697,6 @@ function drawLineChart(id,data){
    }
    ctx.lineTo(points[points.length-1].x,points[points.length-1].y);
  };
-
- roundedRect(0,0,W,H,18);ctx.fillStyle='#081522';ctx.fill();
-
- const bg=ctx.createLinearGradient(0,0,W,H);
- bg.addColorStop(0,'rgba(18,36,51,.34)');bg.addColorStop(1,'rgba(5,14,23,.08)');
- roundedRect(0,0,W,H,18);ctx.fillStyle=bg;ctx.fill();
 
  ctx.font='10px system-ui,-apple-system,sans-serif';ctx.textBaseline='middle';
  for(let i=0;i<=4;i++){
