@@ -218,6 +218,10 @@
 
   function drawChart(data){
     const canvas=document.getElementById('pfpValueChart');if(!canvas||!data?.length)return;
+    if(window.PrumoChartEngine?.drawSingle){
+      window.PrumoChartEngine.drawSingle(canvas,data,{minWidth:300,minHeight:225,fallbackWidth:700,fallbackHeight:225,padding:{l:52,r:14,t:18,b:34},showLastBadge:false});
+      return;
+    }
     try{
       const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(300,Math.round(rect.width||700)),H=Math.max(180,Math.round(rect.height||225));canvas.width=W*dpr;canvas.height=H*dpr;const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
       const p={l:52,r:14,t:18,b:34},values=data.map(x=>num(x.value)),min=Math.min(0,...values),rawMax=Math.max(...values),max=rawMax===min?min+1:rawMax+(rawMax-min)*.12,x=i=>p.l+(W-p.l-p.r)*(data.length===1?0.5:i/(data.length-1)),y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));
