@@ -593,7 +593,7 @@ function pendingForMonth(ym){
  const pendingIncome=state.transactions.filter(t=>monthKey(t.date)===ym&&t.type==='Receita'&&String(t.status||'')==='Pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
  const pendingExpenseTx=state.transactions.filter(t=>monthKey(t.date)===ym&&t.type==='Despesa'&&String(t.status||'')==='Pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
  const pendingInvoices=state.invoices.filter(i=>i.ym===ym&&String(i.status||'')!=='Paga').reduce((s,i)=>s+invoiceKnownTotal(i.cardId,ym),0);
- return{income:round2(pendingIncome),expense:round2(pendingExpenseTx+pendingInvoices)}
+ return{income:round2(pendingIncome),expense:round2(pendingExpenseTx+pendingInvoices),invoices:round2(pendingInvoices)}
 }
 function monthChange(current,previous){
  const cur=Number(current)||0,prev=Number(previous)||0;
@@ -623,11 +623,13 @@ function populateGlobalSelects(){
 function renderDashboard(){
  const ym=state.settings.selectedMonth,a=actualForMonth(ym),prev=actualForMonth(ymAdd(ym,-1)),pending=pendingForMonth(ym);
  document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');document.getElementById('kpiResultHint').textContent=`Resultado: ${fmtMoney(a.result)}`;
- const incomePending=document.getElementById('kpiIncomePending'),expensePending=document.getElementById('kpiExpensePending');
+ const incomePending=document.getElementById('kpiIncomePending'),expensePending=document.getElementById('kpiExpensePending'),invoicePending=document.getElementById('kpiInvoicesPending');
  if(incomePending)incomePending.textContent=`Pendente: ${fmtMoney(pending.income)}`;
  if(expensePending)expensePending.textContent=`Pendente: ${fmtMoney(pending.expense)}`;
+ if(invoicePending)invoicePending.textContent=`Pendente: ${fmtMoney(pending.invoices)}`;
  renderKpiMonthChange('kpiIncomeChange',monthChange(a.income,prev.income));
  renderKpiMonthChange('kpiExpenseChange',monthChange(a.expense,prev.expense),{inverse:true});
+ renderKpiMonthChange('kpiInvoicesChange',monthChange(a.invoices,prev.invoices),{inverse:true});
  const cats=monthlySpendingCategories(ym),entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]),max=entries[0]?.[1]||1;document.getElementById('categoryList').innerHTML=entries.length?entries.map(([c,v])=>`<div class="cat-row"><div><div>${c}</div><div class="bar"><span style="width:${Math.min(100,v/max*100)}%"></span></div></div><strong>${fmtMoney(v)}</strong></div>`).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
  drawLineChart('projectionChart',projectionFrom(ym).map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
