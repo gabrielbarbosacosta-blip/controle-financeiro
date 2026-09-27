@@ -878,10 +878,9 @@ html.caderno-stable .topbar .caderno-month-switcher select{
 /* KPI — pendente + comparação com mês anterior */
 .kpi-compare{
   margin-top:8px;
-  padding-top:8px;
-  border-top:1px solid rgba(143,160,181,.10);
+  padding-top:0;
   display:grid;
-  gap:4px;
+  gap:7px;
   position:relative;
   z-index:1;
 }
@@ -915,3 +914,55 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 
 /* Legacy pending KPI boxes are retired. */
 #kpiIncomeForecastBox,#kpiExpensePendingBox{display:none!important}
+
+
+.kpi-trend-row{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  min-height:32px;
+}
+
+.kpi-trend-copy{
+  display:grid;
+  gap:1px;
+  min-width:0;
+}
+
+.kpi-trend-caption{
+  font-size:8.5px;
+  line-height:1.15;
+  color:#7e90a6;
+  white-space:nowrap;
+}
+
+.kpi-sparkline{
+  width:76px;
+  height:28px;
+  flex:0 0 76px;
+  overflow:visible;
+}
+
+.kpi-sparkline-line{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.kpi-sparkline-area{
+  stroke:none;
+  fill:currentColor;
+  opacity:.14;
+}
+
+.kpi-sparkline[data-tone="positive"]{color:#91d6b9}
+.kpi-sparkline[data-tone="negative"]{color:#ef8a81}
+.kpi-sparkline[data-tone="neutral"]{color:#7e90a6}
+
+html:not(.caderno-stable) .kpi-trend-caption{color:#758083}
+html:not(.caderno-stable) .kpi-sparkline[data-tone="positive"]{color:#36816b}
+html:not(.caderno-stable) .kpi-sparkline[data-tone="negative"]{color:#b75552}
+html:not(.caderno-stable) .kpi-sparkline[data-tone="neutral"]{color:#758083}
