@@ -195,6 +195,22 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
   }
+  // The dashboard chart is rendered while the authenticated splash is still
+  // covering the app. Reset only this canvas here so its first visible render
+  // can own the once-per-reload reveal animation.
+  const dashboardChart=document.getElementById('projectionChart');
+  if(dashboardChart){
+    if(dashboardChart.__prumoChartAnimationFrame){
+      cancelAnimationFrame(dashboardChart.__prumoChartAnimationFrame);
+      dashboardChart.__prumoChartAnimationFrame=0;
+    }
+    dashboardChart.__prumoChartIntroPlayed=false;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(document.getElementById('page-dashboard')?.classList.contains('active')){
+        try{renderDashboard()}catch(_e){}
+      }
+    }));
+  }
   try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
 
