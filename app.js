@@ -664,6 +664,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
+window.__prumoChartRendererVersion='premiumchart3';
 function drawLineChart(id,data){
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
  const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
