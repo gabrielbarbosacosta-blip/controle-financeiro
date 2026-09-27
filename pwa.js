@@ -22,6 +22,86 @@
   enablePwaMode();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enablePwaMode,{once:true});
 
+  function ensurePwaProfileHeader(){
+    if(!standalone)return false;
+    const title=document.getElementById('pageTitle');
+    const titleBlock=title?.parentElement;
+    if(!title||!titleBlock)return false;
+
+    let row=titleBlock.querySelector('.pwa-greeting-row');
+    if(!row){
+      row=document.createElement('div');
+      row.className='pwa-greeting-row';
+      titleBlock.insertBefore(row,title);
+      row.appendChild(title);
+    }
+
+    let button=row.querySelector('#pwaProfileButton');
+    if(!button){
+      button=document.createElement('button');
+      button.type='button';
+      button.id='pwaProfileButton';
+      button.className='pwa-profile-button';
+      button.setAttribute('aria-label','Abrir perfil');
+      button.setAttribute('title','Abrir perfil');
+      button.innerHTML='<span class="pwa-profile-avatar"><span>U</span></span>';
+      row.appendChild(button);
+      button.addEventListener('click',event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        const profileCard=document.getElementById('profileSidebarCard');
+        if(profileCard){
+          profileCard.click();
+          requestAnimationFrame(()=>{
+            document.querySelector('.profile-dropdown')?.classList?.add('pwa-profile-dropdown');
+          });
+        }
+      });
+    }
+
+    syncPwaProfileAvatar();
+    return true;
+  }
+
+  function syncPwaProfileAvatar(){
+    if(!standalone)return;
+    const source=document.getElementById('profileSidebarAvatar');
+    const target=document.querySelector('#pwaProfileButton .pwa-profile-avatar');
+    if(!target)return;
+    if(source){
+      const html=source.innerHTML;
+      if(target.innerHTML!==html)target.innerHTML=html;
+      const label=document.getElementById('profileSidebarName')?.textContent?.trim();
+      if(label){
+        const button=document.getElementById('pwaProfileButton');
+        button?.setAttribute('aria-label','Abrir perfil de '+label);
+        button?.setAttribute('title','Abrir perfil de '+label);
+      }
+    }
+  }
+
+  function watchPwaProfileHeader(){
+    if(!standalone)return;
+    let scheduled=false;
+    const sync=()=>{
+      scheduled=false;
+      ensurePwaProfileHeader();
+      syncPwaProfileAvatar();
+    };
+    const queue=()=>{
+      if(scheduled)return;
+      scheduled=true;
+      requestAnimationFrame(sync);
+    };
+    sync();
+    const observer=new MutationObserver(queue);
+    observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['src','class']});
+    window.addEventListener('prumo:profile-updated',queue);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchPwaProfileHeader,{once:true});
+  else watchPwaProfileHeader();
+
   function ensureHead(){
     if(!document.querySelector('link[rel="manifest"]')){const link=document.createElement('link');link.rel='manifest';link.href='/manifest.webmanifest';document.head.appendChild(link)}
     if(!document.querySelector('meta[name="theme-color"]')){const meta=document.createElement('meta');meta.name='theme-color';meta.content='#07101d';document.head.appendChild(meta)}
