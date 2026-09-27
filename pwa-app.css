@@ -26,3 +26,89 @@ html.prumo-pwa .prumo-bottom-nav-shell{
 
 /* Base preparada para diferenças futuras do PWA.
    Novas alterações visuais devem ser adicionadas somente abaixo deste escopo. */
+
+
+html.prumo-pwa .topbar>div:first-child{
+  width:100%;
+}
+
+html.prumo-pwa .topbar>div:first-child::before{
+  display:none;
+}
+
+html.prumo-pwa .pwa-greeting-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  width:100%;
+}
+
+html.prumo-pwa .pwa-greeting-row #pageTitle{
+  min-width:0;
+  margin:0;
+}
+
+html.prumo-pwa .pwa-profile-button{
+  width:46px;
+  height:46px;
+  min-width:46px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:#101d2e;
+  color:#e7edf5;
+  box-shadow:0 8px 22px rgba(0,0,0,.20);
+  -webkit-tap-highlight-color:transparent;
+}
+
+html.prumo-pwa .pwa-profile-button:active{
+  transform:scale(.97);
+}
+
+html.prumo-pwa .pwa-profile-avatar{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:inherit;
+  font-size:13px;
+  font-weight:800;
+  background:linear-gradient(135deg,#1e3a5f,#172033);
+}
+
+html.prumo-pwa .pwa-profile-avatar img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
+html.prumo-pwa .profile-dropdown.pwa-profile-dropdown{
+  z-index:130!important;
+}
+
+@media(max-width:900px){
+  html.prumo-pwa .topbar{
+    gap:12px;
+  }
+
+  html.prumo-pwa .pwa-greeting-row{
+    align-items:center;
+  }
+
+  html.prumo-pwa .pwa-greeting-row #pageTitle{
+    font-size:clamp(25px,7vw,32px);
+    line-height:1.05;
+  }
+
+  html.prumo-pwa .pwa-profile-button{
+    width:44px;
+    height:44px;
+    min-width:44px;
+  }
+}
