@@ -665,7 +665,96 @@ function renderSettings(){document.getElementById('setBaseBalance').value=state.
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
 function drawLineChart(id,data){
- const canvas=document.getElementById(id);if(!canvas)return;const rect=canvas.getBoundingClientRect();const dpr=window.devicePixelRatio||1,cssW=Math.max(300,rect.width||700),cssH=Math.max(220,rect.height||300);canvas.width=cssW*dpr;canvas.height=cssH*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const W=cssW,H=cssH,p={l:62,r:18,t:20,b:42},vals=data.map(d=>Number(d.value)||0);let min=Math.min(0,...vals),max=Math.max(0,...vals);if(max===min){max+=1;min-=1}const pad=(max-min)*.1;max+=pad;min-=pad;const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1)),y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min));ctx.clearRect(0,0,W,H);ctx.strokeStyle='#273449';ctx.fillStyle='#94a3b8';ctx.font='11px system-ui';ctx.lineWidth=1;for(let i=0;i<=4;i++){const val=min+(max-min)*i/4,yy=y(val);ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(W-p.r,yy);ctx.stroke();ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4)}if(min<0&&max>0){ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(p.l,y(0));ctx.lineTo(W-p.r,y(0));ctx.stroke()}ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;ctx.beginPath();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();data.forEach((d,i)=>{const xx=x(i),yy=y(d.value);ctx.fillStyle=d.value<0?'#ef4444':'#3b82f6';ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();if(data.length<=12||i%2===0){ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.35);ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore()}})
+ const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
+ const rect=canvas.getBoundingClientRect();
+ const dpr=window.devicePixelRatio||1,cssW=Math.max(300,rect.width||700),cssH=Math.max(220,rect.height||300);
+ canvas.width=cssW*dpr;canvas.height=cssH*dpr;
+ const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+ const W=cssW,H=cssH,p={l:62,r:18,t:20,b:42},vals=data.map(d=>Number(d.value)||0);
+ let min=Math.min(0,...vals),max=Math.max(0,...vals);
+ if(max===min){max+=1;min-=1}
+ const pad=(max-min)*.1;max+=pad;min-=pad;
+ const x=i=>p.l+(W-p.l-p.r)*(data.length<=1?.5:i/(data.length-1)),
+       y=v=>p.t+(H-p.t-p.b)*(1-(v-min)/(max-min)),
+       zeroY=y(0),
+       plotBottom=H-p.b,
+       plotRight=W-p.r;
+
+ ctx.clearRect(0,0,W,H);
+
+ const drawArea=(clipTop,clipBottom,gradient)=>{
+   ctx.save();
+   ctx.beginPath();
+   ctx.rect(p.l,clipTop,plotRight-p.l,Math.max(0,clipBottom-clipTop));
+   ctx.clip();
+
+   ctx.beginPath();
+   data.forEach((d,i)=>{
+     const xx=x(i),yy=y(Number(d.value)||0);
+     if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+   });
+   ctx.lineTo(x(data.length-1),zeroY);
+   ctx.lineTo(x(0),zeroY);
+   ctx.closePath();
+   ctx.fillStyle=gradient;
+   ctx.fill();
+   ctx.restore();
+ };
+
+ const positiveGradient=ctx.createLinearGradient(0,p.t,0,Math.max(p.t,zeroY));
+ positiveGradient.addColorStop(0,'rgba(134,239,172,0.30)');
+ positiveGradient.addColorStop(0.7,'rgba(134,239,172,0.12)');
+ positiveGradient.addColorStop(1,'rgba(134,239,172,0.015)');
+
+ const negativeGradient=ctx.createLinearGradient(0,Math.min(plotBottom,zeroY),0,plotBottom);
+ negativeGradient.addColorStop(0,'rgba(252,165,165,0.015)');
+ negativeGradient.addColorStop(0.3,'rgba(252,165,165,0.12)');
+ negativeGradient.addColorStop(1,'rgba(252,165,165,0.30)');
+
+ drawArea(p.t,Math.min(plotBottom,zeroY),positiveGradient);
+ drawArea(Math.max(p.t,zeroY),plotBottom,negativeGradient);
+
+ ctx.strokeStyle='#273449';
+ ctx.fillStyle='#94a3b8';
+ ctx.font='11px system-ui';
+ ctx.lineWidth=1;
+ for(let i=0;i<=4;i++){
+   const val=min+(max-min)*i/4,yy=y(val);
+   ctx.beginPath();ctx.moveTo(p.l,yy);ctx.lineTo(plotRight,yy);ctx.stroke();
+   ctx.fillText(new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(val),5,yy+4);
+ }
+
+ if(min<0&&max>0){
+   ctx.save();
+   ctx.strokeStyle='rgba(148,163,184,.82)';
+   ctx.lineWidth=1.2;
+   ctx.setLineDash([5,5]);
+   ctx.beginPath();ctx.moveTo(p.l,zeroY);ctx.lineTo(plotRight,zeroY);ctx.stroke();
+   ctx.restore();
+ }
+
+ ctx.strokeStyle='#60a5fa';
+ ctx.lineWidth=3;
+ ctx.lineJoin='round';
+ ctx.lineCap='round';
+ ctx.beginPath();
+ data.forEach((d,i)=>{
+   const xx=x(i),yy=y(Number(d.value)||0);
+   if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+ });
+ ctx.stroke();
+
+ data.forEach((d,i)=>{
+   const value=Number(d.value)||0,xx=x(i),yy=y(value);
+   ctx.fillStyle=value<0?'#ef8a81':'#91d6b9';
+   ctx.beginPath();ctx.arc(xx,yy,4,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#07101d';ctx.lineWidth=1.5;ctx.stroke();
+
+   if(data.length<=12||i%2===0){
+     ctx.save();ctx.translate(xx,H-13);ctx.rotate(-.35);
+     ctx.fillStyle='#94a3b8';ctx.font='10px system-ui';ctx.fillText(d.label,-16,0);ctx.restore();
+   }
+ });
 }
 
 function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}
