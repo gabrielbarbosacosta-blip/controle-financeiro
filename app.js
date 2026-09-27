@@ -589,13 +589,40 @@ function monthlySpendingCategories(ym){
 }
 function allMonthOptions(){const set=new Set([state.settings.selectedMonth,monthKey(state.settings.baseDate)]);state.transactions.forEach(t=>set.add(monthKey(t.date)));state.invoices.forEach(i=>set.add(i.ym));state.purchases.forEach(p=>{set.add(p.firstInvoiceYm);const current=Math.max(1,Number(p?.chatgptImport?.installmentCurrent)||1),total=Math.max(current,Number(p?.chatgptImport?.installmentTotal)||Number(p.installments)||1),anchor=p?.chatgptImport?.invoiceYm||p.firstInvoiceYm,remaining=Math.max(1,total-current+1);if(anchor)set.add(anchor);for(let i=1;i<Math.min(remaining,24);i++)set.add(ymAdd(anchor,i))});for(let i=-6;i<=18;i++)set.add(ymAdd(state.settings.selectedMonth,i));return[...set].sort()}
 
+function pendingForMonth(ym){
+ const pendingIncome=state.transactions.filter(t=>monthKey(t.date)===ym&&t.type==='Receita'&&String(t.status||'')==='Pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
+ const pendingExpenseTx=state.transactions.filter(t=>monthKey(t.date)===ym&&t.type==='Despesa'&&String(t.status||'')==='Pendente').reduce((s,t)=>s+(Number(t.amount)||0),0);
+ const pendingInvoices=state.invoices.filter(i=>i.ym===ym&&String(i.status||'')!=='Paga').reduce((s,i)=>s+invoiceKnownTotal(i.cardId,ym),0);
+ return{income:round2(pendingIncome),expense:round2(pendingExpenseTx+pendingInvoices)}
+}
+function monthChange(current,previous){
+ const cur=Number(current)||0,prev=Number(previous)||0;
+ if(prev===0)return null;
+ return((cur-prev)/Math.abs(prev))*100
+}
+function renderKpiMonthChange(id,value,{inverse=false}={}){
+ const el=document.getElementById(id);if(!el)return;
+ el.classList.remove('positive','negative','neutral');
+ if(value===null||!Number.isFinite(value)){el.textContent='— vs. mês anterior';el.classList.add('neutral');return}
+ const up=value>0,down=value<0,arrow=up?'↑':down?'↓':'→',pct=Math.abs(value).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+ el.textContent=`${arrow} ${pct}% vs. mês anterior`;
+ const good=inverse?down:up;
+ if(value===0)el.classList.add('neutral');else el.classList.add(good?'positive':'negative')
+}
+
 function populateGlobalSelects(){
  const catHtml=categories.map(c=>`<option>${c}</option>`).join('');document.getElementById('txCategory').innerHTML=catHtml;document.getElementById('purchaseCategory').innerHTML=catHtml;document.getElementById('categoryFilter').innerHTML='<option value="">Todas</option>'+catHtml;
  const months=allMonthOptions(),sel=document.getElementById('monthSelect');sel.innerHTML=months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('');sel.value=state.settings.selectedMonth;
  document.getElementById('purchaseCard').innerHTML=state.cards.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
 }
 function renderDashboard(){
- const ym=state.settings.selectedMonth,a=actualForMonth(ym);document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');document.getElementById('kpiResultHint').textContent=`Resultado: ${fmtMoney(a.result)}`;
+ const ym=state.settings.selectedMonth,a=actualForMonth(ym),prev=actualForMonth(ymAdd(ym,-1)),pending=pendingForMonth(ym);
+ document.getElementById('kpiOpening').textContent=fmtMoney(a.opening);document.getElementById('kpiIncome').textContent=fmtMoney(a.income);document.getElementById('kpiExpense').textContent=fmtMoney(a.expense);document.getElementById('kpiInvoices').textContent=fmtMoney(a.invoices);document.getElementById('kpiClosing').textContent=fmtMoney(a.closing);document.getElementById('kpiClosing').className='value '+(a.closing<0?'negative':'');document.getElementById('kpiResultHint').textContent=`Resultado: ${fmtMoney(a.result)}`;
+ const incomePending=document.getElementById('kpiIncomePending'),expensePending=document.getElementById('kpiExpensePending');
+ if(incomePending)incomePending.textContent=`Pendente: ${fmtMoney(pending.income)}`;
+ if(expensePending)expensePending.textContent=`Pendente: ${fmtMoney(pending.expense)}`;
+ renderKpiMonthChange('kpiIncomeChange',monthChange(a.income,prev.income));
+ renderKpiMonthChange('kpiExpenseChange',monthChange(a.expense,prev.expense),{inverse:true});
  const cats=monthlySpendingCategories(ym),entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]),max=entries[0]?.[1]||1;document.getElementById('categoryList').innerHTML=entries.length?entries.map(([c,v])=>`<div class="cat-row"><div><div>${c}</div><div class="bar"><span style="width:${Math.min(100,v/max*100)}%"></span></div></div><strong>${fmtMoney(v)}</strong></div>`).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
  drawLineChart('projectionChart',projectionFrom(ym).map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
@@ -664,7 +691,7 @@ function renderProjection(){
 function renderSettings(){document.getElementById('setBaseBalance').value=state.settings.baseBalance;document.getElementById('setBaseDate').value=state.settings.baseDate}
 function renderAll(){populateGlobalSelects();renderDashboard();renderHistory();renderCards();renderProjection();renderSettings();save()}
 
-window.__prumoChartRendererVersion='unifiedchart11';
+window.__prumoChartRendererVersion='unifiedchart12';
 function drawLineChart(id,data){
  if(window.PrumoChartEngine?.drawSingle)return window.PrumoChartEngine.drawSingle(id,data,{showLastBadge:true});
  const canvas=document.getElementById(id);if(!canvas||!Array.isArray(data)||!data.length)return;
