@@ -126,10 +126,22 @@
 
   const originalRenderDashboard=window.renderDashboard;
   if(typeof originalRenderDashboard==='function'&&!originalRenderDashboard.__projectionControls){
-    const wrapped=function(){const result=originalRenderDashboard.apply(this,arguments);mountControls();redraw();return result};
+    const wrapped=function(){
+      const result=originalRenderDashboard.apply(this,arguments);
+      // renderDashboard already draws projectionChart with getDashboardProjectionRows().
+      // Keep this wrapper UI-only so one dashboard render produces one chart draw.
+      mountControls();
+      updateSummary();
+      syncControls();
+      return result;
+    };
     wrapped.__projectionControls=true;window.renderDashboard=wrapped;try{renderDashboard=wrapped}catch(e){}
   }
 
-  function init(){mountControls();redraw()}
+  function init(){
+    // The dashboard renderer owns chart drawing. Initialization only mounts UI;
+    // filter changes still call redraw() explicitly through setSource().
+    mountControls();
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
