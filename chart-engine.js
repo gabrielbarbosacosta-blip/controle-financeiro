@@ -109,7 +109,7 @@
     });
   }
 
-  function strokeSeries(ctx,points,color,width=3.2){
+  function strokeSeries(ctx,points,color,width=4.5){
     if(!points.length)return;
     ctx.save();
     ctx.beginPath();smoothPath(ctx,points);
@@ -148,7 +148,7 @@
     const clipStroke=(top,clipBottom,color)=>{
       if(clipBottom<=top)return;
       ctx.save();ctx.beginPath();ctx.rect(p.l-10,top,right-p.l+20,clipBottom-top);ctx.clip();
-      strokeSeries(ctx,points,color,3.2,true);
+      strokeSeries(ctx,points,color,4.5);
       ctx.restore();
     };
     clipStroke(p.t,Math.min(bottom,zeroY),opts.positiveColor||'#91d6b9');
@@ -215,7 +215,7 @@
     }
 
     rendered.forEach((s,si)=>{
-      strokeSeries(ctx,s.points,s.color,si===rendered.length-1?3.2:2.2,si===rendered.length-1);
+      strokeSeries(ctx,s.points,s.color,si===rendered.length-1?4.5:2.8);
       s.points.forEach((pt,i)=>{
         if(i!==s.points.length-1&&opts.showIntermediatePoints===false)return;
         const pointColor=pt.value<0?'#ef8a81':'#91d6b9';
@@ -228,5 +228,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260926-unified7',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260926-unified8',drawSingle,drawComparison};
 })();
