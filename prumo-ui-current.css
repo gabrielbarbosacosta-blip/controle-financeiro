@@ -895,10 +895,10 @@ html.caderno-stable .topbar .caderno-month-switcher select{
 }
 
 .kpi-month-change{
-  font-size:10px;
-  line-height:1.25;
-  font-weight:700;
-  letter-spacing:-.01em;
+  font-size:13px;
+  line-height:1.1;
+  font-weight:800;
+  letter-spacing:-.015em;
   white-space:nowrap;
 }
 
@@ -931,7 +931,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .kpi-trend-caption{
-  font-size:8.5px;
+  font-size:9.5px;
   line-height:1.15;
   color:#7e90a6;
   white-space:nowrap;
