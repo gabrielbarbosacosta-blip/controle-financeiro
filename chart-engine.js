@@ -50,7 +50,7 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,W,H);
 
-    const p=opts.padding||{l:62,r:20,t:22,b:44};
+    const p=opts.padding||{l:48,r:8,t:22,b:44};
     const yStep=Number(opts.yStep)||5000;
     const rawMin=Math.min(0,...values),rawMax=Math.max(0,...values);
     let min=Math.floor(rawMin/yStep)*yStep,max=Math.ceil(rawMax/yStep)*yStep;
@@ -249,7 +249,7 @@
     const valid=(Array.isArray(series)?series:[]).filter(s=>Array.isArray(s?.data)&&s.data.length);
     if(!canvas||!valid.length)return null;
     const values=valid.flatMap(s=>s.data.map(d=>Number(d?.value)||0));
-    const f=frame(canvas,values,{...opts,padding:opts.padding||{l:68,r:22,t:24,b:48}});
+    const f=frame(canvas,values,{...opts,padding:opts.padding||{l:52,r:10,t:24,b:48}});
     if(!f)return null;
     const {ctx,W,p,y,zeroY,right,bottom}=f;
     const count=Math.max(...valid.map(s=>s.data.length));
@@ -282,5 +282,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified15',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified16',drawSingle,drawComparison};
 })();
