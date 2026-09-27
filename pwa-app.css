@@ -1,0 +1,28 @@
+/* Prumo — camada exclusiva do PWA instalado
+   Carregada apenas quando display-mode: standalone.
+   Use .prumo-pwa como escopo para não afetar a versão web. */
+
+html.prumo-pwa,
+html.prumo-pwa body{
+  min-height:100%;
+}
+
+html.prumo-pwa body{
+  overscroll-behavior-y:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html.prumo-pwa .main{
+  padding-bottom:calc(118px + env(safe-area-inset-bottom,0px));
+}
+
+html.prumo-pwa .topbar{
+  padding-top:max(0px,env(safe-area-inset-top,0px));
+}
+
+html.prumo-pwa .prumo-bottom-nav-shell{
+  bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;
+}
+
+/* Base preparada para diferenças futuras do PWA.
+   Novas alterações visuais devem ser adicionadas somente abaixo deste escopo. */
