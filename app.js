@@ -195,9 +195,9 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
     app.style.removeProperty('visibility');
     app.style.removeProperty('opacity');
   }
-  // The dashboard chart is rendered while the authenticated splash is still
-  // covering the app. Reset only this canvas here so its first visible render
-  // can own the once-per-reload reveal animation.
+  // The dashboard chart may already contain its final frame underneath the splash.
+  // Clear it before the splash is released, then start the reveal immediately so
+  // the user never sees "finished chart -> animation".
   const dashboardChart=document.getElementById('projectionChart');
   if(dashboardChart){
     if(dashboardChart.__prumoChartAnimationFrame){
@@ -205,11 +205,16 @@ function finalizeAuthenticatedApp(auth=document.getElementById('authScreen'),app
       dashboardChart.__prumoChartAnimationFrame=0;
     }
     dashboardChart.__prumoChartIntroPlayed=false;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      if(document.getElementById('page-dashboard')?.classList.contains('active')){
-        try{renderDashboard()}catch(_e){}
-      }
-    }));
+    const dashboardCtx=dashboardChart.getContext?.('2d');
+    if(dashboardCtx){
+      dashboardCtx.save();
+      dashboardCtx.setTransform(1,0,0,1,0,0);
+      dashboardCtx.clearRect(0,0,dashboardChart.width,dashboardChart.height);
+      dashboardCtx.restore();
+    }
+    if(document.getElementById('page-dashboard')?.classList.contains('active')){
+      try{renderDashboard()}catch(_e){}
+    }
   }
   try{window.dispatchEvent(new CustomEvent('caderno:splash-done'))}catch(_e){}
 }
