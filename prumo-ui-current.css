@@ -858,10 +858,18 @@ html.caderno-stable .topbar .caderno-month-switcher select{
 
 
 @media(min-width:901px){
-  .grid-kpi,
   .summary-strip,
   .card-grid,
   .dashboard-grid{
     align-items:start!important;
+  }
+
+  .grid-kpi{
+    align-items:stretch!important;
+  }
+
+  .grid-kpi>.kpi{
+    overflow:visible!important;
+    height:auto!important;
   }
 }
