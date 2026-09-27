@@ -995,7 +995,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .grid-kpi .kpi.kpi-with-corner-trend .label{
-  font-size:11px!important;
+  font-size:10px!important;
   line-height:1.2;
   color:#9baabd!important;
   padding-right:96px;
@@ -1008,7 +1008,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .grid-kpi .kpi.kpi-with-corner-trend .kpi-month-change{
-  font-size:14px;
+  font-size:13px;
   line-height:1;
   font-weight:850;
   letter-spacing:-.02em;
@@ -1022,7 +1022,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 
 .grid-kpi .kpi.kpi-with-corner-trend .value{
   margin-top:22px!important;
-  font-size:clamp(26px,2.3vw,32px)!important;
+  font-size:clamp(19px,1.95vw,26px)!important;
   line-height:1.05;
   font-weight:800!important;
   letter-spacing:-.055em!important;
@@ -1031,7 +1031,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 .grid-kpi .kpi.kpi-with-corner-trend .hint{
   margin-top:14px!important;
   padding-top:0!important;
-  font-size:10.5px!important;
+  font-size:10px!important;
   line-height:1.2;
   color:#74869b!important;
 }
@@ -1042,7 +1042,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .grid-kpi .kpi.kpi-with-corner-trend .kpi-pending{
-  font-size:12px!important;
+  font-size:10.5px!important;
   line-height:1.2;
   font-weight:700;
   color:#aebdce!important;
@@ -1055,12 +1055,12 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
     right:13px;
   }
   .grid-kpi .kpi.kpi-with-corner-trend .kpi-month-change{
-    font-size:12.5px;
+    font-size:13px;
   }
   .grid-kpi .kpi.kpi-with-corner-trend .kpi-trend-caption{
     font-size:8.5px;
   }
   .grid-kpi .kpi.kpi-with-corner-trend .value{
-    font-size:clamp(23px,2.15vw,29px)!important;
+    font-size:clamp(19px,1.95vw,26px)!important;
   }
 }
