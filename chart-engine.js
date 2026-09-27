@@ -151,6 +151,56 @@
     drawLabels(f,points,total);
   }
 
+  // Velocity profile for chart reveals:
+  // near-zero start -> quick acceleration -> short high-speed plateau ->
+  // long, progressive deceleration. The cumulative integral becomes progress.
+  const prumoVelocityEase=(()=>{
+    const N=240;
+    const speed=t=>{
+      const smooth=x=>x*x*(3-2*x);
+      if(t<0.055){
+        const u=t/0.055;
+        return 0.035+(0.12-0.035)*smooth(u);
+      }
+      if(t<0.20){
+        const u=(t-0.055)/0.145;
+        return 0.12+(1.0-0.12)*smooth(u);
+      }
+      if(t<0.33){
+        const u=(t-0.20)/0.13;
+        return 1.0+(1.06-1.0)*smooth(u);
+      }
+      if(t<0.40){
+        return 1.06;
+      }
+      if(t<0.72){
+        const u=(t-0.40)/0.32;
+        return 1.06+(0.34-1.06)*smooth(u);
+      }
+      const u=(t-0.72)/0.28;
+      return 0.34+(0.025-0.34)*smooth(u);
+    };
+
+    const cumulative=new Array(N+1).fill(0);
+    let total=0;
+    let prev=speed(0);
+    for(let i=1;i<=N;i++){
+      const cur=speed(i/N);
+      total+=(prev+cur)*0.5/N;
+      cumulative[i]=total;
+      prev=cur;
+    }
+    for(let i=1;i<=N;i++)cumulative[i]/=total;
+
+    return t=>{
+      const clamped=Math.max(0,Math.min(1,t));
+      const pos=clamped*N;
+      const i=Math.min(N-1,Math.floor(pos));
+      const frac=pos-i;
+      return cumulative[i]+(cumulative[i+1]-cumulative[i])*frac;
+    };
+  })();
+
   function animateReveal(canvas,signature,drawStatic,drawAnimated,duration=760,control={}){
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const forceIntro=control?.forceIntro===true;
@@ -206,7 +256,7 @@
     const started=performance.now();
     const tick=now=>{
       const raw=Math.min(1,(now-started)/duration);
-      const eased=1-Math.pow(1-raw,3);
+      const eased=prumoVelocityEase(raw);
       drawStatic();
       drawAnimated(eased);
       if(raw<1){
@@ -327,5 +377,5 @@
     return {canvas,series:rendered,points:rendered.flatMap(s=>s.points),frame:f};
   }
 
-  window.PrumoChartEngine={version:'20260927-unified23',drawSingle,drawComparison};
+  window.PrumoChartEngine={version:'20260927-unified24',drawSingle,drawComparison};
 })();
