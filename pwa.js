@@ -14,7 +14,7 @@
       const link=document.createElement('link');
       link.id='prumo-pwa-ui';
       link.rel='stylesheet';
-      link.href='/pwa-app.css?v=20260927-pwa2';
+      link.href='/pwa-app.css?v=20260927-pwa3';
       document.head.appendChild(link);
     }
   }
