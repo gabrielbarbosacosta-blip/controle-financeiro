@@ -1267,8 +1267,8 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .category-donut{
-  width:132px;
-  height:132px;
+  width:168px;
+  height:168px;
   border-radius:50%;
   position:relative;
   display:grid;
@@ -1280,7 +1280,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 .category-donut::after{
   content:'';
   position:absolute;
-  inset:20px;
+  inset:25px;
   border-radius:50%;
   background:#0d1929;
   border:1px solid rgba(143,160,181,.10);
@@ -1291,8 +1291,8 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   z-index:1;
   display:grid;
   justify-items:center;
-  gap:3px;
-  width:92px;
+  gap:4px;
+  width:116px;
   text-align:center;
 }
 
@@ -1302,7 +1302,7 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
 }
 
 .category-donut-hole strong{
-  font-size:14px;
+  font-size:16px;
   line-height:1.1;
   color:#eef3f8;
   letter-spacing:-.04em;
@@ -1325,6 +1325,12 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   gap:8px;
   min-width:0;
   width:100%;
+  max-height:94px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:4px;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
 }
 
 .category-rank-row{
@@ -1380,20 +1386,20 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   }
 
   .category-donut{
-    width:116px;
-    height:116px;
+    width:148px;
+    height:148px;
   }
 
   .category-donut::after{
-    inset:18px;
+    inset:22px;
   }
 
   .category-donut-hole{
-    width:80px;
+    width:102px;
   }
 
   .category-donut-hole strong{
-    font-size:12.5px;
+    font-size:14.5px;
   }
 }
 
@@ -1405,4 +1411,22 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
   .category-ranking{
     width:100%;
   }
+}
+
+
+.category-ranking::-webkit-scrollbar{
+  width:5px;
+}
+
+.category-ranking::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+.category-ranking::-webkit-scrollbar-thumb{
+  background:rgba(143,160,181,.24);
+  border-radius:999px;
+}
+
+.category-ranking::-webkit-scrollbar-thumb:hover{
+  background:rgba(143,160,181,.36);
 }
