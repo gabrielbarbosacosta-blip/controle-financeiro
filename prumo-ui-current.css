@@ -1242,3 +1242,166 @@ html:not(.caderno-stable) .kpi-month-change.neutral{color:#758083!important}
     max-height:300px!important;
   }
 }
+
+
+/* Gastos por categoria — donut + ranking compacto */
+.category-spend-card{
+  min-width:0;
+}
+
+.category-spend-card .section-head{
+  margin-bottom:12px;
+}
+
+.category-spend-card .section-head .muted{
+  margin-top:4px;
+}
+
+.category-donut-wrap{
+  display:grid;
+  grid-template-columns:132px minmax(0,1fr);
+  align-items:center;
+  gap:18px;
+  min-height:300px;
+}
+
+.category-donut{
+  width:132px;
+  height:132px;
+  border-radius:50%;
+  position:relative;
+  display:grid;
+  place-items:center;
+  background:rgba(127,144,164,.14);
+}
+
+.category-donut::after{
+  content:'';
+  position:absolute;
+  inset:20px;
+  border-radius:50%;
+  background:#0d1929;
+  border:1px solid rgba(143,160,181,.10);
+}
+
+.category-donut-hole{
+  position:relative;
+  z-index:1;
+  display:grid;
+  justify-items:center;
+  gap:3px;
+  width:92px;
+  text-align:center;
+}
+
+.category-donut-hole span{
+  font-size:9px;
+  color:#7e90a6;
+}
+
+.category-donut-hole strong{
+  font-size:14px;
+  line-height:1.1;
+  color:#eef3f8;
+  letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;
+}
+
+.category-donut-hole small{
+  font-size:8.5px;
+  line-height:1.15;
+  font-weight:700;
+  color:#7e90a6;
+}
+
+.category-donut-hole small.positive{color:#91d6b9!important}
+.category-donut-hole small.negative{color:#ef8a81!important}
+.category-donut-hole small.neutral{color:#7e90a6!important}
+
+.category-ranking{
+  display:grid;
+  gap:8px;
+  min-width:0;
+}
+
+.category-rank-row{
+  display:grid;
+  grid-template-columns:9px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.category-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--category-color,#65aaff);
+}
+
+.category-rank-copy{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+}
+
+.category-rank-copy strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10.5px;
+  font-weight:700;
+  color:#d8e1eb;
+}
+
+.category-rank-copy small{
+  flex:0 0 auto;
+  font-size:8.5px;
+  color:#74869b;
+}
+
+.category-rank-value{
+  font-size:10.5px;
+  font-weight:700;
+  color:#d8e1eb;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+
+@media(max-width:1150px){
+  .category-donut-wrap{
+    grid-template-columns:116px minmax(0,1fr);
+    gap:14px;
+  }
+
+  .category-donut{
+    width:116px;
+    height:116px;
+  }
+
+  .category-donut::after{
+    inset:18px;
+  }
+
+  .category-donut-hole{
+    width:80px;
+  }
+
+  .category-donut-hole strong{
+    font-size:12.5px;
+  }
+}
+
+@media(max-width:900px){
+  .category-donut-wrap{
+    grid-template-columns:1fr;
+    justify-items:center;
+    min-height:0;
+  }
+
+  .category-ranking{
+    width:100%;
+  }
+}
