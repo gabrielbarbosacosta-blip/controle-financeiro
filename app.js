@@ -718,7 +718,10 @@ function renderDashboard(){
      return `<div class="category-rank-row"><span class="category-dot" style="--category-color:${palette[i%palette.length]}"></span><div class="category-rank-copy"><strong>${name}</strong><small>${pct.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</small></div><span class="category-rank-value">${fmtMoney(value)}</span></div>`
    }).join(''):'<div class="empty">Sem gastos classificados neste mês.</div>';
  }
- drawLineChart('projectionChart',projectionFrom(ym).map(r=>({label:fmtMonth(r.ym),value:r.closing})))
+ const dashboardProjectionRows=typeof window.getDashboardProjectionRows==='function'
+   ?window.getDashboardProjectionRows(ym)
+   :projectionFrom(ym);
+ drawLineChart('projectionChart',dashboardProjectionRows.map(r=>({label:fmtMonth(r.ym),value:r.closing})))
 }
 function historyRowsForMonth(ym){
  const txs=state.transactions.filter(t=>monthKey(t.date)===ym).map(t=>({kind:'tx',id:t.id,date:t.date,type:t.type,description:t.description,category:t.category,account:t.account,status:t.status,amount:t.amount,notes:t.notes||''}));
