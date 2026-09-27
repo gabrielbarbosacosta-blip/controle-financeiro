@@ -63,66 +63,9 @@
     paint(statusFromText(text,bad));
   };
 
-  function pendingAmountForMonth(type,ym){
-    if(typeof state==='undefined'||!state?.transactions)return 0;
-    const normalizedType=String(type||'').trim().toLowerCase();
-    let total=state.transactions
-      .filter(t=>
-        String(t.type||'').trim().toLowerCase()===normalizedType&&
-        String(t.status||'').trim().toLowerCase()==='pendente'&&
-        String(t.date||'').slice(0,7)===ym
-      )
-      .reduce((sum,t)=>sum+(Number(t.amount)||0),0);
-
-    if(normalizedType==='despesa'&&Array.isArray(state.cards)&&typeof cardForecast==='function'){
-      total+=state.cards
-        .filter(card=>card.active!==false)
-        .filter(card=>getInvoice(card.id,ym)?.status!=='Paga')
-        .reduce((sum,card)=>sum+(Number(cardForecast(card,ym).total)||0),0);
-    }
-
-    return round2(total);
-  }
-
-  function mountPendingBox({valueId,boxId,labelId,type,color,label}){
-    const valueEl=document.getElementById(valueId);
-    if(!valueEl)return;
-    const card=valueEl.closest('.kpi');
-    if(!card)return;
-    let box=document.getElementById(boxId);
-    if(!box){
-      box=document.createElement('div');
-      box.id=boxId;
-      box.style.cssText='margin-top:8px;padding:6px 8px;border:1px solid #273449;border-radius:8px;background:#0b1424;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;line-height:1.2';
-      box.innerHTML=`<span class="pending-label" style="color:#94a3b8">${label}</span><strong id="${labelId}" style="font-size:12px;color:${color};font-variant-numeric:tabular-nums">—</strong>`;
-      card.appendChild(box);
-    }else{
-      const labelEl=box.querySelector('.pending-label');
-      if(labelEl)labelEl.textContent=label;
-    }
-    const ym=state?.settings?.selectedMonth;
-    const value=ym?pendingAmountForMonth(type,ym):0;
-    const target=document.getElementById(labelId);
-    if(target)target.textContent=fmtMoney(value);
-  }
-
-  function mountPendingValues(){
-    mountPendingBox({
-      valueId:'kpiIncome',
-      boxId:'kpiIncomeForecastBox',
-      labelId:'kpiIncomeForecast',
-      type:'Receita',
-      color:'#bbf7d0',
-      label:'Receitas pendentes'
-    });
-    mountPendingBox({
-      valueId:'kpiExpense',
-      boxId:'kpiExpensePendingBox',
-      labelId:'kpiExpensePending',
-      type:'Despesa',
-      color:'#fecaca',
-      label:'Despesas pendentes'
-    });
+  function removeLegacyPendingBoxes(){
+    document.getElementById('kpiIncomeForecastBox')?.remove();
+    document.getElementById('kpiExpensePendingBox')?.remove();
   }
 
   function anchorMainToTop(){
@@ -136,7 +79,7 @@
   if(typeof originalDashboard==='function'){
     window.renderDashboard=function(){
       originalDashboard.apply(this,arguments);
-      mountPendingValues();
+      removeLegacyPendingBoxes();
     };
   }
 
@@ -144,7 +87,7 @@
     anchorMainToTop();
     const el=document.getElementById('syncStatus');
     if(el){const initial=String(el.textContent||'');paint(statusFromText(initial,false));}
-    mountPendingValues();
+    removeLegacyPendingBoxes();
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
